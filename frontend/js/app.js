@@ -616,12 +616,12 @@ function renderWeather() {
   document.getElementById('stat-rainfall-desc').textContent = stats.rainfallDesc;
   document.getElementById('stat-humidity').textContent = stats.todayHumidity;
   document.getElementById('stat-wind').textContent = stats.todayWind;
-  document.getElementById('stat-condition').innerHTML = '<i class="fa fa-sun-o mr-1"></i>' + stats.conditionLabel;
+  document.getElementById('stat-condition').innerHTML = '<i class="fa fa-sun mr-1"></i>' + stats.conditionLabel;
 
   // 7日预报
   const forecast = dataService.getWeatherForecast();
   const fcContainer = document.getElementById('weather-forecast-list');
-  const condIcons = { sunny: 'fa-sun-o text-orange-400', cloudy: 'fa-cloud text-gray-400', rain: 'fa-tint text-blue-400', snow: 'fa-snowflake-o text-blue-300' };
+  const condIcons = { sunny: 'fa-sun text-orange-400', cloudy: 'fa-cloud text-gray-400', rain: 'fa-tint text-blue-400', snow: 'fa-snowflake text-blue-300' };
   fcContainer.innerHTML = forecast.slice(0, 7).map(f => `
     <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
       <span class="text-sm text-gray-700 w-14">${f.date}</span>

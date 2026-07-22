@@ -33,3 +33,6 @@ frontend/assets/screenshots/
 
 # 临时克隆目录
 -1/
+
+# 后端编译输出
+backend/target/
