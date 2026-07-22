@@ -235,9 +235,10 @@ function saveDiseaseRecord(name) {
   ds().insert('disease_records',{
     id:'dis_'+uid(), fieldId:'field_a1', fieldCode:'A1', diseaseName:name, cropAffected:'番茄',
     detectedAt:new Date().toISOString().slice(0,16).replace('T',' '),
-    severity:name==='无病虫害'?'low':'medium', status:name==='无病虫害'?'resolved':'processing',
+    severity:name==='无病虫害'?'低':'中', status:name==='无病虫害'?'resolved':'processing',
     imageUrl:'', treatmentPlan:'', resolvedAt:null
   });
+  if (dsReady()) ds().syncModuleState(); // 病虫害→自动生成喷药任务
   if (typeof renderDisease === 'function') renderDisease();
 }
 

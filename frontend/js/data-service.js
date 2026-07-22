@@ -230,13 +230,37 @@ class DataService {
   }
 
   getFieldStatusList() {
-    return this.getAll('fields').map(f => ({
-      code: f.code,
-      name: f.name,
-      cropName: f.cropName,
-      status: f.status,
-      moisture: f.soilMoisture
-    }));
+    var fields = this.getAll('fields');
+    var tasks = this.getAll('farming_tasks');
+    var diseases = this.getAll('disease_records');
+    var cycles = this.getAll('planting_cycles');
+
+    return fields.map(function(f) {
+      // 计算该地块的派生状态
+      var fieldTasks = tasks.filter(function(t) { return t.fieldId === f.id || t.fieldCode === f.code; });
+      var activeTasks = fieldTasks.filter(function(t) { return t.status === 'pending' || t.status === 'in_progress'; });
+      var fieldDiseases = diseases.filter(function(d) { return d.fieldId === f.id || d.fieldCode === f.code; });
+      var activeDisease = fieldDiseases.find(function(d) { return d.status === 'processing'; });
+      var fieldCycle = cycles.find(function(c) { return c.fieldId === f.id && !c.actualHarvestDate; });
+
+      // 计算运行状态
+      var derivedStatus = f.status;
+      if (activeDisease) derivedStatus = 'disease';
+      else if (activeTasks.length > 0) derivedStatus = f.status === 'fallow' ? 'growing' : f.status;
+      else if (!fieldCycle) derivedStatus = 'fallow';
+
+      return {
+        id: f.id, code: f.code, name: f.name, cropName: f.cropName,
+        status: derivedStatus, moisture: f.soilMoisture,
+        area: f.area, soilPh: f.soilPh,
+        plantedDate: f.plantedDate, expectedHarvest: f.expectedHarvest,
+        taskCount: activeTasks.length,
+        hasDisease: !!activeDisease,
+        diseaseName: activeDisease ? activeDisease.diseaseName : null,
+        growthStage: fieldCycle ? fieldCycle.growthStage : null,
+        cycleId: fieldCycle ? fieldCycle.id : null
+      };
+    });
   }
 
   getTodayTasks() {
@@ -298,7 +322,26 @@ class DataService {
   }
 
   getFieldManagementList() {
-    return this.getAll('fields');
+    var fields = this.getAll('fields');
+    var tasks = this.getAll('farming_tasks');
+    var cycles = this.getAll('planting_cycles');
+
+    return fields.map(function(f) {
+      var fieldTasks = tasks.filter(function(t) { return t.fieldId === f.id || t.fieldCode === f.code; });
+      var activeTasks = fieldTasks.filter(function(t) { return t.status === 'pending' || t.status === 'in_progress'; });
+      var completedTasks = fieldTasks.filter(function(t) { return t.status === 'completed'; });
+      var fieldCycle = cycles.find(function(c) { return c.fieldId === f.id && !c.actualHarvestDate; });
+
+      return {
+        id: f.id, code: f.code, name: f.name,
+        cropName: f.cropName, area: f.area, status: f.status,
+        soilMoisture: f.soilMoisture, soilPh: f.soilPh,
+        plantedDate: f.plantedDate, expectedHarvest: f.expectedHarvest,
+        activeTaskCount: activeTasks.length, completedTaskCount: completedTasks.length,
+        growthStage: fieldCycle ? fieldCycle.growthStage : null,
+        location: f.location
+      };
+    });
   }
 
   getFarmingTasks() {
@@ -737,6 +780,102 @@ class DataService {
       technicianCount: users.filter(u => u.role === 'technician' && u.status === 'active').length,
       farmerCount: users.filter(u => u.role === 'farmer' && u.status === 'active').length,
       managerCount: users.filter(u => u.role === 'manager' && u.status === 'active').length
+    };
+  }
+
+  // ==================== 跨模块状态同步 ====================
+
+  /**
+   * 统一状态同步：任务完成→地块状态联动，病虫害→任务生成
+   * 在任何 CRUD 操作后调用，保持模块间数据一致
+   */
+  syncModuleState() {
+    var fields = this.getAll('fields');
+    var tasks = this.getAll('farming_tasks');
+    var diseases = this.getAll('disease_records');
+    var cycles = this.getAll('planting_cycles');
+
+    fields.forEach(function(f) {
+      var fieldTasks = tasks.filter(function(t) { return t.fieldId === f.id || t.fieldCode === f.code; });
+      var activeTasks = fieldTasks.filter(function(t) { return t.status === 'pending' || t.status === 'in_progress'; });
+      var fieldDiseases = diseases.filter(function(d) { return d.fieldId === f.id || d.fieldCode === f.code; });
+      var activeDisease = fieldDiseases.find(function(d) { return d.status === 'processing'; });
+      var fieldCycle = cycles.find(function(c) { return c.fieldId === f.id && !c.actualHarvestDate; });
+
+      // 联动1：有活跃病虫害→地块状态为disease
+      if (activeDisease && f.status !== 'disease') {
+        f.status = 'disease';
+      }
+
+      // 联动2：灌溉任务完成→土壤湿度恢复正常
+      var completedWatering = fieldTasks.filter(function(t) { return t.type === 'watering' && t.status === 'completed'; });
+      if (completedWatering.length > 0 && f.soilMoisture && f.soilMoisture < 60) {
+        f.soilMoisture = Math.min(f.soilMoisture + 15, 80);
+      }
+
+      // 联动3：无活跃任务无病虫害→地块正常生长
+      if (!activeDisease && activeTasks.length === 0 && f.status === 'disease') {
+        f.status = 'growing';
+      }
+
+      // 联动4：有活跃任务→根据任务类型推断状态
+      if (activeTasks.length > 0 && f.status === 'fallow') {
+        f.status = 'growing';
+      }
+      var hasWateringNeed = activeTasks.some(function(t) { return t.type === 'watering'; });
+      if (hasWateringNeed && f.status !== 'disease') {
+        f.status = 'watering';
+      }
+    });
+
+    // 联动5：病虫害记录未处理→自动生成喷药任务
+    diseases.forEach(function(d) {
+      if (d.status === 'processing') {
+        var hasSprayTask = tasks.some(function(t) {
+          return (t.fieldId === d.fieldId || t.fieldCode === d.fieldCode) &&
+                 t.type === 'spraying' && t.status !== 'completed' && t.status !== 'cancelled';
+        });
+        if (!hasSprayTask) {
+          var taskId = 'task_' + ('s' + Date.now().toString(36));
+          tasks.push({
+            id: taskId, type: 'spraying', fieldId: d.fieldId, fieldCode: d.fieldCode,
+            cropName: d.cropAffected, scheduledTime: new Date().toISOString().slice(0, 10) + ' 09:00',
+            estimatedDuration: 1.5, status: 'pending', assignedTo: 'u002',
+            priority: 'high', notes: '自动生成：处理' + d.diseaseName, completedAt: null
+          });
+        }
+      }
+    });
+  }
+
+  /**
+   * 获取地块综合详情（跨模块聚合）
+   */
+  getFieldComprehensiveDetail(fieldId) {
+    var f = this.getById('fields', fieldId);
+    if (!f) return null;
+
+    var tasks = this.getAll('farming_tasks').filter(function(t) { return t.fieldId === fieldId || t.fieldCode === f.code; });
+    var diseases = this.getAll('disease_records').filter(function(d) { return d.fieldId === fieldId || d.fieldCode === f.code; });
+    var cycles = this.getAll('planting_cycles').filter(function(c) { return c.fieldId === fieldId; });
+    var observations = this.getAll('observations').filter(function(o) { return o.fieldId === fieldId; });
+    var irrigationPlans = this.getAll('irrigation_plans').filter(function(p) { return p.fieldId === fieldId; });
+    var fertPlans = this.getAll('fertilization_plans').filter(function(p) { return p.fieldId === fieldId; });
+
+    return {
+      field: f,
+      tasks: tasks,
+      activeTasks: tasks.filter(function(t) { return t.status === 'pending' || t.status === 'in_progress'; }),
+      completedTasks: tasks.filter(function(t) { return t.status === 'completed'; }),
+      diseases: diseases,
+      activeDisease: diseases.find(function(d) { return d.status === 'processing'; }),
+      cycles: cycles,
+      activeCycle: cycles.find(function(c) { return !c.actualHarvestDate; }),
+      observations: observations.slice(-5).reverse(),
+      irrigationPlans: irrigationPlans,
+      fertPlans: fertPlans,
+      taskSummary: tasks.length + '个任务 / ' + tasks.filter(function(t) { return t.status === 'completed'; }).length + '已完成',
+      diseaseSummary: diseases.length > 0 ? diseases.length + '条记录' : '无病虫害记录'
     };
   }
 }

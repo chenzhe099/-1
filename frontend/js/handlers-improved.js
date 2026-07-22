@@ -1037,6 +1037,88 @@ function autoReplenishTask() {
     detail: '地块: ' + field.code + ' / 类型: ' + type + ' / 时间: ' + startTime,
     timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
   });
+
+  ds().syncModuleState(); // 跨模块联动
+}
+
+// ==================== 地块综合详情弹窗 ====================
+
+function showFieldComprehensiveDetail(fieldId) {
+  if (!dsReady()) return;
+  var detail = ds().getFieldComprehensiveDetail(fieldId);
+  if (!detail || !detail.field) { showToast('地块不存在', 'warning'); return; }
+
+  var f = detail.field;
+  var sc = statusColor(f.status);
+
+  var body = '<div class="space-y-4">' +
+    // 地块概览
+    '<div class="bg-gradient-to-r from-' + sc + '-50 to-white rounded-xl p-4 border border-' + sc + '-100">' +
+      '<h4 class="text-lg font-bold">' + f.code + ' — ' + f.cropName + '</h4>' +
+      '<div class="grid grid-cols-3 gap-3 mt-3 text-sm">' +
+        '<div class="bg-white p-2 rounded"><span class="text-xs text-gray-500">面积</span><p class="font-bold">' + f.area + '亩</p></div>' +
+        '<div class="bg-white p-2 rounded"><span class="text-xs text-gray-500">土壤湿度</span><p class="font-bold">' + (f.soilMoisture || '--') + '%</p></div>' +
+        '<div class="bg-white p-2 rounded"><span class="text-xs text-gray-500">pH值</span><p class="font-bold">' + (f.soilPh || '--') + '</p></div>' +
+        '<div class="bg-white p-2 rounded"><span class="text-xs text-gray-500">种植日期</span><p class="font-bold">' + (f.plantedDate || '--') + '</p></div>' +
+        '<div class="bg-white p-2 rounded"><span class="text-xs text-gray-500">预计采收</span><p class="font-bold">' + (f.expectedHarvest || '--') + '</p></div>' +
+        '<div class="bg-white p-2 rounded"><span class="text-xs text-gray-500">状态</span><p class="font-bold">' + (detail.activeCycle ? detail.activeCycle.growthStage || statusLabel(f.status) : statusLabel(f.status)) + '</p></div>' +
+      '</div>' +
+    '</div>';
+
+  // 活跃任务
+  if (detail.activeTasks.length > 0) {
+    body += '<div class="bg-white rounded-xl p-4 border"><h5 class="font-semibold mb-2 text-blue-700"><i class="fa fa-tasks mr-1"></i>活跃任务 (' + detail.activeTasks.length + ')</h5>' +
+      detail.activeTasks.slice(0, 4).map(function(t) { return taskItemHTML(t); }).join('') +
+      '</div>';
+  }
+
+  // 已完成任务
+  if (detail.completedTasks.length > 0) {
+    body += '<div class="bg-white rounded-xl p-4 border"><h5 class="font-semibold mb-2 text-green-700"><i class="fa fa-check-circle mr-1"></i>已完成任务 (' + detail.completedTasks.length + ')</h5>' +
+      '<div class="space-y-1 max-h-40 overflow-y-auto">' +
+      detail.completedTasks.slice(0, 5).map(function(t) { return taskItemHTML(t); }).join('') +
+      '</div></div>';
+  }
+
+  // 病虫害记录
+  if (detail.diseases.length > 0) {
+    body += '<div class="bg-white rounded-xl p-4 border"><h5 class="font-semibold mb-2 text-red-700"><i class="fa fa-bug mr-1"></i>病虫害记录 (' + detail.diseases.length + ')</h5>' +
+      detail.diseases.slice(0, 3).map(function(d) {
+        return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100" onclick="showDiseaseHistoryDetail(\'' + d.id + '\')">' +
+          '<span class="text-sm">' + d.diseaseName + '</span>' +
+          '<span class="text-xs text-gray-500">' + (d.detectedAt || '') + '</span>' +
+          badge(d.status) +
+        '</div>';
+      }).join('') +
+      '</div>';
+  }
+
+  // 种植周期
+  if (detail.activeCycle) {
+    var c = detail.activeCycle;
+    body += '<div class="bg-white rounded-xl p-4 border"><h5 class="font-semibold mb-2 text-purple-700"><i class="fa fa-seedling mr-1"></i>当前种植周期</h5>' +
+      '<div class="grid grid-cols-2 gap-2 text-sm">' +
+        '<div><span class="text-gray-500">品种：</span>' + c.cropName + '</div>' +
+        '<div><span class="text-gray-500">阶段：</span>' + (c.growthStage || '--') + '</div>' +
+        '<div><span class="text-gray-500">种植：</span>' + (c.plantedDate || '--') + '</div>' +
+        '<div><span class="text-gray-500">预计采收：</span>' + (c.expectedHarvestDate || '--') + '</div>' +
+      '</div></div>';
+  }
+
+  // 最近观测
+  if (detail.observations && detail.observations.length > 0) {
+    body += '<div class="bg-white rounded-xl p-4 border"><h5 class="font-semibold mb-2 text-teal-700"><i class="fa fa-eye mr-1"></i>最近田间观测</h5>' +
+      detail.observations.slice(0, 3).map(function(o) {
+        return '<div class="p-2 bg-gray-50 rounded mb-1"><span class="text-sm">' + (o.growthStage || '') + '</span>' +
+          '<span class="text-xs text-gray-500 ml-2">' + (o.observedAt || '') + '</span>' +
+          (o.notes ? '<p class="text-xs text-gray-600 mt-1">' + o.notes + '</p>' : '') +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  body += '</div>';
+
+  modal.detail({ title: '地块综合详情 — ' + f.code + ' ' + f.cropName, body: body, width: 'max-w-lg' });
 }
 
 // ==================== 任务折叠/展开 ====================

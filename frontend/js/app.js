@@ -146,18 +146,21 @@ function renderDashboard() {
   document.getElementById('stat-monthly-yield').textContent = stats.monthlyYield + stats.yieldUnit;
   document.getElementById('stat-yield-change').innerHTML = `<i class="fa fa-chart-line mr-1"></i>${stats.yieldSummary}`;
 
-  // 地块状态
+  // 地块状态 — 点击查看综合详情
   const fields = dataService.getFieldStatusList();
   const fieldContainer = document.getElementById('field-status-list');
   fieldContainer.innerHTML = fields.map(f => {
     const sc = statusColor(f.status);
+    var badgeText = f.taskCount > 0 ? f.taskCount + '个任务' : '';
+    if (f.hasDisease) badgeText = '🐛 病害';
+    if (!badgeText) badgeText = statusLabel(f.status);
     return `
-      <div class="flex items-center justify-between p-3 bg-${sc}-50 rounded-lg">
+      <div class="flex items-center justify-between p-3 bg-${sc}-50 rounded-lg cursor-pointer hover:bg-${sc}-100 transition-colors" onclick="showFieldComprehensiveDetail('${f.id}')">
         <div class="flex items-center">
           <span class="w-2 h-2 bg-${sc}-500 rounded-full mr-2"></span>
           <span class="text-sm text-gray-700">地块${f.code} - ${f.cropName}</span>
         </div>
-        <span class="text-xs text-${sc}-600">${statusLabel(f.status)}</span>
+        <span class="text-xs text-${sc}-600">${badgeText}</span>
       </div>`;
   }).join('');
 
