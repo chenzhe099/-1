@@ -1,5 +1,6 @@
 package com.smartfarm.service;
 
+import com.smartfarm.entity.EnvironmentReadings;
 import com.smartfarm.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,8 @@ public class DashboardService {
 
         double totalYield = yieldRepo.findAll().stream()
                 .filter(y -> y.getPredicted() != null)
-                .mapToDouble(y -> y.getPredicted() != null ? y.getPredicted() : 0)
+                .filter(y -> y.getPredicted() != null)
+                .mapToDouble(y -> y.getPredicted())
                 .sum();
         stats.put("monthlyYield", String.format("%.1f", totalYield));
         stats.put("yieldUnit", "吨");

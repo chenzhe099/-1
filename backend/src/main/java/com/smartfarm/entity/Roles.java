@@ -23,7 +23,7 @@ public class Roles {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "permissions")
+    @Column(name = "permissions", columnDefinition = "TEXT")
     private String permissions;
 
 }

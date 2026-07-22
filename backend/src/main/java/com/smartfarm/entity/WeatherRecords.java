@@ -26,13 +26,13 @@ public class WeatherRecords {
     @Column(name = "humidity")
     private Integer humidity;
 
-    @Column(name = "rainfall_mm")
-    private Integer rainfall_mm;
+    @Column(columnDefinition = "DECIMAL(10,2)")
+    private Double rainfallMm;
 
     @Column(name = "windSpeed")
     private Double windSpeed;
 
-    @Column(name = "condition")
+    @Column(name = "`condition`")
     private String condition;
 
     @Column(name = "forecast")
