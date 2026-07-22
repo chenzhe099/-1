@@ -845,3 +845,78 @@ function performSearch(query) {
   });
   if (!found) showToast('未找到与「' + query + '」相关的模块', 'info');
 }
+
+// ==================== 农事任务：编辑与删除 ====================
+
+/**
+ * 点击任务条目 → 弹出编辑表单
+ */
+function editTaskItem(taskId) {
+  if (!dsReady()) return;
+  var t = ds().getById('farming_tasks', taskId);
+  if (!t) { showToast('任务不存在', 'warning'); return; }
+
+  var typeOptions = [
+    { value: 'watering', label: '浇水' }, { value: 'fertilizing', label: '施肥' },
+    { value: 'spraying', label: '喷药' }, { value: 'pruning', label: '修剪' },
+    { value: 'harvesting', label: '采收' }, { value: 'thinning', label: '疏果' }
+  ];
+  var statusOptions = [
+    { value: 'pending', label: '待开始' }, { value: 'in_progress', label: '进行中' },
+    { value: 'completed', label: '已完成' }, { value: 'cancelled', label: '已取消' }
+  ];
+  var priorityOptions = [
+    { value: 'high', label: '高' }, { value: 'medium', label: '中' }, { value: 'low', label: '低' }
+  ];
+
+  modal.form({
+    title: '编辑任务 — ' + t.fieldCode + taskTypeLabel(t.type),
+    fields: [
+      { name: 'type', label: '任务类型', type: 'select', required: true, options: typeOptions, value: t.type },
+      { name: 'status', label: '状态', type: 'select', required: true, options: statusOptions, value: t.status },
+      { name: 'priority', label: '优先级', type: 'select', options: priorityOptions, value: t.priority },
+      { name: 'notes', label: '备注', type: 'textarea', rows: 2, value: t.notes || '', placeholder: '可选备注' }
+    ],
+    submitLabel: '保存修改',
+    onSubmit: function(data) {
+      var update = { type: data.type, status: data.status, priority: data.priority, notes: data.notes };
+      if (data.status === 'completed' && t.status !== 'completed') {
+        update.completedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      }
+      ds().update('farming_tasks', taskId, update);
+      ds().insert('operation_logs', {
+        id: 'log_' + uid(), userId: 'u001', username: 'admin',
+        module: 'farming', action: '编辑任务: ' + t.fieldCode + taskTypeLabel(t.type),
+        detail: '状态: ' + data.status + ', 优先级: ' + data.priority,
+        timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
+      });
+      renderDashboard();
+      if (typeof renderFarming === 'function') renderFarming();
+      showToast('任务已更新', 'success');
+    }
+  });
+}
+
+/**
+ * 删除任务（event 传入阻止冒泡）
+ */
+function deleteTaskItem(event, taskId) {
+  event.stopPropagation();
+  if (!dsReady()) return;
+  var t = ds().getById('farming_tasks', taskId);
+  if (!t) { showToast('任务不存在', 'warning'); return; }
+
+  modal.confirm('删除任务', '确定要删除「' + t.fieldCode + taskTypeLabel(t.type) + '」吗？此操作不可恢复。').then(function(ok) {
+    if (ok) {
+      ds().delete('farming_tasks', taskId);
+      ds().insert('operation_logs', {
+        id: 'log_' + uid(), userId: 'u001', username: 'admin',
+        module: 'farming', action: '删除任务: ' + t.fieldCode + taskTypeLabel(t.type),
+        detail: '原状态: ' + t.status, timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
+      });
+      renderDashboard();
+      if (typeof renderFarming === 'function') renderFarming();
+      showToast('任务已删除', 'success');
+    }
+  });
+}

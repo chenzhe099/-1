@@ -98,13 +98,13 @@ function severityBadge(severity) {
   return `<span class="px-2 py-1 text-xs bg-${c}-100 text-${c}-600 rounded">${labels[severity] || severity}</span>`;
 }
 
-/** 任务条目 HTML */
+/** 任务条目 HTML — 含编辑和删除按钮 */
 function taskItemHTML(task) {
   const ti = TASK_TYPE_MAP[task.type] || { label: task.type, icon: 'fa-circle', color: 'gray' };
   const statusCls = statusColor(task.status);
   const timeStr = task.scheduledTime ? task.scheduledTime.slice(11, 16) + ' - ' + addHours(task.scheduledTime.slice(11, 16), task.estimatedDuration) : '待定';
   return `
-    <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-task-id="${task.id}">
+    <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer task-item-row" data-task-id="${task.id}" onclick="editTaskItem('${task.id}')">
       <div class="w-8 h-8 bg-${ti.color}-100 rounded-full flex items-center justify-center mr-3">
         <i class="fa ${ti.icon} text-${ti.color}-600"></i>
       </div>
@@ -112,7 +112,11 @@ function taskItemHTML(task) {
         <p class="text-sm font-medium text-gray-800">${task.fieldCode}${ti.label}</p>
         <p class="text-xs text-gray-500">${timeStr} · 预计${task.estimatedDuration}小时</p>
       </div>
-      <span class="px-2 py-1 text-xs bg-${statusCls}-100 text-${statusCls}-600 rounded">${statusLabel(task.status)}</span>
+      <span class="px-2 py-1 text-xs bg-${statusCls}-100 text-${statusCls}-600 rounded mr-2">${statusLabel(task.status)}</span>
+      <button class="w-6 h-6 bg-red-50 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors task-delete-btn"
+        data-task-id="${task.id}" onclick="deleteTaskItem(event, '${task.id}')" title="删除任务">
+        <i class="fa fa-times text-red-400 text-xs"></i>
+      </button>
     </div>`;
 }
 
