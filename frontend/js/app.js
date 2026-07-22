@@ -339,7 +339,7 @@ function renderFarming() {
   if (fieldList) {
     fieldList.innerHTML = fields.map(function(f) {
       var sc = statusColor(f.status);
-      return '<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors field-mgmt-row" data-field-id="' + f.id + '" onclick="showFieldComprehensiveDetail('' + f.id + '')">' +
+      return '<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors field-mgmt-row" data-field-id="' + f.id + '" onclick="showFieldComprehensiveDetail(\&apos;" + f.id + "\&apos;)">' +
         '<div class="flex items-center">' +
           '<div class="w-10 h-10 bg-' + sc + '-100 rounded-lg flex items-center justify-center mr-3">' +
             '<i class="fa fa-map-marker text-' + sc + '-600"></i>' +
@@ -351,7 +351,7 @@ function renderFarming() {
         '</div>' +
         '<div class="flex items-center space-x-2">' +
           badge(f.status) +
-          '<button class="w-6 h-6 bg-red-50 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors field-delete-btn" data-field-id="' + f.id + '" onclick="event.stopPropagation();deleteField('' + f.id + '')" title="删除地块">' +
+          '<button class="w-6 h-6 bg-red-50 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors field-delete-btn" data-field-id="' + f.id + '" onclick="event.stopPropagation();deleteField(\&apos;" + f.id + "\&apos;)" title="删除地块">' +
             '<i class="fa fa-times text-red-400 text-xs"></i>' +
           '</button>' +
         '</div>' +
@@ -383,7 +383,7 @@ function renderFarming() {
       return '<div><div class="flex items-center justify-between mb-1">' +
         '<span class="text-sm text-gray-600">' + p.name + '</span>' +
         '<span class="text-sm font-medium text-gray-800">' + p.progress + '%</span></div>' +
-        '<div class="w-full bg-gray-200 rounded-full h-2 cursor-pointer" onclick="showFarmingProgressDetail('' + p.type + '')">' +
+        '<div class="w-full bg-gray-200 rounded-full h-2 cursor-pointer" onclick="showFarmingProgressDetail(\&apos;" + p.type + "\&apos;)">' +
         '<div class="bg-' + p.color + '-500 h-2 rounded-full" style="width:' + p.progress + '%"></div></div></div>';
     }).join('');
   }
