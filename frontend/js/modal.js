@@ -40,11 +40,10 @@ class Modal {
       });
     }
 
-    // 关闭按钮
-    const closeBtn = this._overlay.querySelector('.modal-close-btn');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.close());
-    }
+    // 关闭按钮（可能有多处：标题栏 + 底部栏）
+    this._overlay.querySelectorAll('.modal-close-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { modal.close(); });
+    });
 
     // ESC 关闭
     this._escHandler = (e) => { if (e.key === 'Escape') this.close(); };

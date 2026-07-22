@@ -534,29 +534,33 @@ async function showConfirmDialog(title, message) {
 
 function showAllTasksModal() {
   if (!dataService.isReady()) return;
-  const tasks = dataService.getAll('farming_tasks');
+  var tasks = dataService.getFarmingTasks();
+  var parts = partitionTasks(tasks);
 
-  modal.table({
-    title: '全部农事任务',
-    columns: [
-      { key: 'field', label: '地块' },
-      { key: 'type', label: '任务类型' },
-      { key: 'time', label: '计划时间' },
-      { key: 'duration', label: '时长' },
-      { key: 'status', label: '状态' },
-      { key: 'priority', label: '优先级' }
-    ],
-    rows: tasks.sort((a, b) => b.scheduledTime.localeCompare(a.scheduledTime)),
-    rowRenderer: (t) => `
-      <tr class="hover:bg-gray-50 transition-colors">
-        <td class="px-4 py-3 text-sm text-gray-700">${t.fieldCode} · ${t.cropName || ''}</td>
-        <td class="px-4 py-3 text-sm">${taskTypeLabel(t.type)}</td>
-        <td class="px-4 py-3 text-sm text-gray-600">${formatDateTime(t.scheduledTime)}</td>
-        <td class="px-4 py-3 text-sm text-gray-600">${t.estimatedDuration}h</td>
-        <td class="px-4 py-3">${badge(t.status)}</td>
-        <td class="px-4 py-3">${badge(t.priority)}</td>
-      </tr>`
+  var body = '<div class="space-y-2">';
+  // 活跃任务
+  parts.active.forEach(function(t) {
+    body += taskItemHTML(t);
   });
+  if (parts.active.length === 0) {
+    body += '<div class="text-center text-gray-400 py-4">暂无待办任务</div>';
+  }
+
+  // 已完成折叠区
+  if (parts.done.length > 0) {
+    body += '<div class="mt-3 pt-3 border-t border-gray-200">' +
+      '<div class="flex items-center justify-between text-xs text-gray-400 cursor-pointer hover:text-gray-600 py-2" onclick="toggleCompletedTasks(this)">' +
+      '<span><i class="fa fa-chevron-down mr-1 completed-toggle-icon"></i>已完成任务 (' + parts.done.length + ')</span>' +
+      '<span class="text-gray-300 completed-toggle-arrow">▼</span></div>' +
+      '<div class="completed-tasks-wrap hidden space-y-2">';
+    parts.done.forEach(function(t) {
+      body += taskItemHTML(t);
+    });
+    body += '</div></div>';
+  }
+  body += '</div>';
+
+  modal.detail({ title: '全部农事任务', body: body, width: 'max-w-2xl' });
 }
 
 // ==================== 权限管理：查看全部日志弹窗 ====================
@@ -897,6 +901,8 @@ function editTaskItem(taskId) {
       }
       renderDashboard();
       if (typeof renderFarming === 'function') renderFarming();
+      // 如果全部任务弹窗开着，刷新弹窗内容
+      refreshAllTasksModalIfOpen();
       showToast('任务已更新', 'success');
     }
   });
@@ -925,9 +931,22 @@ function deleteTaskItem(event, taskId) {
       }
       renderDashboard();
       if (typeof renderFarming === 'function') renderFarming();
+      refreshAllTasksModalIfOpen();
       showToast('任务已删除', 'success');
     }
   });
+}
+
+// ==================== 全部任务弹窗内刷新 ====================
+
+function refreshAllTasksModalIfOpen() {
+  // 检测全部任务弹窗是否打开（footer 中有 modal-close-btn）
+  var footerBtn = document.querySelector('.modal-footer .modal-close-btn');
+  if (footerBtn) {
+    // 弹窗开着 → 关闭旧弹窗并重新打开
+    modal.close();
+    setTimeout(function() { showAllTasksModal(); }, 250);
+  }
 }
 
 // ==================== 任务自动轮换 ====================
