@@ -1,0 +1,71 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smart-farm-backend
+
+  # 默认使用 H2 内存数据库（开发/演示用）
+  # 生产环境切换为 MySQL（见下方注释）
+  datasource:
+    url: jdbc:h2:mem:smartfarm;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # === MySQL 生产配置（需先创建数据库） ===
+  # datasource:
+  #   url: jdbc:mysql://localhost:3306/smartfarm?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
+  #   driver-class-name: com.mysql.cj.jdbc.Driver
+  #   username: root
+  #   password: smartfarm123
+
+  jpa:
+    hibernate:
+      ddl-auto: update          # 开发: update | 生产: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        # dialect: org.hibernate.dialect.MySQLDialect  # MySQL 时使用
+
+  flyway:
+    enabled: false              # 使用 JPA ddl-auto 时关闭，生产改为 true
+    locations: classpath:db/migration
+
+  # Redis 配置（需要时启用）
+  # data:
+  #   redis:
+  #     host: localhost
+  #     port: 6379
+
+  # 文件上传
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+# JWT 配置
+app:
+  jwt:
+    secret: c21hcnRmYXJtLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLTIwMjQ=
+    expiration-ms: 86400000    # 24小时
+
+# Swagger
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+
+# 日志
+logging:
+  level:
+    com.smartfarm: DEBUG
+    org.springframework.security: INFO

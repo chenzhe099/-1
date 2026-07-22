@@ -30,3 +30,6 @@ frontend/assets/screenshots/
 # 敏感配置
 .env
 *.secret
+
+# 临时克隆目录
+-1/
