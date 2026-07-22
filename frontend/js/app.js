@@ -6,15 +6,23 @@
 // ==================== 初始化 ====================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // 显示登录弹窗
-  showLoginModal();
-
-  // 加载数据（后台进行，登录后继续）
+  // 加载数据（后台进行）
   try {
     await initDataService();
     console.log('[App] 数据服务就绪');
   } catch (err) {
     console.error('[App] 数据加载失败:', err);
+  }
+
+  // 登录记忆：如果已有登录状态，直接进入系统
+  if (Auth.isLoggedIn()) {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app-container').style.display = '';
+    Auth.applyPermissionUI();
+    initAppAfterLogin();
+    console.log('[App] 自动登录: ' + Auth.getUser().displayName);
+  } else {
+    showLoginModal();
   }
 });
 

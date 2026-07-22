@@ -62,7 +62,8 @@ const Auth = (() => {
   function getUser() {
     if (currentUser) return currentUser;
     try {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
+      // 优先从 localStorage 读取（持久化），回退到 sessionStorage
+      const stored = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
       if (stored) {
         currentUser = JSON.parse(stored);
         return currentUser;
@@ -74,11 +75,13 @@ const Auth = (() => {
   function setUser(user) {
     currentUser = user;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
   }
 
   function clearUser() {
     currentUser = null;
     sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
   }
 
   // ==================== 核心方法 ====================
