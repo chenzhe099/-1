@@ -135,7 +135,10 @@ function renderDashboard() {
 
   // 统计卡片 — 标注从数据中来
   document.getElementById('stat-tasks-today').textContent = stats.tasksToday;
-  document.getElementById('stat-tasks-change').innerHTML = `<i class="fa fa-check-circle mr-1"></i>${stats.tasksSummary}`;
+  // 全部任务统计
+  var allTasks = dataService.getFarmingTasks();
+  var tp = partitionTasks(allTasks);
+  document.getElementById('stat-tasks-change').innerHTML = '<i class="fa fa-check-circle mr-1"></i>活跃 ' + tp.active.length + ' / 已完成 ' + tp.done.length;
   document.getElementById('stat-device-rate').textContent = stats.deviceOnlineRate + '%';
   document.getElementById('stat-device-change').innerHTML = `<i class="fa fa-plug mr-1"></i>${stats.deviceSummary}`;
   document.getElementById('stat-alert-count').textContent = stats.alertCount;
@@ -158,8 +161,8 @@ function renderDashboard() {
       </div>`;
   }).join('');
 
-  // 今日任务（活跃在前，已完成折叠）
-  const tasks = dataService.getTodayTasks();
+  // 全部农事任务（活跃在前，已完成折叠，与全部任务弹窗一致）
+  const tasks = dataService.getFarmingTasks();
   const parts = partitionTasks(tasks);
   var taskHTML = parts.active.map(t => taskItemHTML(t)).join('');
   if (parts.done.length > 0) {
