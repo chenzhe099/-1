@@ -245,32 +245,106 @@ function saveDiseaseRecord(name) {
 // ==================== 精准农事 ====================
 
 function setupFarming() {
-  document.querySelectorAll('#irrigation-plan-list button').forEach(function(btn) {
+  // 灌溉方案按钮：立即执行/定时执行/停止执行
+  document.querySelectorAll('.btn-irr-execute').forEach(function(btn) {
     btn.onclick = function() {
-      var card = this.closest('.p-4');
-      var fn = card?.querySelector('span.font-medium')?.textContent||'';
-      var txt = this.textContent.trim();
-      if (txt.includes('立即执行')) {
-        if (dsReady()) { var p = ds().getAll('irrigation_plans').find(function(x){return fn.includes(x.fieldCode);}); if(p)ds().update('irrigation_plans',p.id,{status:'executing'}); }
-        showToast(fn+' 灌溉方案已启动执行','success');
-      } else if (txt.includes('定时执行')) {
-        modal.form({
-          title:'定时执行 — '+fn, fields:[
-            {name:'date',label:'执行日期',type:'date',required:true,value:new Date().toISOString().slice(0,10)},
-            {name:'time',label:'执行时间',type:'time',required:true,value:'14:00'}
-          ], submitLabel:'确认定时', onSubmit:function(d){ showToast(fn+' 灌溉已定时: '+d.date+' '+d.time,'success'); }
-        });
-      }
+      var planId = this.dataset.planId;
+      if (!dsReady() || !planId) return;
+      var p = ds().getById('irrigation_plans', planId);
+      if (!p) return;
+      ds().update('irrigation_plans', planId, { status: 'executing' });
+      ds().syncModuleState();
+      renderFarming();
+      showToast('地块 ' + p.fieldCode + ' 灌溉方案已启动执行', 'success');
     };
   });
 
-  document.querySelectorAll('#fertilization-plan-list button').forEach(function(btn) {
+  document.querySelectorAll('.btn-irr-schedule').forEach(function(btn) {
     btn.onclick = function() {
-      var card = this.closest('.p-4'); var fn = card?.querySelector('span.font-medium')?.textContent||'';
-      if (this.textContent.trim().includes('生成方案')) {
-        showToast('正在为'+fn+'生成精准施肥方案...','info');
-        setTimeout(function(){ showToast(fn+' 施肥方案已生成','success'); },1500);
+      var planId = this.dataset.planId;
+      if (!dsReady() || !planId) return;
+      var p = ds().getById('irrigation_plans', planId);
+      if (!p) return;
+      modal.form({
+        title: '定时执行 — 地块' + p.fieldCode + ' ' + p.cropName,
+        fields: [
+          { name: 'date', label: '执行日期', type: 'date', required: true, value: new Date().toISOString().slice(0, 10) },
+          { name: 'time', label: '执行时间', type: 'time', required: true, value: '14:00' }
+        ],
+        submitLabel: '确认定时',
+        onSubmit: function(d) {
+          ds().update('irrigation_plans', planId, { status: 'executing', scheduledAt: d.date + ' ' + d.time });
+          ds().syncModuleState();
+          renderFarming();
+          showToast('地块' + p.fieldCode + ' 灌溉已定时: ' + d.date + ' ' + d.time, 'success');
+        }
+      });
+    };
+  });
+
+  document.querySelectorAll('.btn-irr-stop').forEach(function(btn) {
+    btn.onclick = function() {
+      var planId = this.dataset.planId;
+      if (!dsReady() || !planId) return;
+      var p = ds().getById('irrigation_plans', planId);
+      if (!p) return;
+      ds().update('irrigation_plans', planId, { status: 'completed' });
+      if (p.fieldId) {
+        var field = ds().getById('fields', p.fieldId);
+        if (field && field.soilMoisture < 80) {
+          ds().update('fields', p.fieldId, { soilMoisture: Math.min(field.soilMoisture + 15, 80) });
+        }
       }
+      ds().syncModuleState();
+      renderFarming();
+      showToast('地块 ' + p.fieldCode + ' 灌溉已完成，土壤湿度已更新', 'success');
+    };
+  });
+
+  // 施肥方案按钮：配置NPK/执行施肥
+  document.querySelectorAll('.btn-fert-config').forEach(function(btn) {
+    btn.onclick = function() {
+      var planId = this.dataset.planId;
+      if (!dsReady() || !planId) return;
+      var p = ds().getById('fertilization_plans', planId);
+      if (!p) return;
+      modal.form({
+        title: '配置施肥方案 — 地块' + p.fieldCode + ' ' + p.cropName,
+        fields: [
+          { name: 'nKg', label: '氮肥(N) kg', type: 'number', required: true, value: String(p.nKg || 15), hint: '传感器读数: ' + (p.soilN || 85) },
+          { name: 'pKg', label: '磷肥(P) kg', type: 'number', required: true, value: String(p.pKg || 8), hint: '传感器读数: ' + (p.soilP || 72) },
+          { name: 'kKg', label: '钾肥(K) kg', type: 'number', required: true, value: String(p.kKg || 12), hint: '传感器读数: ' + (p.soilK || 78) },
+          { name: 'organicKg', label: '有机肥 kg', type: 'number', required: true, value: String(p.organicKg || 50) }
+        ],
+        submitLabel: '保存施肥方案',
+        onSubmit: function(d) {
+          ds().update('fertilization_plans', planId, {
+            nKg: parseFloat(d.nKg), pKg: parseFloat(d.pKg),
+            kKg: parseFloat(d.kKg), organicKg: parseFloat(d.organicKg),
+            status: 'planned'
+          });
+          ds().syncModuleState();
+          renderFarming();
+          showToast('地块' + p.fieldCode + ' 施肥方案已保存', 'success');
+        }
+      });
+    };
+  });
+
+  document.querySelectorAll('.btn-fert-execute').forEach(function(btn) {
+    btn.onclick = function() {
+      var planId = this.dataset.planId;
+      if (!dsReady() || !planId) return;
+      var p = ds().getById('fertilization_plans', planId);
+      if (!p) return;
+      modal.confirm('执行施肥', '确定立即执行地块 ' + p.fieldCode + ' 的施肥方案吗？\nN: ' + p.nKg + 'kg  P: ' + p.pKg + 'kg  K: ' + p.kKg + 'kg  有机: ' + p.organicKg + 'kg').then(function(ok) {
+        if (ok) {
+          ds().update('fertilization_plans', planId, { status: 'completed' });
+          ds().syncModuleState();
+          renderFarming();
+          showToast('地块 ' + p.fieldCode + ' 施肥已执行', 'success');
+        }
+      });
     };
   });
 

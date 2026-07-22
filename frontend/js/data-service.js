@@ -298,11 +298,42 @@ class DataService {
   // ==================== 计算属性：精准农事 ====================
 
   getIrrigationPlans() {
-    return this.getAll('irrigation_plans');
+    // 基于土壤传感器数据 + 地块信息生成实时灌溉方案
+    var plans = this.getAll('irrigation_plans');
+    var fields = this.getAll('fields');
+    var soilReadings = this.getAll('soil_readings');
+    return plans.map(function(p) {
+      var field = fields.find(function(f) { return f.code === p.fieldCode || f.id === p.fieldId; });
+      // 从最新的土壤读数获取当前湿度
+      var latestSoil = soilReadings.filter(function(s) { return s.fieldId === p.fieldId; }).pop();
+      var currentMoisture = latestSoil ? latestSoil.moisture : (field ? field.soilMoisture : p.currentMoisture);
+      return {
+        id: p.id, fieldCode: p.fieldCode, fieldId: p.fieldId,
+        cropName: field ? field.cropName : p.cropName,
+        targetMoisture: p.targetMoisture, currentMoisture: currentMoisture,
+        waterVolume: p.waterVolume, estimatedDuration: p.estimatedDuration,
+        status: p.status, scheduledAt: p.scheduledAt
+      };
+    });
   }
 
   getFertilizationPlans() {
-    return this.getAll('fertilization_plans');
+    var plans = this.getAll('fertilization_plans');
+    var fields = this.getAll('fields');
+    var soilReadings = this.getAll('soil_readings');
+    return plans.map(function(p) {
+      var field = fields.find(function(f) { return f.code === p.fieldCode || f.id === p.fieldId; });
+      var latestSoil = soilReadings.filter(function(s) { return s.fieldId === p.fieldId; }).pop();
+      return {
+        id: p.id, fieldCode: p.fieldCode, fieldId: p.fieldId,
+        cropName: field ? field.cropName : p.cropName,
+        nKg: p.nKg, pKg: p.pKg, kKg: p.kKg, organicKg: p.organicKg,
+        status: p.status, scheduledAt: p.scheduledAt,
+        soilN: latestSoil ? latestSoil.nLevel : 85,
+        soilP: latestSoil ? latestSoil.pLevel : 72,
+        soilK: latestSoil ? latestSoil.kLevel : 78
+      };
+    });
   }
 
   getFarmingStats() {

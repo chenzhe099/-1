@@ -994,6 +994,43 @@ function refreshAllTasksModalIfOpen() {
   }
 }
 
+// ==================== 地块删除 ====================
+
+function deleteField(fieldId) {
+  if (!dsReady()) return;
+  var f = ds().getById('fields', fieldId);
+  if (!f) { showToast('地块不存在', 'warning'); return; }
+  modal.confirm('删除地块', '确定要删除地块「' + f.code + ' - ' + f.cropName + '」吗？该地块下的灌溉/施肥方案也将全部删除。').then(function(ok) {
+    if (ok) {
+      // 级联删除关联数据
+      ds().getAll('irrigation_plans').filter(function(p) { return p.fieldId === fieldId || p.fieldCode === f.code; }).forEach(function(p) { ds().delete('irrigation_plans', p.id); });
+      ds().getAll('fertilization_plans').filter(function(p) { return p.fieldId === fieldId || p.fieldCode === f.code; }).forEach(function(p) { ds().delete('fertilization_plans', p.id); });
+      ds().getAll('farming_tasks').filter(function(t) { return t.fieldId === fieldId || t.fieldCode === f.code; }).forEach(function(t) { ds().delete('farming_tasks', t.id); });
+      ds().getAll('planting_cycles').filter(function(c) { return c.fieldId === fieldId; }).forEach(function(c) { ds().delete('planting_cycles', c.id); });
+      ds().getAll('disease_records').filter(function(d) { return d.fieldId === fieldId || d.fieldCode === f.code; }).forEach(function(d) { ds().delete('disease_records', d.id); });
+      ds().delete('fields', fieldId);
+      ds().insert('operation_logs', { id: 'log_' + uid(), userId: 'u001', username: 'admin', module: 'farming', action: '删除地块: ' + f.code, detail: f.cropName + ' / ' + f.area + '亩', timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ') });
+      ds().syncModuleState();
+      renderDashboard();
+      renderFarming();
+      showToast('地块「' + f.code + '」及关联数据已删除', 'success');
+    }
+  });
+}
+
+// ==================== 作业进度详情 ====================
+
+function showFarmingProgressDetail(type) {
+  if (!dsReady()) return;
+  var named = { watering: '灌溉作业', fertilizing: '施肥作业', spraying: '喷药作业', pruning: '修剪作业', harvesting: '采收作业', thinning: '疏果作业' };
+  var tasks = ds().table('farming_tasks').where('type', 'eq', type).orderBy('scheduledTime', 'desc').get();
+  var body = '<div class="space-y-2">' + tasks.map(function(t) {
+    return taskItemHTML(t);
+  }).join('') + '</div>';
+  if (tasks.length === 0) body = '<div class="text-center text-gray-400 py-8">暂无相关任务</div>';
+  modal.detail({ title: named[type] || type + ' — 关联任务', body: body, width: 'max-w-xl' });
+}
+
 // ==================== 任务自动轮换 ====================
 
 /**
