@@ -32,6 +32,31 @@ function hideLoginModal() {
   document.getElementById('login-overlay').style.display = 'none';
 }
 
+function doLogout() {
+  Auth.logout();
+
+  // 隐藏所有模块内容区
+  document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active-sidebar'));
+
+  // 恢复所有被隐藏的侧边栏菜单项（撤销权限过滤）
+  document.querySelectorAll('.sidebar-item[data-menu]').forEach(btn => {
+    btn.style.display = '';
+  });
+
+  // 清空主内容区，防止残留显示
+  document.getElementById('main-content').style.display = 'none';
+
+  // 显示登录弹窗
+  document.getElementById('login-overlay').style.display = '';
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').classList.add('hidden');
+  document.getElementById('login-username').focus();
+
+  showToast('您已安全退出', 'info');
+}
+
 function doLogin() {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value.trim();
@@ -52,24 +77,14 @@ function doLogin() {
 
   errEl.classList.add('hidden');
   hideLoginModal();
+
+  // 恢复主内容区
+  document.getElementById('main-content').style.display = '';
+
+  // 应用新用户的权限
   Auth.applyPermissionUI();
   initAppAfterLogin();
   showToast('欢迎回来，' + result.user.displayName + '！', 'success');
-}
-
-function doLogout() {
-  Auth.logout();
-  Auth.applyPermissionUI();
-
-  // 隐藏所有模块内容区，显示登录页
-  document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active-sidebar'));
-
-  showLoginModal();
-  document.getElementById('login-username').value = '';
-  document.getElementById('login-password').value = '';
-  document.getElementById('login-error').classList.add('hidden');
-  showToast('您已安全退出', 'info');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
