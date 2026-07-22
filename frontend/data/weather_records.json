@@ -1,0 +1,16 @@
+[
+  {"id":"wtr_001","date":"2024-01-09","temperatureHigh":22,"temperatureLow":8,"humidity":72,"rainfall_mm":0,"windSpeed":3.2,"condition":"sunny","forecast":"未来三天持续晴好，适宜农事作业"},
+  {"id":"wtr_002","date":"2024-01-10","temperatureHigh":24,"temperatureLow":9,"humidity":68,"rainfall_mm":0,"windSpeed":2.8,"condition":"sunny","forecast":"气温回升，注意大棚通风"},
+  {"id":"wtr_003","date":"2024-01-11","temperatureHigh":26,"temperatureLow":10,"humidity":65,"rainfall_mm":0,"windSpeed":3.5,"condition":"sunny","forecast":"午后风力增大，加固设施"},
+  {"id":"wtr_004","date":"2024-01-12","temperatureHigh":20,"temperatureLow":12,"humidity":78,"rainfall_mm":5.2,"windSpeed":4.1,"condition":"rain","forecast":"小雨转阴，暂停户外作业"},
+  {"id":"wtr_005","date":"2024-01-13","temperatureHigh":18,"temperatureLow":10,"humidity":82,"rainfall_mm":12.8,"windSpeed":3.0,"condition":"rain","forecast":"持续降雨，注意排涝防病"},
+  {"id":"wtr_006","date":"2024-01-14","temperatureHigh":19,"temperatureLow":8,"humidity":70,"rainfall_mm":0,"windSpeed":2.5,"condition":"cloudy","forecast":"天气转好，可恢复田间作业"},
+  {"id":"wtr_007","date":"2024-01-15","temperatureHigh":23,"temperatureLow":11,"humidity":66,"rainfall_mm":0,"windSpeed":2.2,"condition":"sunny","forecast":"天气晴好，适宜灌溉和施肥作业"},
+  {"id":"wtr_008","date":"2024-01-16","temperatureHigh":25,"temperatureLow":12,"humidity":62,"rainfall_mm":0,"windSpeed":2.0,"condition":"sunny","forecast":"晴暖天气持续"},
+  {"id":"wtr_009","date":"2024-01-17","temperatureHigh":27,"temperatureLow":13,"humidity":58,"rainfall_mm":0,"windSpeed":3.8,"condition":"sunny","forecast":"气温偏高，注意防旱浇水"},
+  {"id":"wtr_010","date":"2024-01-18","temperatureHigh":16,"temperatureLow":6,"humidity":60,"rainfall_mm":0,"windSpeed":5.2,"condition":"cloudy","forecast":"冷空气来袭，预计降温6-8°C，做好防寒准备"},
+  {"id":"wtr_011","date":"2024-01-19","temperatureHigh":12,"temperatureLow":3,"humidity":55,"rainfall_mm":2.1,"windSpeed":4.5,"condition":"rain","forecast":"低温阴雨，设施大棚注意保温"},
+  {"id":"wtr_012","date":"2024-01-20","temperatureHigh":14,"temperatureLow":4,"humidity":58,"rainfall_mm":0,"windSpeed":3.0,"condition":"cloudy","forecast":"气温缓慢回升"},
+  {"id":"wtr_013","date":"2024-01-21","temperatureHigh":18,"temperatureLow":6,"humidity":64,"rainfall_mm":0,"windSpeed":2.5,"condition":"sunny","forecast":"天气转好"},
+  {"id":"wtr_014","date":"2024-01-22","temperatureHigh":21,"temperatureLow":8,"humidity":68,"rainfall_mm":0,"windSpeed":2.8,"condition":"sunny","forecast":"恢复正常农事作业"}
+]

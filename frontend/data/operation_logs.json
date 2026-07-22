@@ -1,0 +1,10 @@
+[
+  {"id":"log_01","action":"修改用户信息","userId":"u001","username":"admin","module":"权限管理","timestamp":"2024-01-15 14:30","details":"修改了用户'李农户'的联系方式"},
+  {"id":"log_02","action":"添加新用户","userId":"u001","username":"admin","module":"权限管理","timestamp":"2024-01-15 10:15","details":"添加了用户'赵农户'（角色：农户）"},
+  {"id":"log_03","action":"重置密码","userId":"u002","username":"zhang_tech","module":"权限管理","timestamp":"2024-01-14 16:45","details":"为用户'李农户'重置了登录密码"},
+  {"id":"log_04","action":"禁用用户","userId":"u001","username":"admin","module":"权限管理","timestamp":"2024-01-14 09:20","details":"禁用了用户'王管理员'的账号"},
+  {"id":"log_05","action":"执行灌溉方案","userId":"u002","username":"zhang_tech","module":"精准农事","timestamp":"2024-01-15 08:35","details":"启动了A1地块自动灌溉，水量15m³"},
+  {"id":"log_06","action":"添加农事记录","userId":"u003","username":"li_farmer","module":"农场管理","timestamp":"2024-01-15 10:30","details":"新增了A2地块修剪作业记录"},
+  {"id":"log_07","action":"生成溯源码","userId":"u001","username":"admin","module":"溯源管理","timestamp":"2024-01-15 11:00","details":"为批次TP20240115生成溯源二维码"},
+  {"id":"log_08","action":"修改设备配置","userId":"u002","username":"zhang_tech","module":"设备监控","timestamp":"2024-01-15 09:45","details":"调整了智能温室温度阈值设为25°C"}
+]

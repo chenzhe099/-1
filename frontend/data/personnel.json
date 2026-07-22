@@ -1,0 +1,7 @@
+[
+  {"id":"pers_01","name":"张技术员","role":"技术主管","status":"on_duty","avatar":"Zhang","phone":"13800001002","email":"zhang@smartfarm.cn","joinedAt":"2023-08-15","assignedFields":["field_a1","field_a2","field_c1"]},
+  {"id":"pers_02","name":"李农户","role":"种植员","status":"on_duty","avatar":"Li","phone":"13800001003","email":"li@smartfarm.cn","joinedAt":"2023-09-01","assignedFields":["field_a2","field_b1"]},
+  {"id":"pers_03","name":"赵农户","role":"种植员","status":"on_duty","avatar":"Zhao","phone":"13800001006","email":"zhao@smartfarm.cn","joinedAt":"2023-11-01","assignedFields":["field_b1","field_b2"]},
+  {"id":"pers_04","name":"陈技术员","role":"设备维护工程师","status":"on_duty","avatar":"Chen","phone":"13800001005","email":"chen@smartfarm.cn","joinedAt":"2023-10-10","assignedFields":[]},
+  {"id":"pers_05","name":"王师傅","role":"农机操作员","status":"leave","avatar":"Wang","phone":"13800001004","email":"wang@smartfarm.cn","joinedAt":"2023-07-20","assignedFields":["field_c2"]}
+]

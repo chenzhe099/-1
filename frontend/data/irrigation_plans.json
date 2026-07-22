@@ -1,0 +1,6 @@
+[
+  {"id":"irr_01","fieldId":"field_a1","fieldCode":"A1","cropName":"番茄","targetMoisture":65,"currentMoisture":62,"waterVolume":15,"estimatedDuration":30,"status":"executing","scheduledAt":"2024-01-15 08:30","executedAt":null},
+  {"id":"irr_02","fieldId":"field_b1","fieldCode":"B1","cropName":"辣椒","targetMoisture":70,"currentMoisture":45,"waterVolume":22,"estimatedDuration":45,"status":"pending","scheduledAt":"2024-01-15 14:00","executedAt":null},
+  {"id":"irr_03","fieldId":"field_a2","fieldCode":"A2","cropName":"黄瓜","targetMoisture":68,"currentMoisture":68,"waterVolume":10,"estimatedDuration":20,"status":"completed","scheduledAt":"2024-01-14 08:00","executedAt":"2024-01-14 08:30"},
+  {"id":"irr_04","fieldId":"field_c1","fieldCode":"C1","cropName":"草莓","targetMoisture":65,"currentMoisture":55,"waterVolume":12,"estimatedDuration":25,"status":"planned","scheduledAt":"2024-01-16 09:00","executedAt":null}
+]
