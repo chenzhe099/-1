@@ -215,11 +215,10 @@ class Modal {
    * @param {string} options.width
    */
   detail(options) {
-    const footer = '';
     return this._open(options.body, {
       title: options.title,
       width: options.width || 'max-w-2xl',
-      footer
+      closable: true
     });
   }
 
@@ -255,10 +254,9 @@ class Modal {
       </tbody>` : `
       <tbody><tr><td colspan="${cols.length}" class="px-4 py-8 text-center text-gray-400">暂无数据</td></tr></tbody>`;
 
-    const body = `<div class="overflow-x-auto"><table class="w-full">${thead}${tbody}</table></div>`;
+    const body = '<div class="overflow-x-auto"><table class="w-full">' + thead + tbody + '</table></div>';
 
-    const footer = '';
-    return this._open(body, { title: options.title, width: 'max-w-3xl', footer });
+    return this._open(body, { title: options.title, width: 'max-w-3xl', closable: true });
   }
 }
 
