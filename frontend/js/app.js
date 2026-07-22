@@ -164,25 +164,20 @@ function renderDashboard() {
       </div>`;
   }).join('');
 
-  // 全部农事任务（活跃在前，已完成折叠，与全部任务弹窗一致）
-  const tasks = dataService.getFarmingTasks();
-  const parts = partitionTasks(tasks);
-  var taskHTML = parts.active.map(t => taskItemHTML(t)).join('');
-  if (parts.done.length > 0) {
-    taskHTML += '<div class="mt-2 pt-2 border-t border-gray-200">' +
-      '<div class="flex items-center justify-between text-xs text-gray-400 cursor-pointer hover:text-gray-600 py-1" onclick="toggleCompletedTasks(this)">' +
-      '<span><i class="fa fa-chevron-down mr-1 completed-toggle-icon"></i>已完成任务 (' + parts.done.length + ')</span>' +
-      '<span class="text-gray-300 completed-toggle-arrow">▼</span></div>' +
-      '<div class="completed-tasks-wrap hidden">' +
-      parts.done.map(t => taskItemHTML(t)).join('') +
-      '</div></div>';
-  }
-  document.getElementById('task-list').innerHTML = taskHTML || '<div class="text-center text-gray-400 py-4">暂无任务</div>';
+  // 任务入口 — 只显示统计数字，点击跳转农事决策模块（避免重复渲染）
+  var tasks = dataService.getFarmingTasks();
+  var tp = partitionTasks(tasks);
+  document.getElementById('task-list').innerHTML =
+    '<div class="text-center py-4 cursor-pointer hover:bg-gray-100 rounded-lg transition-colors" onclick="navigateTo(\'farming\')">' +
+      '<p class="text-3xl font-bold text-green-600">' + tp.active.length + '</p>' +
+      '<p class="text-sm text-gray-500">个活跃任务待处理</p>' +
+      '<p class="text-xs text-blue-500 mt-2"><i class="fa fa-arrow-right mr-1"></i>进入农事决策查看全部</p>' +
+    '</div>';
 
-  // 预警列表
-  const alerts = dataService.getAlertList();
+  // 预警列表 — 仪表盘专属保留
+  var alerts = dataService.getAlertList();
   document.getElementById('alert-list').innerHTML = alerts.length > 0
-    ? alerts.map(a => alertItemHTML(a)).join('')
+    ? alerts.map(function(a) { return alertItemHTML(a); }).join('')
     : '<div class="text-center text-gray-400 py-4">暂无预警</div>';
 }
 
@@ -449,11 +444,7 @@ function renderPrediction() {
   }
 
   // 风险预警
-  const risks = dataService.getRiskAlerts();
-  const riskContainer = document.getElementById('risk-alert-list');
-  if (riskContainer) {
-    riskContainer.innerHTML = risks.map(r => alertItemHTML(r)).join('');
-  }
+  // 风险预警已合并到仪表盘预警列表
 }
 
 // ==================== 农场管理 渲染 ====================
@@ -781,11 +772,7 @@ function renderWeather() {
       <span class="text-xs text-gray-500">${f.conditionLabel}</span>
     </div>`).join('');
 
-  // 天气预警
-  const alerts = dataService.getWeatherAlerts();
-  document.getElementById('weather-alert-list').innerHTML = alerts.length > 0
-    ? alerts.map(a => alertItemHTML(a)).join('')
-    : '<div class="col-span-3 text-center text-gray-400 py-6">暂无天气预警</div>';
+  // 天气预警已合并到仪表盘
 }
 
 // ==================== 市场价格 渲染 ====================
@@ -815,12 +802,7 @@ function renderMarket() {
       <td class="px-4 py-2 text-center"><span class="px-2 py-0.5 text-xs bg-${statusColor(p.trend)}-100 text-${statusColor(p.trend)}-600 rounded">${statusLabel(p.trend)}</span></td>
     </tr>`).join('');
 
-  // 市场预警
-  const alerts = dataService.getMarketAlerts();
-  const alertContainer = document.getElementById('market-alert-list');
-  alertContainer.innerHTML = alerts.length > 0
-    ? alerts.map(a => alertItemHTML(a)).join('')
-    : '<div class="text-center text-gray-400 py-6">暂无市场行情预警</div>';
+  // 市场预警已合并到仪表盘
 }
 
 // ==================== 模型监控 渲染 ====================
