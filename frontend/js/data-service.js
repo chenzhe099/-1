@@ -244,7 +244,8 @@ class DataService {
     return this.table('farming_tasks')
       .where('scheduledTime', 'contains', today)
       .orderBy('scheduledTime', 'asc')
-      .get();
+      .get()
+      .sort(sortTasksByPriority);
   }
 
   getAlertList() {
@@ -301,8 +302,11 @@ class DataService {
   }
 
   getFarmingTasks() {
-    return this.getAll('farming_tasks').sort((a, b) =>
-      a.scheduledTime.localeCompare(b.scheduledTime));
+    return this.getAll('farming_tasks')
+      .sort(function(a, b) {
+        return a.scheduledTime.localeCompare(b.scheduledTime);
+      })
+      .sort(sortTasksByPriority);
   }
 
   // ==================== 计算属性：产量预测 ====================

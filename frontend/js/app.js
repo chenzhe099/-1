@@ -158,11 +158,20 @@ function renderDashboard() {
       </div>`;
   }).join('');
 
-  // 今日任务
+  // 今日任务（活跃在前，已完成折叠）
   const tasks = dataService.getTodayTasks();
-  document.getElementById('task-list').innerHTML = tasks.length > 0
-    ? tasks.map(t => taskItemHTML(t)).join('')
-    : '<div class="text-center text-gray-400 py-4">暂无任务</div>';
+  const parts = partitionTasks(tasks);
+  var taskHTML = parts.active.map(t => taskItemHTML(t)).join('');
+  if (parts.done.length > 0) {
+    taskHTML += '<div class="mt-2 pt-2 border-t border-gray-200">' +
+      '<div class="flex items-center justify-between text-xs text-gray-400 cursor-pointer hover:text-gray-600 py-1" onclick="toggleCompletedTasks(this)">' +
+      '<span><i class="fa fa-chevron-down mr-1 completed-toggle-icon"></i>已完成任务 (' + parts.done.length + ')</span>' +
+      '<span class="text-gray-300 completed-toggle-arrow">▼</span></div>' +
+      '<div class="completed-tasks-wrap hidden">' +
+      parts.done.map(t => taskItemHTML(t)).join('') +
+      '</div></div>';
+  }
+  document.getElementById('task-list').innerHTML = taskHTML || '<div class="text-center text-gray-400 py-4">暂无任务</div>';
 
   // 预警列表
   const alerts = dataService.getAlertList();
@@ -270,11 +279,22 @@ function renderFarming() {
       </div>`).join('');
   }
 
-  // 农事任务列表
+  // 农事任务列表（活跃在前，已完成折叠）
   const tasks = dataService.getFarmingTasks();
   const taskContainer = document.getElementById('farming-task-list');
   if (taskContainer) {
-    taskContainer.innerHTML = tasks.slice(0, 4).map(t => taskItemHTML(t)).join('');
+    var parts2 = partitionTasks(tasks);
+    var ftHTML = parts2.active.slice(0, 6).map(t => taskItemHTML(t)).join('');
+    if (parts2.done.length > 0) {
+      ftHTML += '<div class="mt-2 pt-2 border-t border-gray-200">' +
+        '<div class="flex items-center justify-between text-xs text-gray-400 cursor-pointer hover:text-gray-600 py-1" onclick="toggleCompletedTasks(this)">' +
+        '<span><i class="fa fa-chevron-down mr-1 completed-toggle-icon"></i>已完成任务 (' + parts2.done.length + ')</span>' +
+        '<span class="text-gray-300 completed-toggle-arrow">▼</span></div>' +
+        '<div class="completed-tasks-wrap hidden">' +
+        parts2.done.map(t => taskItemHTML(t)).join('') +
+        '</div></div>';
+    }
+    taskContainer.innerHTML = ftHTML || '<div class="text-center text-gray-400 py-4">暂无任务</div>';
   }
 
   // 作业进度

@@ -920,3 +920,28 @@ function deleteTaskItem(event, taskId) {
     }
   });
 }
+
+// ==================== 任务折叠/展开 ====================
+
+/**
+ * 点击"已完成任务"区域 → 折叠/展开
+ */
+function toggleCompletedTasks(el) {
+  var wrap = el.nextElementSibling;
+  if (!wrap || !wrap.classList.contains('completed-tasks-wrap')) {
+    wrap = el.parentElement.querySelector('.completed-tasks-wrap');
+  }
+  if (!wrap) return;
+  var isHidden = wrap.classList.contains('hidden');
+  var icon = el.querySelector('.completed-toggle-icon');
+  var arrow = el.querySelector('.completed-toggle-arrow');
+  if (isHidden) {
+    wrap.classList.remove('hidden');
+    if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+    if (arrow) arrow.textContent = '▲';
+  } else {
+    wrap.classList.add('hidden');
+    if (icon) { icon.classList.remove('fa-chevron-up'); icon.classList.add('fa-chevron-down'); }
+    if (arrow) arrow.textContent = '▼';
+  }
+}

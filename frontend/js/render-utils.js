@@ -129,6 +129,37 @@ function addHours(timeStr, hours) {
   return String(h2).padStart(2, '0') + ':' + String(m2).padStart(2, '0');
 }
 
+// ========== 任务排序 ==========
+
+/** 任务排序：进行中/待开始 → 按优先级(高→中→低) → 已完成/已取消 沉底 */
+function sortTasksByPriority(a, b) {
+  var statusOrder = { in_progress: 0, pending: 1, completed: 2, cancelled: 2 };
+  var priorityOrder = { high: 0, medium: 1, low: 2 };
+  var sa = statusOrder[a.status] !== undefined ? statusOrder[a.status] : 2;
+  var sb = statusOrder[b.status] !== undefined ? statusOrder[b.status] : 2;
+  if (sa !== sb) return sa - sb;
+  if (sa <= 1) { // 活跃任务按优先级排
+    var pa = priorityOrder[a.priority] !== undefined ? priorityOrder[a.priority] : 1;
+    var pb = priorityOrder[b.priority] !== undefined ? priorityOrder[b.priority] : 1;
+    return pa - pb;
+  }
+  return 0;
+}
+
+/** 将任务按已分区组：头部(活跃)、尾部(已完成/取消) */
+function partitionTasks(tasks) {
+  var active = [];
+  var done = [];
+  tasks.forEach(function(t) {
+    if (t.status === 'completed' || t.status === 'cancelled') {
+      done.push(t);
+    } else {
+      active.push(t);
+    }
+  });
+  return { active: active, done: done };
+}
+
 /** 预警条目 HTML */
 function alertItemHTML(alert) {
   const sevColors = { critical: 'red', warning: 'yellow', info: 'blue' };
