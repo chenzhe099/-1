@@ -524,52 +524,6 @@ function showAddFieldModal() {
   });
 }
 
-// ==================== 病虫害：知识库详情弹窗 ====================
-
-function showDiseaseDetailModal(pestName) {
-  if (!dataService.isReady()) return;
-  const pest = dataService.table('pest_knowledge_base').where('name', 'contains', pestName).first();
-  if (!pest) return;
-
-  const body = `
-    <div class="space-y-4">
-      <div class="bg-gradient-to-r from-${pest.color}-50 to-white rounded-xl p-5 border border-${pest.color}-100">
-        <div class="flex items-center mb-3">
-          <div class="w-12 h-12 bg-${pest.color}-100 rounded-lg flex items-center justify-center mr-3">
-            <i class="fa ${pest.icon} text-${pest.color}-600 text-xl"></i>
-          </div>
-          <div>
-            <h4 class="text-lg font-bold text-gray-800">${pest.name}</h4>
-            <p class="text-xs text-gray-500 italic">${pest.scientificName}</p>
-          </div>
-        </div>
-        <div class="bg-white rounded-lg p-4"><span class="text-xs text-gray-500">症状描述</span><p class="text-sm text-gray-800 mt-1 leading-relaxed">${pest.symptoms}</p></div>
-        <div class="bg-white rounded-lg p-4 mt-2"><span class="text-xs text-gray-500">发病原因</span><p class="text-sm text-gray-800 mt-1">${pest.causes}</p></div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-4">
-        <div class="bg-white rounded-xl p-4 border border-gray-100">
-          <h5 class="font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-shield text-blue-500 mr-2"></i>预防措施</h5>
-          <ul class="space-y-1">${pest.prevention.map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
-        </div>
-        <div class="bg-white rounded-xl p-4 border border-gray-100">
-          <h5 class="font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-flask text-red-500 mr-2"></i>化学防治</h5>
-          <ul class="space-y-1">${pest.chemicalControl.map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-red-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
-        </div>
-        <div class="bg-white rounded-xl p-4 border border-gray-100">
-          <h5 class="font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-leaf text-green-500 mr-2"></i>生物防治</h5>
-          <ul class="space-y-1">${pest.biologicalControl.map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
-        </div>
-        <div class="bg-white rounded-xl p-4 border border-gray-100">
-          <h5 class="font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-wrench text-yellow-500 mr-2"></i>农业防治</h5>
-          <ul class="space-y-1">${pest.agriculturalControl.map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
-        </div>
-      </div>
-    </div>`;
-
-  modal.detail({ title: `病虫害详情 — ${pest.name}`, body, width: 'max-w-2xl' });
-}
-
 // ==================== 确认弹窗封装 ====================
 
 async function showConfirmDialog(title, message) {
@@ -676,4 +630,218 @@ function showDiseaseDetailModal(pestName) {
     '</div>';
 
   modal.detail({ title: '病虫害详情 — ' + pest.name, body: body, width: 'max-w-2xl' });
+}
+
+// ==================== 权限管理：用户操作弹窗 ====================
+
+function editUser(userId) {
+  if (!dsReady()) return;
+  var u = ds().getById('users', userId);
+  if (!u) { showToast('用户不存在', 'error'); return; }
+
+  modal.form({
+    title: '编辑用户 — ' + u.displayName,
+    fields: [
+      { name: 'displayName', label: '姓名', type: 'text', required: true, value: u.displayName },
+      { name: 'role', label: '角色', type: 'select', required: true,
+        options: [
+          { value: 'admin', label: '管理员' }, { value: 'technician', label: '技术员' },
+          { value: 'farmer', label: '农户' }, { value: 'manager', label: '合作社管理人员' }
+        ], value: u.role
+      },
+      { name: 'status', label: '状态', type: 'select',
+        options: [{ value: 'active', label: '启用' }, { value: 'disabled', label: '禁用' }], value: u.status
+      },
+      { name: 'phone', label: '手机号', type: 'text', value: u.phone || '' },
+      { name: 'email', label: '邮箱', type: 'text', value: u.email || '' }
+    ],
+    submitLabel: '保存修改',
+    onSubmit: function(data) {
+      ds().update('users', userId, { displayName: data.displayName, role: data.role, status: data.status, phone: data.phone, email: data.email });
+      ds().insert('operation_logs', { id: 'log_' + uid(), userId: 'u001', username: 'admin', module: 'permission', action: '编辑用户: ' + u.username, detail: JSON.stringify(data), timestamp: new Date().toISOString().slice(0,19).replace('T',' ') });
+      renderPermission();
+      showToast('用户「' + u.username + '」信息已更新', 'success');
+    }
+  });
+}
+
+function resetPassword(userId) {
+  if (!dsReady()) return;
+  var u = ds().getById('users', userId);
+  if (!u) return;
+  modal.confirm('重置密码', '确定要重置用户「' + u.username + '」的密码为 123456 吗？').then(function(ok) {
+    if (ok) {
+      ds().update('users', userId, { passwordHash: 'reset_by_admin' });
+      showToast('用户「' + u.username + '」密码已重置为 123456', 'success');
+    }
+  });
+}
+
+// ==================== 农事决策：执行灌溉弹窗 ====================
+
+function executeIrrigation(planId) {
+  if (!dsReady()) return;
+  var plan = ds().getById('irrigation_plans', planId);
+  if (!plan) return;
+
+  modal.confirm('执行灌溉方案', '确定立即执行地块 ' + plan.fieldCode + ' 的灌溉方案吗？\n\n目标湿度：' + plan.targetMoisture + '%\n灌溉水量：' + plan.waterVolume + 'm³\n预计时长：' + plan.estimatedDuration + '分钟').then(function(ok) {
+    if (ok) {
+      ds().update('irrigation_plans', planId, { status: 'executing' });
+      ds().insert('operation_logs', { id: 'log_' + uid(), userId: 'u001', username: 'admin', module: 'farming', action: '执行灌溉: ' + plan.fieldCode, detail: plan.waterVolume + 'm³', timestamp: new Date().toISOString().slice(0,19).replace('T',' ') });
+      renderFarming();
+      showToast('地块 ' + plan.fieldCode + ' 灌溉已启动', 'success');
+    }
+  });
+}
+
+// ==================== 病虫害：知识库卡片点击 ====================
+
+function showDiseaseDetail(pestId) {
+  if (!dsReady()) return;
+  var pest = ds().getById('pest_knowledge_base', pestId);
+  if (!pest) { showToast('未找到该病虫害信息', 'warning'); return; }
+
+  var body = '<div class="space-y-4">' +
+    '<div class="flex items-center"><div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center mr-4"><i class="fa ' + (pest.icon||'fa-bug') + ' text-red-600 text-2xl"></i></div><div><h4 class="text-lg font-bold text-gray-800">' + pest.name + '</h4><p class="text-xs text-gray-500">严重级别：' + statusLabel(pest.severity) + '</p></div></div>' +
+    '<div class="bg-red-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-red-700 mb-1">症状</h5><p class="text-sm text-gray-700">' + pest.symptoms + '</p></div>' +
+    '<div class="bg-yellow-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-yellow-700 mb-1">原因</h5><p class="text-sm text-gray-700">' + pest.causes + '</p></div>' +
+    '<div class="bg-green-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-green-700 mb-1">防治方案</h5><p class="text-sm text-gray-700">' + pest.treatment + '</p></div>' +
+    '<div class="bg-blue-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-blue-700 mb-1">规范依据</h5><p class="text-sm text-gray-700">' + (pest.regulation || '请查看相关农业技术规范') + '</p>' +
+    '<button class="mt-2 text-xs text-blue-600 hover:text-blue-700" onclick="showRegulationDetail(\'' + (ds().getAll('knowledge_documents')[0]?.id || 'kd_001') + '\')">查看完整规范 <i class="fa fa-arrow-right ml-1"></i></button></div>' +
+    '</div>';
+  modal.detail({ title: '病虫害详情 — ' + pest.name, body: body, width: 'max-w-2xl' });
+}
+
+// ==================== 地块详情弹窗（共用） ====================
+
+function showFieldDetailModal(fieldId) {
+  if (!dsReady()) return;
+  var f = ds().getById('fields', fieldId);
+  if (!f) { showToast('地块不存在', 'warning'); return; }
+  var tasks = ds().table('farming_tasks').where('fieldId', 'eq', fieldId).orderBy('scheduledTime', 'desc').limit(6).get();
+  var cycles = ds().table('planting_cycles').where('fieldId', 'eq', fieldId).get();
+
+  var body = '<div class="space-y-4">' +
+    '<div class="bg-gradient-to-r from-green-50 to-white rounded-xl p-4 border border-green-100">' +
+    '<h4 class="text-lg font-bold">' + f.code + ' — ' + f.cropName + '</h4><p class="text-sm text-gray-500">' + f.name + '</p>' +
+    '<div class="grid grid-cols-3 gap-3 mt-3">' +
+    '<div class="bg-white p-3 rounded"><span class="text-xs text-gray-500">面积</span><p class="font-bold">' + f.area + '亩</p></div>' +
+    '<div class="bg-white p-3 rounded"><span class="text-xs text-gray-500">土壤湿度</span><p class="font-bold">' + (f.soilMoisture || '--') + '%</p></div>' +
+    '<div class="bg-white p-3 rounded"><span class="text-xs text-gray-500">pH值</span><p class="font-bold">' + (f.soilPh || '--') + '</p></div>' +
+    '<div class="bg-white p-3 rounded"><span class="text-xs text-gray-500">种植日期</span><p class="font-bold">' + (f.plantedDate || '--') + '</p></div>' +
+    '<div class="bg-white p-3 rounded"><span class="text-xs text-gray-500">预计采收</span><p class="font-bold">' + (f.expectedHarvest || '--') + '</p></div>' +
+    '<div class="bg-white p-3 rounded"><span class="text-xs text-gray-500">状态</span><p class="font-bold">' + statusLabel(f.status) + '</p></div>' +
+    '</div></div>';
+
+  if (cycles.length > 0) {
+    body += '<div class="bg-white rounded-xl p-4 border"><h5 class="font-semibold mb-2">种植周期</h5>' +
+      cycles.map(function(c) {
+        return '<div class="p-2 bg-gray-50 rounded mb-1 flex justify-between"><span class="text-sm">' + c.cropName + '</span><span class="text-xs text-gray-500">' + c.plantedDate + ' ~ ' + (c.expectedHarvestDate || '--') + '</span><span class="text-xs">' + (c.growthStage || '') + '</span></div>';
+      }).join('') + '</div>';
+  }
+
+  if (tasks.length > 0) {
+    body += '<div class="bg-white rounded-xl p-4 border"><h5 class="font-semibold mb-3">近期农事记录</h5><div class="space-y-2">' +
+      tasks.map(function(t) { return '<div class="flex justify-between p-2 bg-gray-50 rounded"><span class="text-sm">' + taskTypeLabel(t.type) + '</span><span class="text-xs text-gray-500">' + (t.scheduledTime || '') + '</span>' + badge(t.status) + '</div>'; }).join('') +
+      '</div></div>';
+  }
+
+  body += '</div>';
+  modal.detail({ title: '地块详情 — ' + f.code, body: body, width: 'max-w-lg' });
+}
+
+// ==================== 人员详情弹窗 ====================
+
+function showPersonnelDetailModal(personId) {
+  if (!dsReady()) return;
+  var p = ds().getById('personnel', personId);
+  if (!p) { showToast('人员不存在', 'warning'); return; }
+  var body = '<div class="space-y-4">' +
+    '<div class="flex items-center"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=' + (p.avatar || p.name) + '" class="w-16 h-16 rounded-full mr-4"><div><h4 class="text-lg font-bold">' + p.name + '</h4><p class="text-sm text-gray-500">' + p.role + '</p></div><span class="ml-auto">' + badge(p.status) + '</span></div>' +
+    '<div class="grid grid-cols-2 gap-3">' +
+    '<div class="bg-gray-50 p-3 rounded"><span class="text-xs text-gray-500">手机</span><p class="font-semibold">' + (p.phone || '--') + '</p></div>' +
+    '<div class="bg-gray-50 p-3 rounded"><span class="text-xs text-gray-500">邮箱</span><p class="font-semibold">' + (p.email || '--') + '</p></div>' +
+    '<div class="bg-gray-50 p-3 rounded"><span class="text-xs text-gray-500">入职日期</span><p class="font-semibold">' + (p.joinedAt || '--') + '</p></div>' +
+    '<div class="bg-gray-50 p-3 rounded"><span class="text-xs text-gray-500">状态</span><p class="font-semibold">' + statusLabel(p.status) + '</p></div>' +
+    '</div></div>';
+  modal.detail({ title: '人员详情 — ' + p.name, body: body, width: 'max-w-md' });
+}
+
+// ==================== 权限管理：添加用户+角色弹窗 ====================
+
+function showAddUserModal() {
+  modal.form({
+    title: '添加新用户',
+    fields: [
+      { name: 'username', label: '用户名', type: 'text', required: true, placeholder: '登录账号' },
+      { name: 'password', label: '密码', type: 'text', required: true, value: '123456' },
+      { name: 'displayName', label: '姓名', type: 'text', required: true, placeholder: '如：王五' },
+      { name: 'role', label: '角色', type: 'select', required: true,
+        options: [{ value: 'farmer', label: '农户' }, { value: 'technician', label: '技术员' }, { value: 'manager', label: '合作社管理人员' }]
+      },
+      { name: 'phone', label: '手机号', type: 'text', placeholder: '选填' },
+      { name: 'email', label: '邮箱', type: 'text', placeholder: '选填' }
+    ],
+    submitLabel: '添加用户',
+    onSubmit: function(data) {
+      var users = ds().getAll('users');
+      var newId = 'u' + String(users.length + 1).padStart(3, '0');
+      ds().insert('users', { id: newId, username: data.username, passwordHash: data.password, displayName: data.displayName, role: data.role, avatar: data.displayName, status: 'active', phone: data.phone || '', email: data.email || '', createdAt: new Date().toISOString().slice(0,10), lastLogin: '' });
+      ds().insert('operation_logs', { id: 'log_' + uid(), userId: 'u001', username: 'admin', module: 'permission', action: '添加用户: ' + data.username, detail: data.displayName + ' / ' + data.role, timestamp: new Date().toISOString().slice(0,19).replace('T',' ') });
+      renderPermission();
+      showToast('用户「' + data.username + '」添加成功', 'success');
+    }
+  });
+}
+
+// ==================== 溯源管理：生成溯源码 ====================
+
+function generateTraceCodeFromUI() {
+  if (!dsReady()) { showToast('数据未加载', 'warning'); return; }
+  var products = ds().getAll('products');
+  if (products.length === 0) { showToast('暂无产品可生成溯源码', 'warning'); return; }
+  // 默认使用第一个产品
+  var p = products[0];
+  var code = 'TR-' + p.batchNumber + '-' + Date.now().toString(36).toUpperCase().slice(-4);
+  var body = '<div class="text-center py-4">' +
+    '<div class="w-40 h-40 bg-gray-100 rounded-xl mx-auto flex items-center justify-center mb-4"><i class="fa fa-qrcode text-6xl text-gray-600"></i></div>' +
+    '<p class="text-lg font-bold text-gray-800">溯源码</p>' +
+    '<p class="text-2xl font-mono font-bold text-green-600 mt-2">' + code + '</p>' +
+    '<div class="mt-3 text-sm text-gray-600"><p>产品：' + p.name + '</p><p>批次：' + p.batchNumber + '</p><p>采收日期：' + (p.harvestDate || '--') + '</p></div>' +
+    '</div>';
+  modal.detail({ title: '生成溯源码 — ' + p.name, body: body, width: 'max-w-sm' });
+  showToast('溯源码已生成: ' + code, 'success');
+}
+
+function generateTraceCode(productId) {
+  if (!dsReady()) return;
+  var p = ds().getById('products', productId);
+  if (!p) return;
+  var code = 'TR-' + p.batchNumber + '-' + new Date().getTime().toString(36).toUpperCase();
+  showToast('溯源码已生成: ' + code + '\n批次: ' + p.batchNumber, 'success');
+}
+
+// ==================== 全局：系统搜索 ====================
+
+function performSearch(query) {
+  var q = query.toLowerCase();
+  var map = {
+    '数据':'dashboard','总览':'dashboard','病虫害':'disease','识别':'disease',
+    '农事':'farming','灌溉':'farming','施肥':'farming',
+    '产量':'prediction','预测':'prediction','农场':'management','记录':'management',
+    '设备':'devices','监控':'devices','传感器':'devices',
+    '溯源':'traceability','二维码':'traceability','批次':'traceability',
+    '权限':'permission','用户':'permission','角色':'permission',
+    '天气':'weather','温度':'weather','降雨':'weather','气象':'weather',
+    '价格':'market','市场':'market','行情':'market',
+    '模型':'monitor','AI':'monitor','漂移':'monitor','Agent':'monitor','样本':'monitor'
+  };
+  var found = false;
+  Object.keys(map).forEach(function(k) {
+    if (!found && q.indexOf(k) >= 0) {
+      var btn = document.querySelector('.sidebar-item[data-menu="' + map[k] + '"]');
+      if (btn) { btn.click(); found = true; }
+    }
+  });
+  if (!found) showToast('未找到与「' + query + '」相关的模块', 'info');
 }

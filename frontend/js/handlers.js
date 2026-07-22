@@ -125,12 +125,8 @@ function initHeaderEvents() {
     var d = new Date(); showToast('今天是 ' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'), 'info');
   });
 
-  var lb = document.getElementById('btn-logout');
-  if (lb) lb.addEventListener('click', function() {
-    modal.confirm('退出登录','确定要退出智慧农业管理系统吗？').then(function(ok) {
-      if (ok) { showToast('您已安全退出系统','info'); setTimeout(function(){ location.reload(); },1500); }
-    });
-  });
+  // 退出登录由 doLogout() (handlers.js line ~60) 统一处理
+  // 不再在此处绑定冲突的 onclick 处理器
 }
 
 function showNotificationPanel(count) {
