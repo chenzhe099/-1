@@ -23,6 +23,19 @@ function ds() { return dataService; }
 
 // ==================== 登录系统 ====================
 
+// ==================== 卡片跳转 ====================
+
+function navigateTo(menuId) {
+  var btn = document.querySelector('.sidebar-item[data-menu="' + menuId + '"]');
+  if (btn && btn.style.display !== 'none') {
+    btn.click();
+  } else {
+    showToast('您没有访问该模块的权限', 'warning');
+  }
+}
+
+// ==================== 登录系统 ====================
+
 function showLoginModal() {
   document.getElementById('login-overlay').style.display = '';
   document.getElementById('login-username').focus();
