@@ -8,6 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
     <script src="data/data-bundle.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/data-service.js"></script>
     <script src="js/data-loader.js"></script>
     <script src="js/render-utils.js"></script>
@@ -45,7 +46,7 @@
             </div>
             <nav class="flex-1 p-3 overflow-y-auto scrollbar">
                 <div class="space-y-1">
-                    <button class="w-full sidebar-item active-sidebar flex items-center px-3 py-2.5 rounded-lg text-gray-700 transition-all" data-menu="dashboard">
+                    <button class="w-full sidebar-item active-sidebar flex items-center px-3 py-2.5 rounded-lg text-gray-700 transition-all" data-menu="dashboard" data-action="view">
                         <i class="fas fa-gauge w-5 h-5 mr-3 text-blue-500"></i>
                         <span>数据总览</span>
                     </button>
@@ -1317,7 +1318,7 @@
                         <div class="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="font-semibold text-gray-800">设备状态监控</h3>
-                                <div class="flex items-center space-x-2">
+                                <div class="flex items-center space-x-3">
                                     <span class="flex items-center">
                                         <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
                                         <span class="text-xs text-gray-600">在线</span>
@@ -1330,97 +1331,14 @@
                                         <span class="w-2 h-2 bg-yellow-500 rounded-full mr-1"></span>
                                         <span class="text-xs text-gray-600">故障</span>
                                     </span>
+                                    <button class="px-3 py-1.5 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-colors" id="btn-add-device">
+                                        <i class="fa fa-plus mr-1"></i>添加设备
+                                    </button>
+                                    </span>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">灌溉泵 #1</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 流量: 12m³/h</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors">远程控制</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">智能施肥机 #1</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 已施肥: 25kg</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors">远程控制</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">灌溉泵 #3</span>
-                                        <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">故障 · 需维护</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-yellow-100 text-yellow-600 text-xs rounded hover:bg-yellow-200 transition-colors">报修</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">环境监测站 #1</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 温湿度监测</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors">查看数据</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-red-50 rounded-lg border border-red-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">气象站 #2</span>
-                                        <span class="w-2 h-2 bg-red-500 rounded-full"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">离线 · 通讯中断</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-red-100 text-red-600 text-xs rounded hover:bg-red-200 transition-colors">重启设备</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">智能温室控制</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 温度: 25°C</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors">远程控制</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">土壤传感器 #1</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 湿度: 65%</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors">查看数据</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">智能施肥机 #2</span>
-                                        <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">待机 · 等待任务</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-yellow-100 text-yellow-600 text-xs rounded hover:bg-yellow-200 transition-colors">启动任务</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors">查看详情</button>
-                                    </div>
-                                </div>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="device-grid">
+                                <!-- 动态渲染设备卡片 -->
                             </div>
                         </div>
                         <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -2316,5 +2234,45 @@
     <script src="js/api-client.js"></script>
     <script src="js/app.js"></script>
     <script src="js/charts.js"></script>
+
+    <!-- 登录弹窗 -->
+    <div id="login-overlay" class="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4" style="display:none;">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-modal-in">
+            <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-5 text-white text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fa fa-leaf text-white text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold">智慧农业管理系统</h2>
+                <p class="text-xs text-white/70 mt-1">Smart Agriculture Platform</p>
+            </div>
+            <div class="px-6 py-5">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                    <div class="relative">
+                        <i class="fa fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="login-username" placeholder="请输入用户名" class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                    <div class="relative">
+                        <i class="fa fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="password" id="login-password" placeholder="请输入密码" class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" onkeydown="if(event.key==='Enter')doLogin()">
+                    </div>
+                </div>
+                <div class="mb-3 text-center text-xs text-red-500 hidden" id="login-error"></div>
+                <button onclick="doLogin()" class="w-full py-2.5 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors text-sm">
+                    <i class="fa fa-sign-in mr-2"></i>登 录
+                </button>
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
+                    <p class="font-medium text-gray-600 mb-1">演示账号</p>
+                    <div class="space-y-1">
+                        <p><span class="inline-block w-16 text-gray-600">管理员:</span> admin / 123456</p>
+                        <p><span class="inline-block w-16 text-gray-600">农户:</span> farmer / 123456</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

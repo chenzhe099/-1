@@ -21,6 +21,57 @@ function ds() { return dataService; }
 
 // ==================== 初始化 ====================
 
+// ==================== 登录系统 ====================
+
+function showLoginModal() {
+  document.getElementById('login-overlay').style.display = '';
+  document.getElementById('login-username').focus();
+}
+
+function hideLoginModal() {
+  document.getElementById('login-overlay').style.display = 'none';
+}
+
+function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  const errEl = document.getElementById('login-error');
+
+  if (!username || !password) {
+    errEl.textContent = '请输入用户名和密码';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const result = Auth.login(username, password);
+  if (!result.success) {
+    errEl.textContent = result.message;
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  errEl.classList.add('hidden');
+  hideLoginModal();
+  Auth.applyPermissionUI();
+  initAppAfterLogin();
+  showToast('欢迎回来，' + result.user.displayName + '！', 'success');
+}
+
+function doLogout() {
+  Auth.logout();
+  Auth.applyPermissionUI();
+
+  // 隐藏所有模块内容区，显示登录页
+  document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active-sidebar'));
+
+  showLoginModal();
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').classList.add('hidden');
+  showToast('您已安全退出', 'info');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() {
     initHeaderEvents();
@@ -402,9 +453,82 @@ function setupDevices() {
       }
     };
   });
+
+  // 删除设备按钮
+  document.querySelectorAll('.btn-device-delete').forEach(function(btn) {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      var deviceId = this.dataset.deviceId;
+      if (!deviceId || !dsReady()) return;
+      var dev = ds().getById('devices', deviceId);
+      if (!dev) return;
+      modal.confirm('删除设备', '确定要删除设备「' + dev.name + '」吗？此操作不可恢复。').then(function(ok) {
+        if (ok) {
+          ds().delete('devices', deviceId);
+          renderDevices();
+          showToast('设备「' + dev.name + '」已删除', 'success');
+        }
+      });
+    };
+  });
+
+  // 添加设备按钮
+  var addBtn = document.getElementById('btn-add-device');
+  if (addBtn) addBtn.onclick = function() { showAddDeviceModal(); };
 }
 
-function doDeviceAction(btn, action) {
+function showAddDeviceModal() {
+  if (!dsReady()) return;
+  var fields = dsReady() ? ds().getAll('fields') : [];
+  modal.form({
+    title: '添加新设备',
+    fields: [
+      { name: 'name', label: '设备名称', type: 'text', required: true, placeholder: '如：土壤传感器 #3' },
+      { name: 'type', label: '设备类型', type: 'select', required: true,
+        options: [
+          { value: 'sensor', label: '传感器' }, { value: 'pump', label: '灌溉泵' },
+          { value: 'fertilizer', label: '施肥机' }, { value: 'controller', label: '控制器' },
+          { value: 'weather_station', label: '气象站' }
+        ]
+      },
+      { name: 'location', label: '部署位置', type: 'select',
+        options: [{ value: '', label: '-- 选择地块 --' }, ...fields.map(f => ({ value: f.id, label: f.code + ' - ' + f.cropName }))]
+      },
+      { name: 'status', label: '初始状态', type: 'select',
+        options: [{ value: 'offline', label: '离线（待上线）' }, { value: 'online', label: '在线' }]
+      },
+      { name: 'ipAddress', label: 'IP地址', type: 'text', placeholder: '如：192.168.1.200' },
+      { name: 'firmwareVersion', label: '固件版本', type: 'text', placeholder: '如：v1.0.0' }
+    ],
+    submitLabel: '添加设备',
+    onSubmit: function(data) {
+      if (!dsReady()) return;
+      var typeNames = { sensor: '传感器', pump: '灌溉泵', fertilizer: '施肥机', controller: '控制器', weather_station: '气象站' };
+      var deviceCount = ds().getAll('devices').length;
+      ds().insert('devices', {
+        id: 'dev_' + String(deviceCount + 1).padStart(2, '0'),
+        name: data.name,
+        type: data.type,
+        location: data.location || '',
+        status: data.status || 'offline',
+        metrics: { unit: typeNames[data.type] || data.type },
+        runHours: 0,
+        lastMaintenance: new Date().toISOString().slice(0, 10),
+        nextMaintenance: '',
+        ipAddress: data.ipAddress || '',
+        firmwareVersion: data.firmwareVersion || 'v1.0.0'
+      });
+      ds().insert('operation_logs', {
+        id: 'log_' + uid(), userId: 'u001', username: 'admin',
+        module: 'devices', action: '添加设备: ' + data.name,
+        detail: '类型: ' + data.type + ', IP: ' + data.ipAddress,
+        timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
+      });
+      renderDevices();
+      showToast('设备「' + data.name + '」添加成功', 'success');
+    }
+  });
+}
   var card = btn.closest('.relative')||btn.closest('.bg-white');
   var dn = card?.querySelector('span.font-medium')?.textContent||'设备';
   if (action==='detail') { if (typeof showDeviceDetailModal==='function') showDeviceDetailModal(dn); return; }

@@ -6,22 +6,54 @@
 // ==================== 初始化 ====================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // 加载数据
+  // 显示登录弹窗
+  showLoginModal();
+
+  // 加载数据（后台进行，登录后继续）
   try {
     await initDataService();
-    console.log('[App] 数据服务就绪，开始渲染');
+    console.log('[App] 数据服务就绪');
   } catch (err) {
     console.error('[App] 数据加载失败:', err);
   }
-
-  if (dataService.isReady()) {
-    window.__chartsInitialized = true;
-    initNavigation();
-    renderDashboard();
-    initDashboardCharts();
-    setupDashboardEvents();
-  }
 });
+
+/**
+ * 登录成功后初始化系统
+ */
+function initAppAfterLogin() {
+  if (!dataService.isReady()) {
+    setTimeout(initAppAfterLogin, 500);
+    return;
+  }
+  window.__chartsInitialized = true;
+  initNavigation();
+  renderDashboard();
+  initDashboardCharts();
+  setupDashboardEvents();
+
+  // 更新退出按钮
+  const logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.onclick = function() { doLogout(); };
+  }
+
+  // 默认打开仪表盘
+  const firstModule = getFirstAllowedModule();
+  if (firstModule) {
+    const btn = document.querySelector(`.sidebar-item[data-menu="${firstModule}"]`);
+    if (btn && btn.style.display !== 'none') btn.click();
+  }
+}
+
+function getFirstAllowedModule() {
+  const modules = ['dashboard','disease','farming','prediction','management',
+                   'devices','traceability','permission','weather','market','monitor'];
+  for (const m of modules) {
+    if (Auth.canView(m)) return m;
+  }
+  return 'dashboard';
+}
 
 // ==================== 导航 ====================
 
@@ -392,9 +424,12 @@ function renderDeviceList(section) {
     }).join('') : '';
 
     return `
-      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 relative">
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 relative device-card" data-device-id="${d.id}">
         ${pulseHTML}
-        <div class="flex items-center justify-between mb-2">
+        <button class="absolute top-2 right-2 w-6 h-6 bg-red-50 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors btn-device-delete" data-device-id="${d.id}" title="删除设备">
+          <i class="fa fa-times text-red-400 text-xs"></i>
+        </button>
+        <div class="flex items-center justify-between mb-2 pr-6">
           <span class="font-medium text-sm text-gray-800">${d.name}</span>
           <span class="px-2 py-1 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(d.status)}</span>
         </div>
