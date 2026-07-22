@@ -590,12 +590,21 @@ function showAllLogsModal() {
 
 // ==================== 规范原文查看 ====================
 
-function showRegulationDetail(docId) {
+function showRegulationDetail(docId, diseaseName) {
   if (!dsReady()) return;
-  var doc = ds().getById('knowledge_documents', docId);
-  if (!doc) {
-    doc = ds().getAll('knowledge_documents')[0]; // fallback to first doc
+  var doc = null;
+
+  // 精确匹配
+  if (docId) doc = ds().getById('knowledge_documents', docId);
+
+  // 按病害关键词匹配
+  if (!doc && diseaseName) {
+    doc = findMatchingRegulationDoc(diseaseName);
+    if (doc) doc = ds().getById('knowledge_documents', doc); // resolve to full object
+    else doc = ds().getAll('knowledge_documents')[0];
   }
+
+  if (!doc) doc = ds().getAll('knowledge_documents')[0];
   if (!doc) return;
 
   var body = '<div class="space-y-4">' +
@@ -603,17 +612,55 @@ function showRegulationDetail(docId) {
     '<h4 class="font-semibold text-gray-800">' + doc.title + '</h4>' +
     '<p class="text-xs text-gray-500 mt-1">来源：' + doc.sourceRegulation + '</p>' +
     '<p class="text-xs text-gray-500">发布：' + doc.publishDate + ' | 分类：' + doc.category + ' | 适用作物：' + doc.cropTarget + '</p>' +
+    (diseaseName ? '<p class="text-xs text-green-600 mt-1"><i class="fa fa-link mr-1"></i>匹配病害：' + diseaseName + '</p>' : '') +
     '</div>' +
     '<div class="bg-white border border-gray-200 rounded-lg p-4">' +
     '<h5 class="text-sm font-semibold text-gray-700 mb-2">规范原文</h5>' +
     '<p class="text-sm text-gray-700 leading-relaxed">' + doc.originalText + '</p>' +
     '</div>' +
     '<div class="flex flex-wrap gap-1">' +
-    doc.keywords.map(function(k) { return '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">#' + k + '</span>'; }).join('') +
+    (Array.isArray(doc.keywords) ? doc.keywords : (doc.keywords || '').split(',')).map(function(k) { return '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">#' + (typeof k === 'string' ? k.trim() : k) + '</span>'; }).join('') +
     '</div>' +
     '</div>';
 
   modal.detail({ title: '规范原文 — ' + doc.title, body: body, width: 'max-w-2xl' });
+}
+
+/**
+ * 根据病害名匹配对应的农技规范文档 ID
+ */
+function findMatchingRegulationDoc(diseaseName) {
+  if (!dsReady() || !diseaseName) return 'kd_001';
+  var docs = ds().getAll('knowledge_documents');
+  if (!docs || docs.length === 0) return 'kd_001';
+
+  // 1. 直接名称匹配
+  for (var i = 0; i < docs.length; i++) {
+    if (docs[i].title.indexOf(diseaseName) >= 0) return docs[i].id;
+  }
+
+  // 2. 关键词数组匹配
+  for (var j = 0; j < docs.length; j++) {
+    var kws = docs[j].keywords;
+    if (!kws) continue;
+    var kwArr = Array.isArray(kws) ? kws : kws.split(',');
+    for (var k = 0; k < kwArr.length; k++) {
+      if (diseaseName.indexOf(kwArr[k].trim()) >= 0) return docs[j].id;
+    }
+  }
+
+  // 3. 模糊匹配 — 按病害中的关键词在文档标题中搜索
+  var parts = diseaseName.replace(/查看详情/g,'').split(/[，,、\s]+/);
+  for (var p = 0; p < parts.length; p++) {
+    if (parts[p].length < 2) continue;
+    for (var m = 0; m < docs.length; m++) {
+      if (docs[m].title.indexOf(parts[p]) >= 0 || docs[m].originalText.indexOf(parts[p]) >= 0) {
+        return docs[m].id;
+      }
+    }
+  }
+
+  return 'kd_001'; // fallback
 }
 
 // ==================== 病虫害知识库详情弹窗 ====================
@@ -630,7 +677,7 @@ function showDiseaseDetailModal(pestName) {
     '<div class="bg-yellow-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-yellow-700 mb-1">原因</h5><p class="text-sm text-gray-700">' + pest.causes + '</p></div>' +
     '<div class="bg-green-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-green-700 mb-1">防治方案</h5><p class="text-sm text-gray-700">' + pest.treatment + '</p></div>' +
     '<div class="bg-blue-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-blue-700 mb-1">规范依据</h5><p class="text-sm text-gray-700">' + (pest.regulation || '请查看相关农业技术规范') + '</p>' +
-    '<button class="mt-2 text-xs text-blue-600 hover:text-blue-700" onclick="showRegulationDetail(\'kd_001\')">查看完整规范 <i class="fa fa-arrow-right ml-1"></i></button></div>' +
+    '<button class="mt-2 text-xs text-blue-600 hover:text-blue-700" onclick="var docId=findMatchingRegulationDoc(\'' + pest.name.replace(/'/g,'\\\'') + '\');showRegulationDetail(docId,\'' + pest.name.replace(/'/g,'\\\'') + '\')">查看完整规范 <i class="fa fa-arrow-right ml-1"></i></button></div>' +
     '</div>';
 
   modal.detail({ title: '病虫害详情 — ' + pest.name, body: body, width: 'max-w-2xl' });
@@ -711,7 +758,7 @@ function showDiseaseDetail(pestId) {
     '<div class="bg-yellow-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-yellow-700 mb-1">原因</h5><p class="text-sm text-gray-700">' + pest.causes + '</p></div>' +
     '<div class="bg-green-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-green-700 mb-1">防治方案</h5><p class="text-sm text-gray-700">' + pest.treatment + '</p></div>' +
     '<div class="bg-blue-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-blue-700 mb-1">规范依据</h5><p class="text-sm text-gray-700">' + (pest.regulation || '请查看相关农业技术规范') + '</p>' +
-    '<button class="mt-2 text-xs text-blue-600 hover:text-blue-700" onclick="showRegulationDetail(\'' + (ds().getAll('knowledge_documents')[0]?.id || 'kd_001') + '\')">查看完整规范 <i class="fa fa-arrow-right ml-1"></i></button></div>' +
+    '<button class="mt-2 text-xs text-blue-600 hover:text-blue-700" onclick="var did=findMatchingRegulationDoc(\'' + pest.name.replace(/'/g,'\\\'') + '\');showRegulationDetail(did,\'' + pest.name.replace(/'/g,'\\\'') + '\')">查看完整规范 <i class="fa fa-arrow-right ml-1"></i></button></div>' +
     '</div>';
   modal.detail({ title: '病虫害详情 — ' + pest.name, body: body, width: 'max-w-2xl' });
 }
@@ -1060,9 +1107,10 @@ function showDiseaseHistoryDetail(recordId) {
       '</div>';
   }
 
-  // 规范链接
+  // 规范链接 — 按病害名匹配对应规范文档
+  var matchedDocId = findMatchingRegulationDoc(r.diseaseName);
   body += '<div class="text-right">' +
-    '<button class="text-xs text-blue-600 hover:text-blue-700" onclick="showRegulationDetail(\'' + (kb ? 'kd_001' : 'kd_001') + '\')">' +
+    '<button class="text-xs text-blue-600 hover:text-blue-700" onclick="showRegulationDetail(\'' + matchedDocId + '\', \'' + r.diseaseName.replace(/'/g, '\\\'') + '\')">' +
     '查看农技规范原文对照 <i class="fa fa-arrow-right ml-1"></i></button></div>';
 
   body += '</div>';

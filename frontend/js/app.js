@@ -222,6 +222,64 @@ function renderDisease() {
       '</div>' +
     '</div>';
   }).join('');
+
+  // 规范原文对照 — 匹配最新识别记录的病害
+  renderRegulationCompare(records);
+}
+
+/**
+ * 根据最新识别记录匹配对应的农技规范，动态渲染对照面板
+ */
+function renderRegulationCompare(records) {
+  var container = document.getElementById('regulation-compare-list');
+  if (!container) return;
+
+  var latest = records.length > 0 ? records[records.length - 1] : null;
+  if (!latest || latest.diseaseName === '无病虫害') {
+    container.innerHTML = '<div class="text-center text-gray-400 py-8 col-span-2"><i class="fa fa-info-circle text-3xl mb-2"></i><p>上传病虫害图片识别后，AI建议将与农技规范原文自动对照展示</p></div>';
+    return;
+  }
+
+  // 匹配知识库和规范文档
+  var kb = dsReady() ? ds().getAll('pest_knowledge_base') : [];
+  var pest = kb.find(function(k) { return latest.diseaseName.indexOf(k.name) >= 0 || (k.name && latest.diseaseName.indexOf(k.name.replace('查看详情','').trim())) >= 0; });
+  if (!pest && kb.length > 0) pest = kb[0];
+
+  var docs = dsReady() ? ds().getAll('knowledge_documents') : [];
+  // 按病害名中的关键词匹配规范文档
+  var doc = docs.find(function(d) {
+    return d.title.indexOf(latest.diseaseName) >= 0 ||
+           (d.keywords || '').indexOf(latest.diseaseName) >= 0 ||
+           (d.keywords || []).some(function(k) { return latest.diseaseName.indexOf(k) >= 0; });
+  });
+  if (!doc && docs.length > 0) doc = docs[0];
+
+  // AI建议文案
+  var aiAdvice = (pest && pest.treatment) ? pest.treatment.slice(0, 120) + '…' : '根据图像识别结果，建议参照下方规范原文进行防治处理。';
+  var aiTitle = (pest && pest.treatment) ? pest.treatment.slice(0, 40) + '…' : '参照规范进行防治';
+
+  // 规范原文截取
+  var regText = doc ? (doc.originalText || '').slice(0, 150) + '…' : '请选择对应规范文档查看完整内容。';
+  var regTitle = doc ? (doc.sourceRegulation || doc.title).slice(0, 50) : '相关规范';
+
+  container.innerHTML =
+    '<div class="p-4 bg-blue-50 rounded-lg border border-blue-100">' +
+      '<div class="flex items-center mb-2">' +
+        '<span class="px-2 py-0.5 text-xs bg-blue-200 text-blue-700 rounded mr-2">AI建议</span>' +
+        '<span class="text-sm font-medium text-gray-800">' + aiTitle + '</span>' +
+      '</div>' +
+      '<p class="text-xs text-gray-600">' + aiAdvice + '</p>' +
+      '<p class="text-xs text-gray-400 mt-1">识别病害：' + latest.diseaseName + ' · ' + (latest.detectedAt || '') + '</p>' +
+    '</div>' +
+    '<div class="p-4 bg-green-50 rounded-lg border border-green-100">' +
+      '<div class="flex items-center mb-2">' +
+        '<span class="px-2 py-0.5 text-xs bg-green-200 text-green-700 rounded mr-2">规范原文</span>' +
+        '<span class="text-sm font-medium text-gray-800">' + regTitle + '</span>' +
+      '</div>' +
+      '<p class="text-xs text-gray-600">' + regText + '</p>' +
+      (doc ? '<button class="mt-2 text-xs text-green-600 hover:text-green-700 font-medium" onclick="showRegulationDetail(\'' + doc.id + '\',\'' + (latest.diseaseName || '').replace(/'/g,'\\\\\\\'') + '\')">查看完整规范 <i class="fa fa-arrow-right ml-1"></i></button>' : '') +
+      '<p class="text-xs text-gray-400 mt-1">匹配病害：' + latest.diseaseName + '</p>' +
+    '</div>';
 }
 
 // ==================== 精准农事 渲染 ====================
