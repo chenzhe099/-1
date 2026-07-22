@@ -1,42 +1,41 @@
 package com.smartfarm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.time.LocalDate;
-
+@Entity
+@Table(name = "personnel")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity
-@Table(name = "personnel")
 public class Personnel {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(length = 36)
+    private String id;
 
-    @Column(length = 50)
+    @Column(name = "name")
     private String name;
 
-    @Column(length = 20)
+    @Column(name = "role")
     private String role;
 
-    @Column(length = 200)
-    private String avatar;
-
-    @Column(length = 20)
+    @Column(name = "status")
     private String status;
 
-    @Column(length = 20)
+    @Column(name = "avatar")
+    private String avatar;
+
+    @Column(name = "phone")
     private String phone;
 
-    @Column(length = 100)
+    @Column(name = "email")
     private String email;
 
-    private LocalDate joinedAt;
+    @Column(name = "joinedAt")
+    private String joinedAt;
+
+    @Column(name = "assignedFields")
+    private String assignedFields;
+
 }

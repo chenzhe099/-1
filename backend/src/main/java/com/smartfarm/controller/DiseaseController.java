@@ -1,76 +1,66 @@
 package com.smartfarm.controller;
 
-import com.smartfarm.dto.*;
-import com.smartfarm.entity.*;
-import com.smartfarm.service.DiseaseService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.smartfarm.dto.response.ApiResponse;
+import com.smartfarm.entity.DiseaseRecords;
+import com.smartfarm.entity.PestKnowledgeBase;
+import com.smartfarm.repository.DiseaseRecordsRepository;
+import com.smartfarm.repository.PestKnowledgeBaseRepository;
+import com.smartfarm.service.AiClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import java.util.*;
 
 @RestController
-@RequestMapping("/api/disease")
+@RequestMapping("/api/v1/disease")
 @RequiredArgsConstructor
-@Tag(name = "病虫害识别", description = "AI病虫害识别、知识库与防治建议")
 public class DiseaseController {
 
-    private final DiseaseService diseaseService;
+    private final DiseaseRecordsRepository diseaseRepo;
+    private final PestKnowledgeBaseRepository knowledgeRepo;
+    private final AiClientService aiClient;
 
     @GetMapping("/records")
-    @Operation(summary = "获取病虫害记录")
-    public ApiResponse<List<DiseaseRecordDTO>> getRecords() {
-        return ApiResponse.success(diseaseService.getAllRecords());
-    }
-
-    @GetMapping("/records/{id}")
-    public ApiResponse<DiseaseRecordDTO> getRecord(@PathVariable Long id) {
-        return ApiResponse.success(diseaseService.getRecordById(id));
-    }
-
-    @PostMapping("/records")
-    @Operation(summary = "创建病虫害识别记录")
-    public ApiResponse<DiseaseRecordDTO> createRecord(@RequestBody DiseaseRecord record) {
-        return ApiResponse.success(diseaseService.createRecord(record));
-    }
-
-    @PutMapping("/records/{id}")
-    public ApiResponse<DiseaseRecordDTO> updateRecord(@PathVariable Long id, @RequestBody DiseaseRecord record) {
-        return ApiResponse.success(diseaseService.updateRecord(id, record));
+    public ApiResponse<List<DiseaseRecords>> getRecords() {
+        return ApiResponse.ok(diseaseRepo.findAll());
     }
 
     @GetMapping("/knowledge")
-    @Operation(summary = "获取病虫害知识库")
-    public ApiResponse<List<PestKnowledge>> getKnowledge() {
-        return ApiResponse.success(diseaseService.getKnowledgeBase());
-    }
-
-    @GetMapping("/knowledge/{id}")
-    public ApiResponse<PestKnowledge> getKnowledgeById(@PathVariable Long id) {
-        return ApiResponse.success(diseaseService.getKnowledgeById(id));
+    public ApiResponse<List<PestKnowledgeBase>> getKnowledge() {
+        return ApiResponse.ok(knowledgeRepo.findAll());
     }
 
     @GetMapping("/knowledge/search")
-    @Operation(summary = "搜索病虫害知识")
-    public ApiResponse<List<PestKnowledge>> searchKnowledge(@RequestParam String keyword) {
-        return ApiResponse.success(diseaseService.searchKnowledge(keyword));
+    public ApiResponse<?> searchKnowledge(@RequestParam String name) {
+        return ApiResponse.ok(knowledgeRepo.findAll().stream()
+                .filter(k -> k.getName() != null && k.getName().contains(name))
+                .findFirst().orElse(null));
     }
 
-    @GetMapping("/regulations")
-    @Operation(summary = "获取农技规范文档")
-    public ApiResponse<List<KnowledgeDocDTO>> getRegulations(@RequestParam(required = false) String category) {
-        return ApiResponse.success(diseaseService.getKnowledgeDocs(category));
+    @PostMapping("/diagnose")
+    public ApiResponse<?> diagnose(@RequestParam("file") MultipartFile file) {
+        Map<String, Object> result = aiClient.diagnoseDisease(file);
+        return ApiResponse.ok(result);
     }
 
-    @GetMapping("/regulations/{id}")
-    @Operation(summary = "获取规范文档详情（规范原文对照）")
-    public ApiResponse<KnowledgeDocDTO> getRegulationById(@PathVariable Long id) {
-        return ApiResponse.success(diseaseService.getKnowledgeDocById(id));
-    }
-
-    @GetMapping("/regulations/search")
-    public ApiResponse<List<KnowledgeDocDTO>> searchRegulations(@RequestParam String keyword) {
-        return ApiResponse.success(diseaseService.searchKnowledgeDocs(keyword));
+    @GetMapping("/trend")
+    public ApiResponse<Map<String, Object>> getTrend() {
+        List<DiseaseRecords> records = diseaseRepo.findAll();
+        Map<String, Object> trend = new LinkedHashMap<>();
+        List<String> labels = new ArrayList<>();
+        List<Integer> disease = new ArrayList<>();
+        List<Integer> pest = new ArrayList<>();
+        for (DiseaseRecords r : records) {
+            if (r.getDetectedAt() != null) {
+                labels.add(r.getDetectedAt().substring(0, Math.min(10, r.getDetectedAt().length())));
+                disease.add(r.getDiseaseName() != null && r.getDiseaseName().contains("病") ? 1 : 0);
+                pest.add(r.getDiseaseName() != null && r.getDiseaseName().contains("虫") ? 1 : 0);
+            }
+        }
+        trend.put("labels", labels);
+        trend.put("disease", disease.stream().mapToInt(Integer::intValue).boxed().toList());
+        trend.put("pest", pest.stream().mapToInt(Integer::intValue).boxed().toList());
+        return ApiResponse.ok(trend);
     }
 }

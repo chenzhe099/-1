@@ -1,35 +1,41 @@
 package com.smartfarm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.time.LocalDateTime;
-
+@Entity
+@Table(name = "production_timeline")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity
-@Table(name = "production_timeline")
 public class ProductionTimeline {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(length = 36)
+    private String id;
 
-    private Long productId;
+    @Column(name = "productId")
+    private String productId;
 
-    @Column(length = 100)
+    @Column(name = "productName")
+    private String productName;
+
+    @Column(name = "batchNumber")
+    private String batchNumber;
+
+    @Column(name = "stage")
     private String stage;
 
-    private LocalDateTime date;
+    @Column(name = "date")
+    private String date;
 
-    @Column(length = 200)
+    @Column(name = "location")
     private String location;
 
-    @Column(length = 500)
+    @Column(name = "description")
     private String description;
+
+    @Column(name = "operator")
+    private String operator;
+
 }

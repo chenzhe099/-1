@@ -1,33 +1,44 @@
 package com.smartfarm.controller;
 
-import com.smartfarm.dto.ApiResponse;
-import com.smartfarm.dto.LoginRequest;
-import com.smartfarm.dto.LoginResponse;
-import com.smartfarm.entity.User;
+import com.smartfarm.config.JwtTokenProvider;
+import com.smartfarm.dto.request.LoginRequest;
+import com.smartfarm.dto.response.ApiResponse;
+import com.smartfarm.dto.response.LoginResponse;
+import com.smartfarm.entity.Users;
+import com.smartfarm.repository.UsersRepository;
 import com.smartfarm.service.AuthService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "认证管理", description = "用户登录、注册接口")
 public class AuthController {
 
     private final AuthService authService;
+    private final UsersRepository usersRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/login")
-    @Operation(summary = "用户登录", description = "使用用户名和密码登录，返回JWT令牌")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.success("登录成功", authService.login(request));
+        return ApiResponse.ok(authService.login(request));
     }
 
-    @PostMapping("/register")
-    @Operation(summary = "用户注册", description = "注册新用户，默认角色为农户")
-    public ApiResponse<LoginResponse> register(@Valid @RequestBody User user) {
-        return ApiResponse.success("注册成功", authService.register(user));
+    @GetMapping("/me")
+    public ApiResponse<Map<String, Object>> me(@AuthenticationPrincipal Users user) {
+        if (user == null) {
+            return ApiResponse.fail(401, "未登录");
+        }
+        return ApiResponse.ok(Map.of(
+            "id", user.getId(),
+            "username", user.getUsername(),
+            "displayName", user.getDisplayName(),
+            "role", user.getRole(),
+            "status", user.getStatus()
+        ));
     }
 }
