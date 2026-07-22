@@ -46,7 +46,7 @@
             <nav class="flex-1 p-3 overflow-y-auto scrollbar">
                 <div class="space-y-1">
                     <button class="w-full sidebar-item active-sidebar flex items-center px-3 py-2.5 rounded-lg text-gray-700 transition-all" data-menu="dashboard">
-                        <i class="fa fa-dashboard w-5 h-5 mr-3 text-blue-500"></i>
+                        <i class="fas fa-gauge w-5 h-5 mr-3 text-blue-500"></i>
                         <span>数据总览</span>
                     </button>
                     <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="disease">
@@ -2063,9 +2063,10 @@
                                 <div>
                                     <p class="text-sm text-gray-500">空气湿度</p>
                                     <p class="text-2xl font-bold text-cyan-600 mt-1" id="stat-humidity">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-humidity-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-percent text-cyan-600 text-xl"></i>
+                                    <i class="fa fa-droplet text-cyan-600 text-xl"></i>
                                 </div>
                             </div>
                         </div>
@@ -2074,7 +2075,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">风速 / 天气</p>
                                     <p class="text-2xl font-bold text-teal-600 mt-1" id="stat-wind">--</p>
-                                    <p class="text-xs text-gray-500 mt-2" id="stat-condition">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-wind-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-flag text-teal-600 text-xl"></i>
@@ -2121,6 +2122,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">监测品种</p>
                                     <p class="text-2xl font-bold text-gray-800 mt-1" id="stat-crop-count">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-crop-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-tags text-indigo-600 text-xl"></i>
@@ -2132,6 +2134,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">今日均价</p>
                                     <p class="text-2xl font-bold text-blue-600 mt-1" id="stat-avg-price">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-avg-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-jpy text-blue-600 text-xl"></i>
@@ -2143,6 +2146,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">涨幅最大</p>
                                     <p class="text-2xl font-bold text-red-600 mt-1" id="stat-max-up">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-max-up-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-arrow-up text-red-600 text-xl"></i>
@@ -2154,6 +2158,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">跌幅最大</p>
                                     <p class="text-2xl font-bold text-green-600 mt-1" id="stat-max-down">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-max-down-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-arrow-down text-green-600 text-xl"></i>
@@ -2217,6 +2222,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">活跃模型数</p>
                                     <p class="text-2xl font-bold text-violet-600 mt-1" id="stat-active-models">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-active-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-violet-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-cube text-violet-600 text-xl"></i>
@@ -2228,6 +2234,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">平均准确率</p>
                                     <p class="text-2xl font-bold text-green-600 mt-1" id="stat-avg-accuracy">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-avg-acc-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-check-circle text-green-600 text-xl"></i>
@@ -2239,6 +2246,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">漂移预警</p>
                                     <p class="text-2xl font-bold text-yellow-600 mt-1" id="stat-drift-warning">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-drift-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-exclamation-triangle text-yellow-600 text-xl"></i>
@@ -2250,6 +2258,7 @@
                                 <div>
                                     <p class="text-sm text-gray-500">未知样本率</p>
                                     <p class="text-2xl font-bold text-red-600 mt-1" id="stat-unknown-rate">--</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="stat-unknown-desc">--</p>
                                 </div>
                                 <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-question-circle text-red-600 text-xl"></i>

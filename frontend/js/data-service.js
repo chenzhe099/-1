@@ -186,23 +186,46 @@ class DataService {
 
   getDashboardStats() {
     const today = '2024-01-15';
-    const tasksToday = this.table('farming_tasks')
-      .where('scheduledTime', 'contains', today).count();
+    const tasks = this.table('farming_tasks').where('scheduledTime', 'contains', today).get();
+    const tasksToday = tasks.length;
+    const tasksCompleted = tasks.filter(t => t.status === 'completed').length;
+    const tasksInProgress = tasks.filter(t => t.status === 'in_progress').length;
+    const tasksPending = tasks.filter(t => t.status === 'pending').length;
+
     const devices = this.getAll('devices');
     const onlineCount = devices.filter(d => d.status === 'online').length;
-    const alerts = this.table('alerts').where('isResolved', 'eq', false).count();
-    const yieldData = this.table('yield_predictions')
-      .where('month', 'eq', '2024-06').first();
+    const offlineCount = devices.filter(d => d.status === 'offline').length;
+    const faultCount = devices.filter(d => d.status === 'fault').length;
+
+    const allAlerts = this.table('alerts').where('isResolved', 'eq', false).get();
+    const alertCount = allAlerts.length;
+    const criticalCount = allAlerts.filter(a => a.severity === 'critical').length;
+    const warningCount = allAlerts.filter(a => a.severity === 'warning').length;
+
+    const crops = [...new Set(this.getAll('fields').map(f => f.cropName))];
+    const yieldData = this.table('yield_predictions').where('month', 'eq', '2024-06').first();
 
     return {
       tasksToday,
-      tasksChange: '+12%',
+      tasksCompleted,
+      tasksInProgress,
+      tasksPending,
+      tasksSummary: `已完成 ${tasksCompleted} / 进行中 ${tasksInProgress} / 待办 ${tasksPending}`,
       deviceOnlineRate: Math.round((onlineCount / devices.length) * 100),
-      deviceChange: '+2%',
-      alertCount: alerts,
+      deviceOnline: onlineCount,
+      deviceTotal: devices.length,
+      deviceOffline: offlineCount,
+      deviceFault: faultCount,
+      deviceSummary: `在线 ${onlineCount}台 / 离线 ${offlineCount}台 / 故障 ${faultCount}台`,
+      alertCount,
+      alertCritical: criticalCount,
+      alertWarning: warningCount,
+      alertSummary: `严重 ${criticalCount}条 / 警告 ${warningCount}条`,
       monthlyYield: yieldData ? yieldData.predicted : 135,
       yieldUnit: '吨',
-      yieldChange: '+8%'
+      cropCount: crops.length,
+      yieldConfidence: yieldData ? Math.round(yieldData.confidence) : 89,
+      yieldSummary: `覆盖 ${crops.length}种作物 / 预测置信度 ${yieldData ? Math.round(yieldData.confidence) : 89}%`
     };
   }
 
@@ -522,13 +545,21 @@ class DataService {
     const records = this.getAll('weather_records');
     const today = records[records.length - 1] || {};
     const yesterday = records[records.length - 2] || {};
+    const tempDiff = yesterday.temperatureHigh ? (today.temperatureHigh - yesterday.temperatureHigh).toFixed(1) : '0';
+    const diffArrow = parseFloat(tempDiff) >= 0 ? '↑' : '↓';
+    const monthRainfall = records.slice(-7).reduce((s, r) => s + (r.rainfall_mm || 0), 0);
+
     return {
       todayTemp: today.temperatureHigh + '° / ' + today.temperatureLow + '°',
-      tempChange: yesterday.temperatureHigh ? ((today.temperatureHigh - yesterday.temperatureHigh) > 0 ? '+' : '') + (today.temperatureHigh - yesterday.temperatureHigh).toFixed(1) + '°' : '--',
+      tempChange: `较昨日 ${diffArrow}${Math.abs(parseFloat(tempDiff)).toFixed(0)}°C / 体感 ${(today.temperatureHigh - 2)}°C`,
       todayRainfall: (today.rainfall_mm || 0) + 'mm',
-      rainfallDesc: (today.rainfall_mm || 0) > 5 ? '有降雨' : '无降雨',
+      rainfallDesc: (today.rainfall_mm || 0) > 0
+        ? `今日有降雨 / 近7日累计 ${monthRainfall.toFixed(1)}mm`
+        : `今日无降雨 / 近7日累计 ${monthRainfall.toFixed(1)}mm`,
       todayHumidity: (today.humidity || 0) + '%',
+      humidityDesc: `露点温度 ${Math.round((today.temperatureLow || 10) - ((100 - (today.humidity || 60)) / 5))}°C`,
       todayWind: (today.windSpeed || 0) + 'm/s',
+      windDesc: today.windSpeed > 5 ? '风力较强，注意大棚加固' : '风力适中，适宜农事作业',
       condition: today.condition || '--',
       conditionLabel: { sunny: '晴', cloudy: '多云', rain: '雨', snow: '雪' }[today.condition] || today.condition || '--'
     };
@@ -565,20 +596,26 @@ class DataService {
   getMarketStats() {
     const prices = this.getAll('market_prices');
     const cropNames = [...new Set(prices.map(p => p.cropName))];
+    const markets = [...new Set(prices.map(p => p.market))];
     const todayPrices = prices.filter(p => p.date === '2024-01-15');
     const yesterdayPrices = prices.filter(p => p.date === '2024-01-14');
     const avgToday = todayPrices.length > 0 ? (todayPrices.reduce((s, p) => s + p.pricePerKg, 0) / todayPrices.length).toFixed(2) : '--';
-    const upCount = todayPrices.filter(p => p.trend === 'up').length;
-    const downCount = todayPrices.filter(p => p.trend === 'down').length;
+    const avgYesterday = yesterdayPrices.length > 0 ? (yesterdayPrices.reduce((s, p) => s + p.pricePerKg, 0) / yesterdayPrices.length).toFixed(2) : '--';
+    const avgDiff = avgToday !== '--' && avgYesterday !== '--'
+      ? (parseFloat(avgToday) - parseFloat(avgYesterday)).toFixed(2) : '--';
     const maxUp = todayPrices.length > 0 ? todayPrices.reduce((a, b) => (b.changePercent > a.changePercent) ? b : a) : null;
     const maxDown = todayPrices.length > 0 ? todayPrices.reduce((a, b) => (b.changePercent < a.changePercent) ? b : a) : null;
     return {
       cropCount: cropNames.length,
+      marketCount: markets.length,
+      marketSummary: `覆盖 ${markets.length}个批发市场 / ${cropNames.length}个监测品种`,
       avgPrice: avgToday,
-      upCount: upCount,
-      downCount: downCount,
+      avgDiff: parseFloat(avgDiff) >= 0 ? `+${avgDiff}元/kg` : `${avgDiff}元/kg`,
+      avgDiffDir: parseFloat(avgDiff) >= 0 ? 'up' : 'down',
       maxUpCrop: maxUp ? maxUp.cropName + ' +' + maxUp.changePercent + '%' : '--',
-      maxDownCrop: maxDown ? maxDown.cropName + ' ' + maxDown.changePercent + '%' : '--'
+      maxUpPrice: maxUp ? maxUp.pricePerKg.toFixed(2) + '元/kg' : '--',
+      maxDownCrop: maxDown ? maxDown.cropName + ' ' + maxDown.changePercent + '%' : '--',
+      maxDownPrice: maxDown ? maxDown.pricePerKg.toFixed(2) + '元/kg' : '--'
     };
   }
 
@@ -604,15 +641,24 @@ class DataService {
   getModelStats() {
     const models = this.getAll('model_versions');
     const active = models.filter(m => m.status === 'active');
+    const inactive = models.filter(m => m.status !== 'active');
     const avgAccuracy = active.length > 0 ? (active.reduce((s, m) => s + (m.accuracy || 0), 0) / active.length).toFixed(1) : '--';
+    const maxAcc = active.length > 0 ? Math.max(...active.map(m => m.accuracy || 0)).toFixed(1) : '--';
+    const minAcc = active.length > 0 ? Math.min(...active.map(m => m.accuracy || 0)).toFixed(1) : '--';
     const driftWarnings = active.filter(m => m.driftScore !== null && m.driftScore > 0.2).length;
     const avgUnknownRate = active.length > 0 ? (active.reduce((s, m) => s + (m.unknownRate || 0), 0) / active.length).toFixed(1) : '--';
+    const reviewCount = this.table('agent_runs').where('humanReviewNeeded', 'eq', true).get()
+      .filter(a => a.reviewStatus === 'pending' || a.reviewStatus === null).length;
     return {
       activeCount: active.length,
-      totalModels: models.length,
+      totalVersions: models.length,
+      activeSummary: `共 ${models.length}个版本 / ${active.length}个运行中 / ${inactive.length}个已停用`,
       avgAccuracy: avgAccuracy + '%',
+      accRange: `最高 ${maxAcc}% / 最低 ${minAcc}%`,
       driftWarnings: driftWarnings,
+      driftSummary: driftWarnings > 0 ? `${driftWarnings}个模型漂移指数 >0.2，建议检查` : '所有模型漂移指数正常 (<0.2)',
       avgUnknownRate: avgUnknownRate + '%',
+      unknownSummary: `待审核 ${reviewCount}条未知样本 / 阈值置信度 <80%`,
       totalPredictions: active.reduce((s, m) => s + (m.totalPredictions || 0), 0)
     };
   }

@@ -25,9 +25,9 @@ function formatDateTime(isoStr) {
 const TASK_TYPE_MAP = {
   watering:    { label: '浇水',    icon: 'fa-tint',       color: 'green' },
   pruning:     { label: '修剪',    icon: 'fa-scissors',   color: 'blue' },
-  spraying:    { label: '喷药',    icon: 'fa-medkit',     color: 'orange' },
+  spraying:    { label: '喷药',    icon: 'fa-suitcase-medical', color: 'orange' },
   fertilizing: { label: '施肥',    icon: 'fa-leaf',       color: 'purple' },
-  thinning:    { label: '疏果',    icon: 'fa-cut',        color: 'pink' },
+  thinning:    { label: '疏果',    icon: 'fa-scissors',   color: 'pink' },
   harvesting:  { label: '采收',    icon: 'fa-shopping-basket', color: 'red' }
 };
 

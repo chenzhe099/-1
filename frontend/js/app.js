@@ -99,14 +99,15 @@ function renderSection(menuId) {
 function renderDashboard() {
   const stats = dataService.getDashboardStats();
 
-  // 统计卡片
+  // 统计卡片 — 标注从数据中来
   document.getElementById('stat-tasks-today').textContent = stats.tasksToday;
-  document.getElementById('stat-tasks-change').innerHTML = `<i class="fa fa-arrow-up mr-1"></i>较昨日 ${stats.tasksChange}`;
+  document.getElementById('stat-tasks-change').innerHTML = `<i class="fa fa-check-circle mr-1"></i>${stats.tasksSummary}`;
   document.getElementById('stat-device-rate').textContent = stats.deviceOnlineRate + '%';
-  document.getElementById('stat-device-change').innerHTML = `<i class="fa fa-arrow-up mr-1"></i>较昨日 ${stats.deviceChange}`;
+  document.getElementById('stat-device-change').innerHTML = `<i class="fa fa-plug mr-1"></i>${stats.deviceSummary}`;
   document.getElementById('stat-alert-count').textContent = stats.alertCount;
+  document.getElementById('stat-alert-desc').innerHTML = `<i class="fa fa-flag mr-1"></i>${stats.alertSummary}`;
   document.getElementById('stat-monthly-yield').textContent = stats.monthlyYield + stats.yieldUnit;
-  document.getElementById('stat-yield-change').innerHTML = `<i class="fa fa-arrow-up mr-1"></i>较上月 ${stats.yieldChange}`;
+  document.getElementById('stat-yield-change').innerHTML = `<i class="fa fa-chart-line mr-1"></i>${stats.yieldSummary}`;
 
   // 地块状态
   const fields = dataService.getFieldStatusList();
@@ -610,13 +611,15 @@ function updateStatTexts(selector, values) {
 function renderWeather() {
   const stats = dataService.getWeatherStats();
 
+  const diffArrow = parseFloat(stats.tempChange.replace(/[^0-9.-]/g,'')) >= 0 ? 'up' : 'down';
   document.getElementById('stat-temp').textContent = stats.todayTemp;
-  document.getElementById('stat-temp-change').innerHTML = '<i class="fa fa-arrow-' + (stats.tempChange.startsWith('+') ? 'up' : 'down') + ' mr-1"></i>较昨日 ' + stats.tempChange;
+  document.getElementById('stat-temp-change').innerHTML = `<i class="fa fa-arrow-${diffArrow} mr-1"></i>${stats.tempChange}`;
   document.getElementById('stat-rainfall').textContent = stats.todayRainfall;
-  document.getElementById('stat-rainfall-desc').textContent = stats.rainfallDesc;
+  document.getElementById('stat-rainfall-desc').innerHTML = `<i class="fa fa-umbrella mr-1"></i>${stats.rainfallDesc}`;
   document.getElementById('stat-humidity').textContent = stats.todayHumidity;
+  document.getElementById('stat-humidity-desc').textContent = stats.humidityDesc;
   document.getElementById('stat-wind').textContent = stats.todayWind;
-  document.getElementById('stat-condition').innerHTML = '<i class="fa fa-sun mr-1"></i>' + stats.conditionLabel;
+  document.getElementById('stat-wind-desc').innerHTML = `<i class="fa fa-sun mr-1"></i>${stats.conditionLabel} · ${stats.windDesc}`;
 
   // 7日预报
   const forecast = dataService.getWeatherForecast();
@@ -643,9 +646,13 @@ function renderMarket() {
   const stats = dataService.getMarketStats();
 
   document.getElementById('stat-crop-count').textContent = stats.cropCount + '个';
+  document.getElementById('stat-crop-desc').textContent = stats.marketSummary;
   document.getElementById('stat-avg-price').textContent = stats.avgPrice + '元/kg';
+  document.getElementById('stat-avg-desc').innerHTML = `<i class="fa fa-arrow-${stats.avgDiffDir} mr-1"></i>较昨日 ${stats.avgDiff}`;
   document.getElementById('stat-max-up').textContent = stats.maxUpCrop;
+  document.getElementById('stat-max-up-desc').textContent = '成交价 ' + stats.maxUpPrice;
   document.getElementById('stat-max-down').textContent = stats.maxDownCrop;
+  document.getElementById('stat-max-down-desc').textContent = '成交价 ' + stats.maxDownPrice;
 
   // 今日价格表
   const todayPrices = dataService.table('market_prices')
@@ -674,9 +681,13 @@ function renderMonitor() {
   const stats = dataService.getModelStats();
 
   document.getElementById('stat-active-models').textContent = stats.activeCount + '个';
+  document.getElementById('stat-active-desc').textContent = stats.activeSummary;
   document.getElementById('stat-avg-accuracy').textContent = stats.avgAccuracy;
+  document.getElementById('stat-avg-acc-desc').textContent = stats.accRange;
   document.getElementById('stat-drift-warning').textContent = stats.driftWarnings + '个';
+  document.getElementById('stat-drift-desc').textContent = stats.driftSummary;
   document.getElementById('stat-unknown-rate').textContent = stats.avgUnknownRate;
+  document.getElementById('stat-unknown-desc').textContent = stats.unknownSummary;
 
   // 模型版本列表
   const models = dataService.getModelVersionList();
