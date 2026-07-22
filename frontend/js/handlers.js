@@ -529,6 +529,8 @@ function showAddDeviceModal() {
     }
   });
 }
+
+function doDeviceAction(btn, action) {
   var card = btn.closest('.relative')||btn.closest('.bg-white');
   var dn = card?.querySelector('span.font-medium')?.textContent||'设备';
   if (action==='detail') { if (typeof showDeviceDetailModal==='function') showDeviceDetailModal(dn); return; }
