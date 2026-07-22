@@ -215,7 +215,7 @@ class Modal {
    * @param {string} options.width
    */
   detail(options) {
-    const footer = `<button class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors modal-close-btn text-sm">关闭</button>`;
+    const footer = '';
     return this._open(options.body, {
       title: options.title,
       width: options.width || 'max-w-2xl',
@@ -257,7 +257,7 @@ class Modal {
 
     const body = `<div class="overflow-x-auto"><table class="w-full">${thead}${tbody}</table></div>`;
 
-    const footer = `<button class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors modal-close-btn text-sm">关闭</button>`;
+    const footer = '';
     return this._open(body, { title: options.title, width: 'max-w-3xl', footer });
   }
 }
