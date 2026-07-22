@@ -880,7 +880,8 @@ function editTaskItem(taskId) {
     submitLabel: '保存修改',
     onSubmit: function(data) {
       var update = { type: data.type, status: data.status, priority: data.priority, notes: data.notes };
-      if (data.status === 'completed' && t.status !== 'completed') {
+      var wasCompleted = data.status === 'completed' && t.status !== 'completed';
+      if (wasCompleted) {
         update.completedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
       }
       ds().update('farming_tasks', taskId, update);
@@ -890,6 +891,10 @@ function editTaskItem(taskId) {
         detail: '状态: ' + data.status + ', 优先级: ' + data.priority,
         timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
       });
+      // 完成任务后自动轮换：补充一个新任务
+      if (wasCompleted) {
+        autoReplenishTask();
+      }
       renderDashboard();
       if (typeof renderFarming === 'function') renderFarming();
       showToast('任务已更新', 'success');
@@ -914,10 +919,59 @@ function deleteTaskItem(event, taskId) {
         module: 'farming', action: '删除任务: ' + t.fieldCode + taskTypeLabel(t.type),
         detail: '原状态: ' + t.status, timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
       });
+      // 非已完成任务的删除也自动补充
+      if (t.status !== 'completed' && t.status !== 'cancelled') {
+        autoReplenishTask();
+      }
       renderDashboard();
       if (typeof renderFarming === 'function') renderFarming();
       showToast('任务已删除', 'success');
     }
+  });
+}
+
+// ==================== 任务自动轮换 ====================
+
+/**
+ * 完成任务/删除待做任务后，自动补一个新任务到待办列表
+ * 从全部地块轮选，生成随机类型的农事任务
+ */
+function autoReplenishTask() {
+  if (!dsReady()) return;
+  var allTasks = ds().getAll('farming_tasks');
+  var nextNum = allTasks.length + 1;
+  var fields = ds().getAll('fields');
+  var field = fields[Math.floor(Math.random() * fields.length)];
+  if (!field) return;
+
+  var types = ['watering', 'fertilizing', 'spraying', 'pruning', 'harvesting', 'thinning'];
+  var type = types[Math.floor(Math.random() * types.length)];
+  var durations = { watering: 1.5, fertilizing: 2, spraying: 1, pruning: 3, harvesting: 4, thinning: 2 };
+  var startHours = ['06:00', '07:30', '08:30', '09:00', '10:00', '14:00', '15:30'];
+  var startTime = startHours[Math.floor(Math.random() * startHours.length)];
+
+  var taskId = 'task_' + ('r' + Date.now().toString(36));
+
+  ds().insert('farming_tasks', {
+    id: taskId,
+    type: type,
+    fieldId: field.id,
+    fieldCode: field.code,
+    cropName: field.cropName,
+    scheduledTime: '2024-01-15 ' + startTime,
+    estimatedDuration: durations[type] || 1.5,
+    status: 'pending',
+    assignedTo: 'u003',
+    priority: ['high', 'medium', 'medium', 'low'][Math.floor(Math.random() * 4)],
+    notes: '自动轮换任务',
+    completedAt: null
+  });
+
+  ds().insert('operation_logs', {
+    id: 'log_' + uid(), userId: 'system', username: '系统',
+    module: 'farming', action: '自动轮换: 生成新任务 ' + field.code + taskTypeLabel(type),
+    detail: '地块: ' + field.code + ' / 类型: ' + type + ' / 时间: ' + startTime,
+    timestamp: new Date().toISOString().slice(0, 19).replace('T', ' ')
   });
 }
 
