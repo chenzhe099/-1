@@ -940,12 +940,10 @@ function deleteTaskItem(event, taskId) {
 // ==================== 全部任务弹窗内刷新 ====================
 
 function refreshAllTasksModalIfOpen() {
-  // 检测全部任务弹窗是否打开（footer 中有 modal-close-btn）
-  var footerBtn = document.querySelector('.modal-footer .modal-close-btn');
-  if (footerBtn) {
-    // 弹窗开着 → 关闭旧弹窗并重新打开
-    modal.close();
-    setTimeout(function() { showAllTasksModal(); }, 250);
+  // 检测全部任务弹窗是否还在 DOM 中
+  var taskModal = document.querySelector('.modal-panel');
+  if (taskModal && taskModal.textContent.indexOf('全部农事任务') >= 0) {
+    showAllTasksModal(); // _open() 会自动关闭前一个
   }
 }
 

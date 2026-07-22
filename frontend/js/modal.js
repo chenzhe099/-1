@@ -11,9 +11,16 @@ class Modal {
     this._closed = false;
   }
 
-  /** 打开弹窗 */
+  /** 打开弹窗 — 先关闭上一个，避免堆叠 */
   _open(content, options = {}) {
+    // 先关闭上一个弹窗
+    if (this._overlay && this._overlay.parentNode) {
+      this._overlay.parentNode.removeChild(this._overlay);
+    }
+    this._overlay = null;
+    this._resolve = null;
     this._closed = false;
+
     const width = options.width || 'max-w-lg';
     const closable = options.closable !== false;
 
@@ -28,7 +35,7 @@ class Modal {
           ${closable ? '<button class="p-1 hover:bg-gray-100 rounded-lg transition-colors modal-close-btn"><i class="fa fa-times text-gray-400"></i></button>' : ''}
         </div>` : ''}
         <div class="flex-1 overflow-y-auto p-6 modal-body">${content}</div>
-        ${options.footer ? `<div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3 modal-footer">${options.footer}</div>` : ''}
+        ${options.footer ? '<div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3 modal-footer">' + options.footer + '</div>' : ''}
       </div>`;
 
     document.body.appendChild(this._overlay);
@@ -53,9 +60,6 @@ class Modal {
   }
 
   close(result) {
-    if (this._closed) return;
-    this._closed = true;
-
     if (this._resolve) {
       this._resolve(result);
       this._resolve = null;
@@ -63,14 +67,19 @@ class Modal {
 
     if (this._overlay) {
       this._overlay.classList.add('modal-fade-out');
-      setTimeout(() => {
-        if (this._overlay && this._overlay.parentNode) {
-          this._overlay.parentNode.removeChild(this._overlay);
-        }
+      var overlay = this._overlay;
+      setTimeout(function() {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
       }, 200);
     }
 
-    document.removeEventListener('keydown', this._escHandler);
+    this._overlay = null;
+    this._closed = true;
+
+    if (this._escHandler) {
+      document.removeEventListener('keydown', this._escHandler);
+      this._escHandler = null;
+    }
   }
 
   // ==================== 表单弹窗 ====================
