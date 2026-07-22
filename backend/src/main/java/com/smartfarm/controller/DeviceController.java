@@ -1,66 +1,55 @@
 package com.smartfarm.controller;
 
-import com.smartfarm.dto.ApiResponse;
-import com.smartfarm.dto.DeviceDTO;
-import com.smartfarm.entity.Device;
-import com.smartfarm.entity.MaintenanceRecord;
-import com.smartfarm.service.DeviceService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.smartfarm.dto.response.ApiResponse;
+import com.smartfarm.entity.*;
+import com.smartfarm.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
-@RequestMapping("/api/devices")
+@RequestMapping("/api/v1/devices")
 @RequiredArgsConstructor
-@Tag(name = "设备监控", description = "IoT设备管理与远程控制")
 public class DeviceController {
 
-    private final DeviceService deviceService;
+    private final DevicesRepository deviceRepo;
+    private final MaintenanceRecordsRepository maintenanceRepo;
 
-    @GetMapping("/stats")
-    @Operation(summary = "设备统计概览")
-    public ApiResponse<Map<String, Object>> getStats() {
-        return ApiResponse.success(deviceService.getDeviceStats());
+    @GetMapping("/summary")
+    public ApiResponse<Map<String, Object>> getSummary() {
+        Map<String, Object> s = new HashMap<>();
+        s.put("total", deviceRepo.count());
+        s.put("online", deviceRepo.findByStatus("online").size());
+        s.put("fault", deviceRepo.findByStatus("fault").size());
+        s.put("maintenance", deviceRepo.findByStatus("maintenance").size());
+        return ApiResponse.ok(s);
     }
 
     @GetMapping
-    public ApiResponse<List<DeviceDTO>> getAll() {
-        return ApiResponse.success(deviceService.getAllDevices());
+    public ApiResponse<List<Devices>> getDevices() {
+        return ApiResponse.ok(deviceRepo.findAll());
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<DeviceDTO> getDevice(@PathVariable Long id) {
-        return ApiResponse.success(deviceService.getDeviceById(id));
-    }
-
-    @PostMapping
-    public ApiResponse<DeviceDTO> create(@RequestBody Device device) {
-        return ApiResponse.success("设备添加成功", deviceService.createDevice(device));
+    public ApiResponse<Devices> getDevice(@PathVariable String id) {
+        return ApiResponse.ok(deviceRepo.findById(id).orElse(null));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<DeviceDTO> update(@PathVariable Long id, @RequestBody Device device) {
-        return ApiResponse.success(deviceService.updateDevice(id, device));
+    public ApiResponse<Devices> updateDevice(@PathVariable String id, @RequestBody Devices device) {
+        device.setId(id);
+        return ApiResponse.ok(deviceRepo.save(device));
     }
 
-    @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
-        deviceService.deleteDevice(id);
-        return ApiResponse.success(null);
-    }
-
-    @GetMapping("/{id}/maintenance")
-    public ApiResponse<List<MaintenanceRecord>> getMaintenance(@PathVariable Long id) {
-        return ApiResponse.success(deviceService.getMaintenanceByDevice(id));
+    @GetMapping("/maintenance")
+    public ApiResponse<List<MaintenanceRecords>> getMaintenance() {
+        return ApiResponse.ok(maintenanceRepo.findAll());
     }
 
     @PostMapping("/maintenance")
-    @Operation(summary = "创建维护记录")
-    public ApiResponse<MaintenanceRecord> createMaintenance(@RequestBody MaintenanceRecord record) {
-        return ApiResponse.success(deviceService.createMaintenance(record));
+    public ApiResponse<MaintenanceRecords> createMaintenance(@RequestBody MaintenanceRecords record) {
+        if (record.getId() == null) record.setId("mr_" + System.currentTimeMillis());
+        return ApiResponse.ok(maintenanceRepo.save(record));
     }
 }

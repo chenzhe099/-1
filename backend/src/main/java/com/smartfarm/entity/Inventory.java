@@ -1,43 +1,44 @@
 package com.smartfarm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.time.LocalDate;
-
+@Entity
+@Table(name = "inventory")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity
-@Table(name = "inventory")
 public class Inventory {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(length = 36)
+    private String id;
 
-    @Column(length = 100)
+    @Column(name = "name")
     private String name;
 
-    @Column(length = 50)
+    @Column(name = "category")
     private String category;
 
-    private Double quantity;
-
-    @Column(length = 20)
+    @Column(name = "unit")
     private String unit;
 
-    private Double thresholdLow;
+    @Column(name = "unitWeight")
+    private Integer unitWeight;
 
-    @Column(length = 100)
+    @Column(name = "quantity")
+    private Integer quantity;
+
+    @Column(name = "thresholdLow")
+    private Integer thresholdLow;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "lastRestocked")
+    private String lastRestocked;
+
+    @Column(name = "supplier")
     private String supplier;
 
-    private LocalDate lastRestocked;
-
-    @Column(length = 20)
-    private String status;
 }

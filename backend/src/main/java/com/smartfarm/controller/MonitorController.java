@@ -1,52 +1,53 @@
 package com.smartfarm.controller;
 
-import com.smartfarm.dto.ApiResponse;
-import com.smartfarm.dto.ModelVersionDTO;
-import com.smartfarm.entity.ModelVersion;
-import com.smartfarm.service.ModelMonitorService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.smartfarm.dto.response.ApiResponse;
+import com.smartfarm.entity.*;
+import com.smartfarm.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
-@RequestMapping("/api/monitor")
+@RequestMapping("/api/v1/monitor")
 @RequiredArgsConstructor
-@Tag(name = "模型监控", description = "AI模型性能、数据漂移与预测日志")
 public class MonitorController {
 
-    private final ModelMonitorService monitorService;
+    private final ModelVersionsRepository modelRepo;
+    private final DiseaseRecordsRepository diseaseRepo;
 
     @GetMapping("/stats")
-    @Operation(summary = "模型监控统计")
     public ApiResponse<Map<String, Object>> getStats() {
-        return ApiResponse.success(monitorService.getModelStats());
+        List<ModelVersions> models = modelRepo.findAll();
+        Map<String, Object> s = new HashMap<>();
+        s.put("activeCount", models.stream().filter(m -> "active".equals(m.getStatus())).count());
+        s.put("avgAccuracy",
+                String.format("%.1f%%", models.stream()
+                        .filter(m -> m.getAccuracy() != null)
+                        .mapToDouble(ModelVersions::getAccuracy)
+                        .average().orElse(0)));
+        s.put("driftWarnings", models.stream()
+                .filter(m -> m.getDriftScore() != null && m.getDriftScore() > 0.2).count());
+        s.put("avgUnknownRate",
+                String.format("%.1f%%", models.stream()
+                        .filter(m -> m.getUnknownRate() != null)
+                        .mapToDouble(ModelVersions::getUnknownRate)
+                        .average().orElse(0)));
+        return ApiResponse.ok(s);
     }
 
-    @GetMapping("/models")
-    @Operation(summary = "获取所有模型版本")
-    public ApiResponse<List<ModelVersionDTO>> getAllVersions() {
-        return ApiResponse.success(monitorService.getAllVersions());
+    @GetMapping("/versions")
+    public ApiResponse<List<ModelVersions>> getVersions() {
+        return ApiResponse.ok(modelRepo.findAll());
     }
 
-    @GetMapping("/models/active")
-    @Operation(summary = "获取活跃模型")
-    public ApiResponse<List<ModelVersionDTO>> getActive() {
-        return ApiResponse.success(monitorService.getActiveVersions());
-    }
-
-    @GetMapping("/models/{id}")
-    @Operation(summary = "模型版本详情")
-    public ApiResponse<ModelVersionDTO> getVersion(@PathVariable Long id) {
-        return ApiResponse.success(monitorService.getVersionById(id));
-    }
-
-    @PostMapping("/models")
-    @Operation(summary = "注册新模型版本")
-    public ApiResponse<ModelVersionDTO> createVersion(@RequestBody ModelVersion mv) {
-        return ApiResponse.success(monitorService.createVersion(mv));
+    @GetMapping("/performance")
+    public ApiResponse<Map<String, Object>> getPerformance() {
+        List<ModelVersions> models = modelRepo.findAll();
+        Map<String, Object> perf = new LinkedHashMap<>();
+        perf.put("labels", models.stream().map(m -> m.getModelName() + " " + m.getVersion()).toList());
+        perf.put("accuracy", models.stream().map(ModelVersions::getAccuracy).toList());
+        perf.put("drift", models.stream().map(m -> m.getDriftScore() != null ? m.getDriftScore() : 0).toList());
+        return ApiResponse.ok(perf);
     }
 }
