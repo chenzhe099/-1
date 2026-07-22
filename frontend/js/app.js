@@ -284,7 +284,7 @@ function renderFarming() {
   const taskContainer = document.getElementById('farming-task-list');
   if (taskContainer) {
     var parts2 = partitionTasks(tasks);
-    var ftHTML = parts2.active.slice(0, 6).map(t => taskItemHTML(t)).join('');
+    var ftHTML = parts2.active.map(t => taskItemHTML(t)).join('');
     if (parts2.done.length > 0) {
       ftHTML += '<div class="mt-2 pt-2 border-t border-gray-200">' +
         '<div class="flex items-center justify-between text-xs text-gray-400 cursor-pointer hover:text-gray-600 py-1" onclick="toggleCompletedTasks(this)">' +
