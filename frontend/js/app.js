@@ -32,12 +32,6 @@ function initAppAfterLogin() {
   initDashboardCharts();
   setupDashboardEvents();
 
-  // 更新退出按钮
-  const logoutBtn = document.getElementById('btn-logout');
-  if (logoutBtn) {
-    logoutBtn.onclick = function() { doLogout(); };
-  }
-
   // 默认打开仪表盘
   const firstModule = getFirstAllowedModule();
   if (firstModule) {
