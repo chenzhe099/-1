@@ -359,36 +359,17 @@
                     </div>
 
                     <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                        <h3 class="font-semibold text-gray-800 mb-4">病虫害知识库</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-gray-800">病虫害知识库</h3>
+                            <div class="relative w-64">
+                                <input type="text" id="kb-search-input" placeholder="搜索病虫害..."
+                                    class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    oninput="searchKnowledgeBase()">
+                                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            </div>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="knowledge-base-grid">
-                            <div class="p-4 bg-red-50 rounded-lg border border-red-100">
-                                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mb-3">
-                                    <i class="fa fa-bug text-red-600"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-800">番茄晚疫病</h4>
-                                <p class="text-xs text-gray-600 mt-1">由疫霉菌引起，叶片出现暗绿色水渍状病斑</p>
-                            </div>
-                            <div class="p-4 bg-orange-50 rounded-lg border border-orange-100">
-                                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mb-3">
-                                    <i class="fa fa-bug text-orange-600"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-800">蚜虫</h4>
-                                <p class="text-xs text-gray-600 mt-1">吸食植物汁液，导致叶片卷曲、发黄</p>
-                            </div>
-                            <div class="p-4 bg-purple-50 rounded-lg border border-purple-100">
-                                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
-                                    <i class="fa fa-bug text-purple-600"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-800">白粉病</h4>
-                                <p class="text-xs text-gray-600 mt-1">叶片表面产生白色粉状物，影响光合作用</p>
-                            </div>
-                            <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                                    <i class="fa fa-bug text-blue-600"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-800">霜霉病</h4>
-                                <p class="text-xs text-gray-600 mt-1">叶片背面出现霜状霉层，严重时导致落叶</p>
-                            </div>
+                            <!-- 动态渲染 -->
                         </div>
                     </div>
 

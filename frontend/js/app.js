@@ -186,39 +186,41 @@ function renderDashboard() {
 // ==================== 病虫害 渲染 ====================
 
 function renderDisease() {
-  // 识别历史
-  const records = dataService.getDiseaseHistory();
-  const historyContainer = document.getElementById('disease-history-list');
-  historyContainer.innerHTML = records.map(r => {
-    const sc = statusColor(r.status);
-    return `
-      <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-        <div class="w-12 h-12 bg-${sc}-100 rounded-lg flex items-center justify-center mr-3">
-          <i class="fa fa-bug text-${sc}-500"></i>
-        </div>
-        <div class="flex-1">
-          <p class="text-sm font-medium text-gray-800">${r.diseaseName}</p>
-          <p class="text-xs text-gray-500">${formatDateTime(r.detectedAt)}</p>
-        </div>
-        <span class="px-2 py-1 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(r.status)}</span>
-      </div>`;
+  // 识别历史 — 点击查看详情
+  var records = dataService.getDiseaseHistory();
+  var historyContainer = document.getElementById('disease-history-list');
+  historyContainer.innerHTML = records.map(function(r) {
+    var sc = statusColor(r.status);
+    return '<div class="flex items-center p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" onclick="showDiseaseHistoryDetail(\'' + r.id + '\')">' +
+      '<div class="w-12 h-12 bg-' + sc + '-100 rounded-lg flex items-center justify-center mr-3">' +
+        '<i class="fa fa-bug text-' + sc + '-500"></i>' +
+      '</div>' +
+      '<div class="flex-1">' +
+        '<p class="text-sm font-medium text-gray-800">' + r.diseaseName + '</p>' +
+        '<p class="text-xs text-gray-500">' + formatDateTime(r.detectedAt) + ' · ' + r.fieldCode + ' ' + r.cropAffected + '</p>' +
+      '</div>' +
+      '<span class="px-2 py-1 text-xs bg-' + sc + '-100 text-' + sc + '-600 rounded">' + statusLabel(r.status) + '</span>' +
+    '</div>';
   }).join('');
+  if (records.length === 0) {
+    historyContainer.innerHTML = '<div class="text-center text-gray-400 py-4">暂无识别记录</div>';
+  }
 
-  // 知识库
-  const kb = dataService.getKnowledgeBase();
-  const kbContainer = document.getElementById('knowledge-base-grid');
-  // Clear previous content
-  kbContainer.innerHTML = kb.map(k => {
-    const colorMap = { high: 'red', medium: 'orange', critical: 'red', low: 'green' };
-    const c = colorMap[k.severity] || 'blue';
-    return `
-      <div class="p-4 bg-${c}-50 rounded-lg border border-${c}-100 cursor-pointer hover:shadow-md transition-shadow" onclick="showDiseaseDetail('${k.id}')">
-        <div class="w-10 h-10 bg-${c}-100 rounded-lg flex items-center justify-center mb-3">
-          <i class="fa ${k.icon} text-${c}-600"></i>
-        </div>
-        <h4 class="font-medium text-gray-800">${k.name}</h4>
-        <p class="text-xs text-gray-600 mt-1">${k.symptoms.slice(0, 40)}...</p>
-      </div>`;
+  // 知识库 — 搜索+卡片（去掉左上角图标）
+  var kb = dataService.getKnowledgeBase();
+  var kbContainer = document.getElementById('knowledge-base-grid');
+  var colorMap = { '高': 'red', '中': 'orange', '严重': 'red', '低': 'green' };
+  kbContainer.innerHTML = kb.map(function(k) {
+    var sevLabel = severityLabel(k.severity);
+    var c = colorMap[sevLabel] || 'blue';
+    return '<div class="p-4 bg-' + c + '-50 rounded-lg border border-' + c + '-100 cursor-pointer hover:shadow-md transition-shadow" onclick="showDiseaseDetail(\'' + k.id + '\')">' +
+      '<h4 class="font-medium text-gray-800">' + k.name + '</h4>' +
+      '<p class="text-xs text-gray-600 mt-1 line-clamp-2">' + (k.symptoms || '').slice(0, 60) + '...</p>' +
+      '<div class="flex items-center justify-between mt-2">' +
+        '<span class="px-2 py-0.5 text-xs bg-' + c + '-100 text-' + c + '-600 rounded">' + sevLabel + '</span>' +
+        '<span class="text-xs text-gray-400"><i class="fa fa-search mr-1"></i>详情</span>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 

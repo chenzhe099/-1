@@ -79,8 +79,18 @@ function statusColor(status) {
 }
 
 function severityColor(severity) {
-  const m = { critical:'red', warning:'yellow', info:'blue' };
-  return m[severity] || 'gray';
+  // 统一用中文映射
+  var m = { '严重':'red', '高':'red', 'critical':'red',
+            '警告':'yellow', '中':'yellow', 'warning':'yellow', 'medium':'yellow',
+            '提示':'blue', '低':'green', 'info':'blue', 'low':'green' };
+  return m[severity] || 'blue';
+}
+
+function severityLabel(severity) {
+  var m = { '严重':'严重', '高':'高', 'critical':'严重',
+            '警告':'警告', '中':'中', 'warning':'警告', 'medium':'中',
+            '提示':'提示', '低':'低', 'info':'提示', 'low':'低' };
+  return m[severity] || '中';
 }
 
 // ========== HTML 构建辅助 ==========

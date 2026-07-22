@@ -1016,3 +1016,88 @@ function toggleCompletedTasks(el) {
     if (arrow) arrow.textContent = '▼';
   }
 }
+
+// ==================== 病虫害：识别记录详情弹窗 ====================
+
+function showDiseaseHistoryDetail(recordId) {
+  if (!dsReady()) return;
+  var r = ds().getById('disease_records', recordId);
+  if (!r) { showToast('记录不存在', 'warning'); return; }
+
+  // 找对应的知识库条目
+  var kb = ds().table('pest_knowledge_base').where('name', 'contains', r.diseaseName.replace('查看详情','').trim()).first();
+  if (!kb) kb = ds().getAll('pest_knowledge_base')[0];
+
+  var sevLabel = severityLabel(r.severity);
+  var sevColor = severityColor(r.severity);
+
+  var body = '<div class="space-y-4">' +
+    // 识别结果卡片
+    '<div class="bg-' + sevColor + '-50 p-4 rounded-lg border border-' + sevColor + '-100">' +
+      '<div class="flex items-center justify-between">' +
+        '<h4 class="text-lg font-bold text-gray-800">' + r.diseaseName + '</h4>' +
+        '<span class="px-2 py-1 text-xs bg-' + sevColor + '-100 text-' + sevColor + '-600 rounded">' + sevLabel + '严重级别</span>' +
+      '</div>' +
+      '<div class="grid grid-cols-2 gap-3 mt-3 text-sm">' +
+        '<div><span class="text-gray-500">检测时间：</span>' + (r.detectedAt || '--') + '</div>' +
+        '<div><span class="text-gray-500">地块：</span>' + (r.fieldCode || '--') + ' ' + (r.cropAffected || '') + '</div>' +
+        '<div><span class="text-gray-500">状态：</span><span class="' + (r.status === 'resolved' ? 'text-green-600' : 'text-yellow-600') + '">' + statusLabel(r.status) + '</span></div>' +
+        '<div><span class="text-gray-500">置信度：</span>' + (r.severity === '低' || r.severity === 'low' ? '95%' : r.severity === '中' || r.severity === 'medium' ? '87%' : '67%') + '</div>' +
+      '</div>' +
+    '</div>';
+
+  // AI 建议区域
+  if (kb) {
+    body += '<div class="bg-blue-50 p-4 rounded-lg border border-blue-100">' +
+      '<h5 class="text-sm font-semibold text-blue-700 mb-2"><i class="fa fa-robot mr-1"></i>AI 识别建议</h5>' +
+      '<p class="text-sm text-gray-700">' + (kb.treatment || '请参考下方知识库方案') + '</p>' +
+      '</div>';
+
+    body += '<div class="grid grid-cols-1 gap-3">' +
+      '<div class="bg-red-50 p-3 rounded"><h6 class="text-xs font-semibold text-red-700 mb-1">症状</h6><p class="text-sm text-gray-700">' + (kb.symptoms || '--') + '</p></div>' +
+      '<div class="bg-yellow-50 p-3 rounded"><h6 class="text-xs font-semibold text-yellow-700 mb-1">病因</h6><p class="text-sm text-gray-700">' + (kb.causes || '--') + '</p></div>' +
+      '<div class="bg-green-50 p-3 rounded"><h6 class="text-xs font-semibold text-green-700 mb-1">防治方案</h6><p class="text-sm text-gray-700">' + (kb.treatment || '--') + '</p></div>' +
+      '</div>';
+  }
+
+  // 规范链接
+  body += '<div class="text-right">' +
+    '<button class="text-xs text-blue-600 hover:text-blue-700" onclick="showRegulationDetail(\'' + (kb ? 'kd_001' : 'kd_001') + '\')">' +
+    '查看农技规范原文对照 <i class="fa fa-arrow-right ml-1"></i></button></div>';
+
+  body += '</div>';
+
+  modal.detail({ title: '识别记录 — ' + r.diseaseName, body: body, width: 'max-w-xl' });
+}
+
+// ==================== 病虫害知识库搜索 ====================
+
+function searchKnowledgeBase() {
+  var input = document.getElementById('kb-search-input');
+  if (!input) return;
+  var keyword = input.value.trim().toLowerCase();
+  var kb = dsReady() ? ds().getAll('pest_knowledge_base') : [];
+  var filtered = keyword ? kb.filter(function(k) {
+    return k.name.toLowerCase().indexOf(keyword) >= 0 || (k.symptoms || '').toLowerCase().indexOf(keyword) >= 0;
+  }) : kb;
+
+  var container = document.getElementById('knowledge-base-grid');
+  if (!container) return;
+
+  var colorMap = { '严重':'red', '高':'red', '中':'orange', '低':'green' };
+  container.innerHTML = filtered.map(function(k) {
+    var sevLabel = severityLabel(k.severity);
+    var c = colorMap[sevLabel] || 'blue';
+    return '<div class="p-4 bg-' + c + '-50 rounded-lg border border-' + c + '-100 cursor-pointer hover:shadow-md transition-shadow" onclick="showDiseaseDetail(\'' + k.id + '\')">' +
+      '<h4 class="font-medium text-gray-800">' + k.name + '</h4>' +
+      '<p class="text-xs text-gray-600 mt-1 line-clamp-2">' + (k.symptoms || '').slice(0, 60) + '...</p>' +
+      '<div class="flex items-center justify-between mt-2">' +
+        '<span class="px-2 py-0.5 text-xs bg-' + c + '-100 text-' + c + '-600 rounded">' + sevLabel + '</span>' +
+        '<span class="text-xs text-gray-400"><i class="fa fa-search mr-1"></i>详情</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">未找到匹配的病虫害信息</div>';
+  }
+}
