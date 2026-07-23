@@ -1,0 +1,45 @@
+body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+.sidebar-item:hover { background: rgba(74, 144, 226, 0.1); }
+.active-sidebar { background: rgba(74, 144, 226, 0.15); border-left: 3px solid #4a90e2; }
+.card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+.scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+.scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+.scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+/* 弹窗动画 */
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(-20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes modalFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.animate-modal-in { animation: modalSlideIn 0.2s ease-out; }
+.modal-fade-out { animation: modalFadeOut 0.15s ease-in forwards; pointer-events: none; }
+
+/* Toast 动画 */
+@keyframes toastSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.custom-toast { animation: toastSlideUp 0.25s ease-out; }
+
+/* 选中行高亮 */
+.row-selected { background: rgba(74, 144, 226, 0.08) !important; outline: 2px solid #4a90e2; outline-offset: -2px; border-radius: 8px; }
+
+/* ===== 统一交互状态 Token（配合 ui.js 的 loading / empty / error） ===== */
+.ui-retry-btn {
+  transition: all 0.15s ease;
+}
+.ui-retry-btn:hover {
+  background: #e5e7eb;          /* gray-200 */
+  color: #374151;               /* gray-700 */
+}
+.ui-state-container {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

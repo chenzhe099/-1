@@ -1,0 +1,4 @@
+[
+  {"id":"farm_01","name":"昆明绿色农业示范基地","address":"云南省昆明市呈贡区农业科技示范园","managerId":"u001","area":25.5,"establishedDate":"2020-03-15","description":"主营番茄、黄瓜、辣椒、茄子、草莓等特色蔬菜水果种植，采用智能灌溉和精准施肥技术"},
+  {"id":"farm_02","name":"大理高原特色农场","address":"云南省大理州大理市银桥镇","managerId":"u004","area":18.0,"establishedDate":"2021-06-01","description":"高原特色农产品种植基地，主产高原蔬菜和特色水果，海拔1800米"}
+]

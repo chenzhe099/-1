@@ -1,0 +1,8 @@
+[
+  {"id":"maint_01","deviceId":"dev_03","deviceName":"灌溉泵 #3","type":"repair","status":"pending","scheduledDate":"2024-01-20","completedDate":null,"technicianNote":"水压异常，需检查泵体和管路，运行时间已达3200小时","cost":0},
+  {"id":"maint_02","deviceId":"dev_02","deviceName":"智能施肥机 #1","type":"inspection","status":"pending","scheduledDate":"2024-02-20","completedDate":null,"technicianNote":"常规保养，运行时间2800小时，需更换滤网","cost":0},
+  {"id":"maint_03","deviceId":"dev_04","deviceName":"环境监测站 #1","type":"calibration","status":"completed","scheduledDate":"2024-01-10","completedDate":"2024-01-10","technicianNote":"温度、湿度传感器校准完成","cost":500},
+  {"id":"maint_04","deviceId":"dev_01","deviceName":"灌溉泵 #1","type":"inspection","status":"completed","scheduledDate":"2024-01-05","completedDate":"2024-01-05","technicianNote":"水泵运行正常，更换密封圈","cost":800},
+  {"id":"maint_05","deviceId":"dev_05","deviceName":"气象站 #2","type":"repair","status":"pending","scheduledDate":"2024-01-18","completedDate":null,"technicianNote":"通信模块故障，需更换无线模块","cost":0},
+  {"id":"maint_06","deviceId":"dev_07","deviceName":"土壤传感器 #1","type":"calibration","status":"completed","scheduledDate":"2024-01-08","completedDate":"2024-01-08","technicianNote":"pH探头校准，偏差0.2以内","cost":300}
+]

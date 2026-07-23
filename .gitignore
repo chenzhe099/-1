@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+
+# 临时文件
+~$*.docx
+~$*.pptx
+_docx_output.txt
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# 日志
+*.log
+
+# 生成文件（可通过脚本重新生成）
+frontend/data/data-bundle.js
+
+# 演示截图（不是运行必需的）
+frontend/assets/screenshots/
+
+# 敏感配置
+.env
+*.secret
+
+# 临时克隆目录
+-1/

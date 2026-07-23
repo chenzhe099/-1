@@ -1,0 +1,8 @@
+[
+  {"id":"inv_01","name":"氮肥（尿素）","category":"fertilizer","unit":"50kg/袋","unitWeight":50,"quantity":20,"thresholdLow":10,"status":"sufficient","lastRestocked":"2024-01-05","supplier":"农资公司A"},
+  {"id":"inv_02","name":"磷肥（过磷酸钙）","category":"fertilizer","unit":"50kg/袋","unitWeight":50,"quantity":8,"thresholdLow":10,"status":"low","lastRestocked":"2023-12-20","supplier":"农资公司A"},
+  {"id":"inv_03","name":"钾肥（硫酸钾）","category":"fertilizer","unit":"25kg/袋","unitWeight":25,"quantity":15,"thresholdLow":8,"status":"sufficient","lastRestocked":"2024-01-02","supplier":"农资公司B"},
+  {"id":"inv_04","name":"有机肥","category":"fertilizer","unit":"40kg/袋","unitWeight":40,"quantity":30,"thresholdLow":15,"status":"sufficient","lastRestocked":"2024-01-10","supplier":"有机肥厂C"},
+  {"id":"inv_05","name":"吡虫啉可湿性粉剂","category":"pesticide","unit":"500g/袋","unitWeight":0.5,"quantity":25,"thresholdLow":10,"status":"sufficient","lastRestocked":"2024-01-03","supplier":"农药公司D"},
+  {"id":"inv_06","name":"番茄种子（金鹏一号）","category":"seed","unit":"1000粒/袋","unitWeight":0.1,"quantity":5,"thresholdLow":3,"status":"sufficient","lastRestocked":"2023-12-01","supplier":"种子公司E"}
+]
