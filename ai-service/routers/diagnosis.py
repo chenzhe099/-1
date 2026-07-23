@@ -22,7 +22,11 @@ async def diagnose_disease(
     低置信度结果会标记为"未知样本"并进入人工审核队列。
     """
     image_bytes = await file.read()
-    result = classifier.predict(image_bytes, file.filename or "unknown.jpg")
+    result = classifier.predict(
+        image_bytes,
+        filename=file.filename or "unknown.jpg",
+        crop_name=cropName,
+    )
 
     # 添加作物信息到结果
     if cropName:
