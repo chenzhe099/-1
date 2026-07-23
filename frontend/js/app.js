@@ -6,56 +6,21 @@
 // ==================== 初始化 ====================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // 加载数据（后台进行）
+  // 加载数据
   try {
     await initDataService();
-    console.log('[App] 数据服务就绪');
+    console.log('[App] 数据服务就绪，开始渲染');
   } catch (err) {
     console.error('[App] 数据加载失败:', err);
   }
 
-  // 登录记忆：如果已有登录状态，直接进入系统
-  if (Auth.isLoggedIn()) {
-    document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('app-container').style.display = '';
-    Auth.applyPermissionUI();
-    initAppAfterLogin();
-    console.log('[App] 自动登录: ' + Auth.getUser().displayName);
-  } else {
-    showLoginModal();
+  if (dataService.isReady()) {
+    window.__chartsInitialized = true;
+    initNavigation();
+    renderDashboard();
+    initDashboardCharts();
   }
 });
-
-/**
- * 登录成功后初始化系统
- */
-function initAppAfterLogin() {
-  if (!dataService.isReady()) {
-    setTimeout(initAppAfterLogin, 500);
-    return;
-  }
-  window.__chartsInitialized = true;
-  initNavigation();
-  renderDashboard();
-  initDashboardCharts();
-  setupDashboardEvents();
-
-  // 默认打开仪表盘
-  const firstModule = getFirstAllowedModule();
-  if (firstModule) {
-    const btn = document.querySelector(`.sidebar-item[data-menu="${firstModule}"]`);
-    if (btn && btn.style.display !== 'none') btn.click();
-  }
-}
-
-function getFirstAllowedModule() {
-  const modules = ['dashboard','disease','farming','prediction','management',
-                   'devices','traceability','permission','weather','market','monitor'];
-  for (const m of modules) {
-    if (Auth.canView(m)) return m;
-  }
-  return 'dashboard';
-}
 
 // ==================== 导航 ====================
 
@@ -133,272 +98,177 @@ function renderSection(menuId) {
 function renderDashboard() {
   const stats = dataService.getDashboardStats();
 
-  // 统计卡片 — 标注从数据中来
+  // 统计卡片
   document.getElementById('stat-tasks-today').textContent = stats.tasksToday;
-  // 全部任务统计
-  var allTasks = dataService.getFarmingTasks();
-  var tp = partitionTasks(allTasks);
-  document.getElementById('stat-tasks-change').innerHTML = '<i class="fa fa-check-circle mr-1"></i>活跃 ' + tp.active.length + ' / 已完成 ' + tp.done.length;
+  document.getElementById('stat-tasks-change').innerHTML = `<i class="fa fa-arrow-up mr-1"></i>较昨日 ${stats.tasksChange}`;
   document.getElementById('stat-device-rate').textContent = stats.deviceOnlineRate + '%';
-  document.getElementById('stat-device-change').innerHTML = `<i class="fa fa-plug mr-1"></i>${stats.deviceSummary}`;
+  document.getElementById('stat-device-change').innerHTML = `<i class="fa fa-arrow-up mr-1"></i>较昨日 ${stats.deviceChange}`;
   document.getElementById('stat-alert-count').textContent = stats.alertCount;
-  document.getElementById('stat-alert-desc').innerHTML = `<i class="fa fa-flag mr-1"></i>${stats.alertSummary}`;
   document.getElementById('stat-monthly-yield').textContent = stats.monthlyYield + stats.yieldUnit;
-  document.getElementById('stat-yield-change').innerHTML = `<i class="fa fa-chart-line mr-1"></i>${stats.yieldSummary}`;
+  document.getElementById('stat-yield-change').innerHTML = `<i class="fa fa-arrow-up mr-1"></i>较上月 ${stats.yieldChange}`;
 
-  // 地块状态 — 点击查看综合详情
+  // 地块状态
   const fields = dataService.getFieldStatusList();
   const fieldContainer = document.getElementById('field-status-list');
   fieldContainer.innerHTML = fields.map(f => {
     const sc = statusColor(f.status);
-    var badgeText = f.taskCount > 0 ? f.taskCount + '个任务' : '';
-    if (f.hasDisease) badgeText = '🐛 病害';
-    if (!badgeText) badgeText = statusLabel(f.status);
     return `
-      <div class="flex items-center justify-between p-3 bg-${sc}-50 rounded-lg cursor-pointer hover:bg-${sc}-100 transition-colors" onclick="showFieldComprehensiveDetail('${f.id}')">
+      <div class="flex items-center justify-between p-3 bg-${sc}-50 rounded-lg">
         <div class="flex items-center">
           <span class="w-2 h-2 bg-${sc}-500 rounded-full mr-2"></span>
           <span class="text-sm text-gray-700">地块${f.code} - ${f.cropName}</span>
         </div>
-        <span class="text-xs text-${sc}-600">${badgeText}</span>
+        <span class="text-xs text-${sc}-600">${statusLabel(f.status)}</span>
       </div>`;
   }).join('');
 
-  // 任务入口 — 只显示统计数字，点击跳转农事决策模块（避免重复渲染）
-  var tasks = dataService.getFarmingTasks();
-  var tp = partitionTasks(tasks);
-  document.getElementById('task-list').innerHTML =
-    '<div class="text-center py-4 cursor-pointer hover:bg-gray-100 rounded-lg transition-colors" onclick="navigateTo(\'farming\')">' +
-      '<p class="text-3xl font-bold text-green-600">' + tp.active.length + '</p>' +
-      '<p class="text-sm text-gray-500">个活跃任务待处理</p>' +
-      '<p class="text-xs text-blue-500 mt-2"><i class="fa fa-arrow-right mr-1"></i>进入农事决策查看全部</p>' +
-    '</div>';
+  // 今日任务（按优先级排序，显示前4条，其余折叠）
+  var tasks = dataService.getTodayTasks();
+  var taskList = document.getElementById('task-list');
+  if (tasks.length > 0) {
+    var visibleTasks = tasks.slice(0, 4);
+    var hiddenTasks = tasks.slice(4);
+    taskList.innerHTML = visibleTasks.map(function (t) { return taskItemHTML(t); }).join('')
+      + (hiddenTasks.length > 0 ? '<div class="task-list-collapsed hidden space-y-3 mt-0">' + hiddenTasks.map(function (t) { return taskItemHTML(t); }).join('') + '</div>' : '')
+      + (hiddenTasks.length > 0 ? '<button class="w-full mt-3 py-2 text-sm text-blue-500 hover:text-blue-600 bg-blue-50 rounded-lg transition-colors" data-action="toggle-task-expand">展开剩余 ' + hiddenTasks.length + ' 条任务 <i class="fa fa-chevron-down ml-1"></i></button>' : '');
+  } else {
+    taskList.innerHTML = '<div class="text-center text-gray-400 py-4">暂无任务</div>';
+  }
 
-  // 预警列表 — 仪表盘专属保留
-  var alerts = dataService.getAlertList();
+  // 预警列表
+  const alerts = dataService.getAlertList();
   document.getElementById('alert-list').innerHTML = alerts.length > 0
-    ? alerts.map(function(a) { return alertItemHTML(a); }).join('')
+    ? alerts.map(a => alertItemHTML(a)).join('')
     : '<div class="text-center text-gray-400 py-4">暂无预警</div>';
 }
 
 // ==================== 病虫害 渲染 ====================
 
 function renderDisease() {
-  // 识别历史 — 点击查看详情
-  var records = dataService.getDiseaseHistory();
-  var historyContainer = document.getElementById('disease-history-list');
-  historyContainer.innerHTML = records.map(function(r) {
-    var sc = statusColor(r.status);
-    return '<div class="flex items-center p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" onclick="showDiseaseHistoryDetail(\'' + r.id + '\')">' +
-      '<div class="w-12 h-12 bg-' + sc + '-100 rounded-lg flex items-center justify-center mr-3">' +
-        '<i class="fa fa-bug text-' + sc + '-500"></i>' +
-      '</div>' +
-      '<div class="flex-1">' +
-        '<p class="text-sm font-medium text-gray-800">' + r.diseaseName + '</p>' +
-        '<p class="text-xs text-gray-500">' + formatDateTime(r.detectedAt) + ' · ' + r.fieldCode + ' ' + r.cropAffected + '</p>' +
-      '</div>' +
-      '<span class="px-2 py-1 text-xs bg-' + sc + '-100 text-' + sc + '-600 rounded">' + statusLabel(r.status) + '</span>' +
-    '</div>';
-  }).join('');
-  if (records.length === 0) {
-    historyContainer.innerHTML = '<div class="text-center text-gray-400 py-4">暂无识别记录</div>';
-  }
-
-  // 知识库 — 搜索+卡片（去掉左上角图标）
-  var kb = dataService.getKnowledgeBase();
-  var kbContainer = document.getElementById('knowledge-base-grid');
-  var colorMap = { '高': 'red', '中': 'orange', '严重': 'red', '低': 'green' };
-  kbContainer.innerHTML = kb.map(function(k) {
-    var sevLabel = severityLabel(k.severity);
-    var c = colorMap[sevLabel] || 'blue';
-    return '<div class="p-4 bg-' + c + '-50 rounded-lg border border-' + c + '-100 cursor-pointer hover:shadow-md transition-shadow" onclick="showDiseaseDetail(\'' + k.id + '\')">' +
-      '<h4 class="font-medium text-gray-800">' + k.name + '</h4>' +
-      '<p class="text-xs text-gray-600 mt-1 line-clamp-2">' + (k.symptoms || '').slice(0, 60) + '...</p>' +
-      '<div class="flex items-center justify-between mt-2">' +
-        '<span class="px-2 py-0.5 text-xs bg-' + c + '-100 text-' + c + '-600 rounded">' + sevLabel + '</span>' +
-        '<span class="text-xs text-gray-400"><i class="fa fa-search mr-1"></i>详情</span>' +
-      '</div>' +
-    '</div>';
+  // 识别历史
+  const records = dataService.getDiseaseHistory();
+  const historyContainer = document.getElementById('disease-history-list');
+  historyContainer.innerHTML = records.map(r => {
+    const sc = statusColor(r.status);
+    return `
+      <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="disease-detail" data-name="${r.diseaseName}">
+        <div class="w-12 h-12 bg-${sc}-100 rounded-lg flex items-center justify-center mr-3">
+          <i class="fa fa-bug text-${sc}-500"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium text-gray-800">${r.diseaseName}</p>
+          <p class="text-xs text-gray-500">${formatDateTime(r.detectedAt)}</p>
+        </div>
+        <span class="px-2 py-1 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(r.status)}</span>
+      </div>`;
   }).join('');
 
-  // 规范原文对照 — 匹配最新识别记录的病害
-  renderRegulationCompare(records);
-}
-
-/**
- * 根据最新识别记录匹配对应的农技规范，动态渲染对照面板
- */
-function renderRegulationCompare(records) {
-  var container = document.getElementById('regulation-compare-list');
-  if (!container) return;
-
-  var latest = records.length > 0 ? records[records.length - 1] : null;
-  if (!latest || latest.diseaseName === '无病虫害') {
-    container.innerHTML = '<div class="text-center text-gray-400 py-8 col-span-2"><i class="fa fa-info-circle text-3xl mb-2"></i><p>上传病虫害图片识别后，AI建议将与农技规范原文自动对照展示</p></div>';
-    return;
-  }
-
-  // 匹配知识库和规范文档
-  var kb = dsReady() ? ds().getAll('pest_knowledge_base') : [];
-  var pest = kb.find(function(k) { return latest.diseaseName.indexOf(k.name) >= 0 || (k.name && latest.diseaseName.indexOf(k.name.replace('查看详情','').trim())) >= 0; });
-  if (!pest && kb.length > 0) pest = kb[0];
-
-  var docs = dsReady() ? ds().getAll('knowledge_documents') : [];
-  // 按病害名中的关键词匹配规范文档
-  var doc = docs.find(function(d) {
-    return d.title.indexOf(latest.diseaseName) >= 0 ||
-           (d.keywords || '').indexOf(latest.diseaseName) >= 0 ||
-           (d.keywords || []).some(function(k) { return latest.diseaseName.indexOf(k) >= 0; });
-  });
-  if (!doc && docs.length > 0) doc = docs[0];
-
-  // AI建议文案
-  var aiAdvice = (pest && pest.treatment) ? pest.treatment.slice(0, 120) + '…' : '根据图像识别结果，建议参照下方规范原文进行防治处理。';
-  var aiTitle = (pest && pest.treatment) ? pest.treatment.slice(0, 40) + '…' : '参照规范进行防治';
-
-  // 规范原文截取
-  var regText = doc ? (doc.originalText || '').slice(0, 150) + '…' : '请选择对应规范文档查看完整内容。';
-  var regTitle = doc ? (doc.sourceRegulation || doc.title).slice(0, 50) : '相关规范';
-
-  container.innerHTML =
-    '<div class="p-4 bg-blue-50 rounded-lg border border-blue-100">' +
-      '<div class="flex items-center mb-2">' +
-        '<span class="px-2 py-0.5 text-xs bg-blue-200 text-blue-700 rounded mr-2">AI建议</span>' +
-        '<span class="text-sm font-medium text-gray-800">' + aiTitle + '</span>' +
-      '</div>' +
-      '<p class="text-xs text-gray-600">' + aiAdvice + '</p>' +
-      '<p class="text-xs text-gray-400 mt-1">识别病害：' + latest.diseaseName + ' · ' + (latest.detectedAt || '') + '</p>' +
-    '</div>' +
-    '<div class="p-4 bg-green-50 rounded-lg border border-green-100">' +
-      '<div class="flex items-center mb-2">' +
-        '<span class="px-2 py-0.5 text-xs bg-green-200 text-green-700 rounded mr-2">规范原文</span>' +
-        '<span class="text-sm font-medium text-gray-800">' + regTitle + '</span>' +
-      '</div>' +
-      '<p class="text-xs text-gray-600">' + regText + '</p>' +
-      (doc ? '<button class="mt-2 text-xs text-green-600 hover:text-green-700 font-medium" onclick="showRegulationDetail(\'' + doc.id + '\',\'' + (latest.diseaseName || '').replace(/'/g,'\\\\\\\'') + '\')">查看完整规范 <i class="fa fa-arrow-right ml-1"></i></button>' : '') +
-      '<p class="text-xs text-gray-400 mt-1">匹配病害：' + latest.diseaseName + '</p>' +
-    '</div>';
+  // 知识库
+  const kb = dataService.getKnowledgeBase();
+  const kbContainer = document.getElementById('knowledge-base-grid');
+  // Clear previous content
+  kbContainer.innerHTML = kb.map(k => {
+    const colorMap = { high: 'red', medium: 'orange', critical: 'red', low: 'green' };
+    const c = colorMap[k.severity] || 'blue';
+    return `
+      <div class="p-4 bg-${c}-50 rounded-lg border border-${c}-100 cursor-pointer hover:shadow-md transition-shadow" data-action="select-disease" data-id="${k.id}">
+        <div class="w-10 h-10 bg-${c}-100 rounded-lg flex items-center justify-center mb-3">
+          <i class="fa ${k.icon} text-${c}-600"></i>
+        </div>
+        <h4 class="font-medium text-gray-800">${k.name}</h4>
+        <p class="text-xs text-gray-600 mt-1">${k.symptoms.slice(0, 40)}...</p>
+      </div>`;
+  }).join('');
 }
 
 // ==================== 精准农事 渲染 ====================
 
 function renderFarming() {
-  var irrigations = dataService.getIrrigationPlans();
-  var irrContainer = document.getElementById('irrigation-plan-list');
-  irrContainer.innerHTML = irrigations.map(function(p) {
-    var sc = statusColor(p.status);
-    var diff = p.currentMoisture - p.targetMoisture;
-    var badgeHtml = p.status === 'executing' ? '执行中' : p.status === 'planned' ? '待规划' : '待执行';
-    return '<div class="p-4 bg-blue-50 rounded-lg irrigation-plan-card" data-plan-id="' + p.id + '">' +
-      '<div class="flex items-center justify-between mb-2">' +
-        '<span class="font-medium text-gray-800">地块' + p.fieldCode + ' - ' + p.cropName + '</span>' +
-        '<span class="px-2 py-1 text-xs bg-' + sc + '-100 text-' + sc + '-600 rounded irrigation-status">' + badgeHtml + '</span>' +
-      '</div>' +
-      '<div class="grid grid-cols-2 gap-4 text-sm">' +
-        '<div><span class="text-gray-500">目标湿度：</span><span class="font-medium">' + p.targetMoisture + '%</span></div>' +
-        '<div><span class="text-gray-500">传感器湿度：</span><span class="font-medium ' + (diff < -10 ? 'text-red-600' : 'text-green-600') + '">' + p.currentMoisture + '%</span></div>' +
-        '<div><span class="text-gray-500">灌溉水量：</span>' + p.waterVolume + 'm³</div>' +
-        '<div><span class="text-gray-500">预计时长：</span>' + p.estimatedDuration + '分钟</div>' +
-      '</div>' +
-      (p.status !== 'executing' ? '<div class="mt-3 flex space-x-2">' +
-        '<button class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 btn-irr-execute" data-plan-id="' + p.id + '">立即执行</button>' +
-        '<button class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 btn-irr-schedule" data-plan-id="' + p.id + '">定时执行</button>' +
-      '</div>' : '<div class="mt-3"><button class="px-3 py-1 text-xs bg-orange-500 text-white rounded btn-irr-stop" data-plan-id="' + p.id + '">停止执行</button></div>') +
-    '</div>';
+  // 智能灌溉方案
+  const irrigations = dataService.getIrrigationPlans();
+  const irrContainer = document.getElementById('irrigation-plan-list');
+  irrContainer.innerHTML = irrigations.map(p => {
+    const sc = statusColor(p.status);
+    return `
+      <div class="p-4 bg-blue-50 rounded-lg">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-medium text-gray-800">地块${p.fieldCode} - ${p.cropName}</span>
+          <span class="px-2 py-1 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(p.status)}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><span class="text-gray-500">目标湿度：</span>${p.targetMoisture}%</div>
+          <div><span class="text-gray-500">当前湿度：</span>${p.currentMoisture}%</div>
+          <div><span class="text-gray-500">灌溉水量：</span>${p.waterVolume}m³</div>
+          <div><span class="text-gray-500">预计时长：</span>${p.estimatedDuration}分钟</div>
+        </div>
+        ${p.status === 'pending' ? `
+        <div class="mt-3 flex space-x-2">
+          <button class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600" data-action="execute-irrigation" data-id="${p.id}">立即执行</button>
+          <button class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300" data-action="schedule-irrigation" data-id="${p.id}">定时执行</button>
+          <button class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200" data-action="irrigation-edit" data-id="${p.id}">调整参数</button>
+        </div>` : ''}
+        ${p.status !== 'pending' ? `
+        <div class="mt-3 flex space-x-2">
+          <button class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200" data-action="irrigation-edit" data-id="${p.id}">调整参数</button>
+        </div>` : ''}
+      </div>`;
   }).join('');
 
-  var ferts = dataService.getFertilizationPlans();
-  var fertContainer = document.getElementById('fertilization-plan-list');
-  fertContainer.innerHTML = ferts.map(function(p) {
-    var sc = statusColor(p.status);
-    return '<div class="p-4 bg-green-50 rounded-lg fertilization-plan-card" data-plan-id="' + p.id + '">' +
-      '<div class="flex items-center justify-between mb-2">' +
-        '<span class="font-medium text-gray-800">地块' + p.fieldCode + ' - ' + p.cropName + '</span>' +
-        '<span class="px-2 py-1 text-xs bg-' + sc + '-100 text-' + sc + '-600 rounded fert-status">' + (p.status === 'completed' ? '已完成' : '可配置') + '</span>' +
-      '</div>' +
-      '<div class="grid grid-cols-4 gap-2 text-sm text-center mb-2">' +
-        '<div class="bg-white rounded p-2"><span class="text-red-500 font-bold">氮(N)</span><br><span class="font-medium">' + (p.nKg || '-') + 'kg</span><br><span class="text-xs text-gray-400">传感器 ' + (p.soilN || 85) + '</span></div>' +
-        '<div class="bg-white rounded p-2"><span class="text-yellow-500 font-bold">磷(P)</span><br><span class="font-medium">' + (p.pKg || '-') + 'kg</span><br><span class="text-xs text-gray-400">传感器 ' + (p.soilP || 72) + '</span></div>' +
-        '<div class="bg-white rounded p-2"><span class="text-blue-500 font-bold">钾(K)</span><br><span class="font-medium">' + (p.kKg || '-') + 'kg</span><br><span class="text-xs text-gray-400">传感器 ' + (p.soilK || 78) + '</span></div>' +
-        '<div class="bg-white rounded p-2"><span class="text-green-500 font-bold">有机肥</span><br><span class="font-medium">' + (p.organicKg || '-') + 'kg</span></div>' +
-      '</div>' +
-      '<div class="flex space-x-2">' +
-        '<button class="flex-1 py-1.5 bg-green-500 text-white text-xs rounded hover:bg-green-600 btn-fert-config" data-plan-id="' + p.id + '">' + (p.status === 'completed' ? '重新配置' : '配置NPK') + '</button>' +
-        '<button class="flex-1 py-1.5 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200 btn-fert-execute" data-plan-id="' + p.id + '">执行施肥</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
+  // 精准施肥方案
+  const ferts = dataService.getFertilizationPlans();
+  const fertContainer = document.getElementById('fertilization-plan-list');
+  fertContainer.innerHTML = ferts.map(p => `
+    <div class="p-4 bg-green-50 rounded-lg">
+      <div class="flex items-center justify-between mb-2">
+        <span class="font-medium text-gray-800">地块${p.fieldCode} - ${p.cropName}</span>
+        ${badge(p.status)}
+      </div>
+      <div class="grid grid-cols-4 gap-2 text-sm text-center">
+        <div class="bg-white rounded p-2"><span class="text-red-500 font-bold">N</span><br>${p.nKg}kg</div>
+        <div class="bg-white rounded p-2"><span class="text-yellow-500 font-bold">P</span><br>${p.pKg}kg</div>
+        <div class="bg-white rounded p-2"><span class="text-blue-500 font-bold">K</span><br>${p.kKg}kg</div>
+        <div class="bg-white rounded p-2"><span class="text-green-500 font-bold">有机</span><br>${p.organicKg}kg</div>
+      </div>
+    </div>
+  `).join('');
 
-  var fields = dataService.getFieldManagementList();
-  var fieldList = document.getElementById('field-management-list');
+  // 地块管理列表
+  const fields = dataService.getFieldManagementList();
+  const fieldList = document.getElementById('field-management-list');
   if (fieldList) {
-    fieldList.innerHTML = fields.map(function(f) {
-      var sc = statusColor(f.status);
-      return '<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors field-mgmt-row" data-field-id="' + f.id + '" onclick="showFieldComprehensiveDetail(\&apos;" + f.id + "\&apos;)">' +
-        '<div class="flex items-center">' +
-          '<div class="w-10 h-10 bg-' + sc + '-100 rounded-lg flex items-center justify-center mr-3">' +
-            '<i class="fa fa-map-marker text-' + sc + '-600"></i>' +
-          '</div>' +
-          '<div>' +
-            '<p class="text-sm font-medium text-gray-800">地块' + f.code + ' - ' + f.cropName + '</p>' +
-            '<p class="text-xs text-gray-500">' + f.area + '亩 | 湿度' + (f.soilMoisture || '--') + '%' + (f.activeTaskCount > 0 ? ' | ' + f.activeTaskCount + '个任务' : '') + '</p>' +
-          '</div>' +
-        '</div>' +
-        '<div class="flex items-center space-x-2">' +
-          badge(f.status) +
-          '<button class="w-6 h-6 bg-red-50 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors field-delete-btn" data-field-id="' + f.id + '" onclick="event.stopPropagation();deleteField(\&apos;" + f.id + "\&apos;)" title="删除地块">' +
-            '<i class="fa fa-times text-red-400 text-xs"></i>' +
-          '</button>' +
-        '</div>' +
-      '</div>';
-    }).join('');
+    fieldList.innerHTML = fields.map(f => `
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="field-detail" data-field-code="${f.code}">
+        <div>
+          <p class="text-sm font-medium text-gray-800">地块${f.code} - ${f.cropName}</p>
+          <p class="text-xs text-gray-500">${f.area}亩 · 湿度${f.soilMoisture}%</p>
+        </div>
+        ${badge(f.status)}
+      </div>`).join('');
   }
 
-  var tasks = dataService.getFarmingTasks();
-  var taskContainer = document.getElementById('farming-task-list');
+  // 农事任务列表
+  const tasks = dataService.getFarmingTasks();
+  const taskContainer = document.getElementById('farming-task-list');
   if (taskContainer) {
-    var parts2 = partitionTasks(tasks);
-    var ftHTML = parts2.active.map(function(t) { return taskItemHTML(t); }).join('');
-    if (parts2.done.length > 0) {
-      ftHTML += '<div class="mt-2 pt-2 border-t border-gray-200">' +
-        '<div class="flex items-center justify-between text-xs text-gray-400 cursor-pointer hover:text-gray-600 py-1" onclick="toggleCompletedTasks(this)">' +
-        '<span><i class="fa fa-chevron-down mr-1 completed-toggle-icon"></i>已完成任务 (' + parts2.done.length + ')</span>' +
-        '<span class="text-gray-300 completed-toggle-arrow">▼</span></div>' +
-        '<div class="completed-tasks-wrap hidden">' +
-        parts2.done.map(function(t) { return taskItemHTML(t); }).join('') +
-        '</div></div>';
-    }
-    taskContainer.innerHTML = ftHTML || '<div class="text-center text-gray-400 py-4">暂无任务</div>';
+    taskContainer.innerHTML = tasks.slice(0, 4).map(t => taskItemHTML(t)).join('');
   }
 
-  var progress = getFarmingProgressFromTasks(tasks);
-  var progContainer = document.getElementById('farming-progress-list');
+  // 作业进度
+  const progress = dataService.getFarmingProgress();
+  const progContainer = document.getElementById('farming-progress-list');
   if (progContainer) {
-    progContainer.innerHTML = progress.map(function(p) {
-      return '<div><div class="flex items-center justify-between mb-1">' +
-        '<span class="text-sm text-gray-600">' + p.name + '</span>' +
-        '<span class="text-sm font-medium text-gray-800">' + p.progress + '%</span></div>' +
-        '<div class="w-full bg-gray-200 rounded-full h-2 cursor-pointer" onclick="showFarmingProgressDetail(\&apos;" + p.type + "\&apos;)">' +
-        '<div class="bg-' + p.color + '-500 h-2 rounded-full" style="width:' + p.progress + '%"></div></div></div>';
-    }).join('');
+    progContainer.innerHTML = progress.map(p => `
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-sm text-gray-700">${p.name}</span>
+          <span class="text-sm font-medium">${p.progress}%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div class="bg-green-500 h-2 rounded-full" style="width:${p.progress}%"></div>
+        </div>
+      </div>`).join('');
   }
 }
-
-function getFarmingProgressFromTasks(tasks) {
-  var types = [
-    { type: 'watering', name: '灌溉作业', color: 'blue' },
-    { type: 'fertilizing', name: '施肥作业', color: 'green' },
-    { type: 'spraying', name: '喷药作业', color: 'purple' },
-    { type: 'pruning', name: '修剪作业', color: 'orange' }
-  ];
-  return types.map(function(t) {
-    var related = tasks.filter(function(task) { return task.type === t.type; });
-    var completed = related.filter(function(task) { return task.status === 'completed'; }).length;
-    var pct = related.length > 0 ? Math.round((completed / related.length) * 100) : 0;
-    return { name: t.name, type: t.type, color: t.color, progress: pct };
-  });
-}
-
 
 // ==================== 产量预测 渲染 ====================
 
@@ -444,7 +314,11 @@ function renderPrediction() {
   }
 
   // 风险预警
-  // 风险预警已合并到仪表盘预警列表
+  const risks = dataService.getRiskAlerts();
+  const riskContainer = document.getElementById('risk-alert-list');
+  if (riskContainer) {
+    riskContainer.innerHTML = risks.map(r => alertItemHTML(r)).join('');
+  }
 }
 
 // ==================== 农场管理 渲染 ====================
@@ -455,7 +329,7 @@ function renderManagement() {
   const recContainer = document.getElementById('farm-record-list');
   if (recContainer) {
     recContainer.innerHTML = records.map(r => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="record-detail" data-id="${r.id}">
         <div>
           <p class="text-sm font-medium text-gray-800">${taskTypeLabel(r.type)} - ${r.fieldCode}</p>
           <p class="text-xs text-gray-500">${formatDateTime(r.completedAt)}</p>
@@ -469,7 +343,7 @@ function renderManagement() {
   const persContainer = document.getElementById('personnel-list');
   if (persContainer) {
     persContainer.innerHTML = personnel.map(p => `
-      <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="person-detail" data-id="${p.id}">
         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${p.avatar}" class="w-10 h-10 rounded-full mr-3" alt="${p.name}">
         <div class="flex-1">
           <p class="text-sm font-medium text-gray-800">${p.name}</p>
@@ -484,7 +358,7 @@ function renderManagement() {
   const invContainer = document.getElementById('inventory-list');
   if (invContainer) {
     invContainer.innerHTML = inventory.map(i => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="inventory-detail" data-id="${i.id}">
         <div>
           <p class="text-sm font-medium text-gray-800">${i.name}</p>
           <p class="text-xs text-gray-500">${i.unit} × ${i.quantity}</p>
@@ -528,12 +402,9 @@ function renderDeviceList(section) {
     }).join('') : '';
 
     return `
-      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 relative device-card" data-device-id="${d.id}">
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 relative">
         ${pulseHTML}
-        <button class="absolute top-2 right-2 w-6 h-6 bg-red-50 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors btn-device-delete" data-device-id="${d.id}" title="删除设备">
-          <i class="fa fa-times text-red-400 text-xs"></i>
-        </button>
-        <div class="flex items-center justify-between mb-2 pr-6">
+        <div class="flex items-center justify-between mb-2">
           <span class="font-medium text-sm text-gray-800">${d.name}</span>
           <span class="px-2 py-1 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(d.status)}</span>
         </div>
@@ -543,8 +414,8 @@ function renderDeviceList(section) {
           <p>运行: ${d.runHours}小时 · 固件 ${d.firmwareVersion}</p>
         </div>
         <div class="mt-3 flex space-x-2">
-          <button class="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 btn-device-control">远程控制</button>
-          <button class="px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 btn-device-detail">查看详情</button>
+          <button class="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 btn-device-control" data-action="device-control" data-id="${d.id}">远程控制</button>
+          <button class="px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 btn-device-detail" data-action="device-detail" data-id="${d.id}">查看详情</button>
         </div>
       </div>`;
   }).join('');
@@ -631,8 +502,9 @@ function renderPermission() {
         <td class="py-3 px-4 text-sm text-gray-600">${u.role === 'admin' ? '管理员' : u.role === 'technician' ? '技术员' : '农户'}</td>
         <td class="py-3 px-4">${badge(u.status)}</td>
         <td class="py-3 px-4 text-sm">
-          <button class="text-blue-500 hover:text-blue-600 mr-2" onclick="editUser('${u.id}')">编辑</button>
-          <button class="text-gray-500 hover:text-gray-600" onclick="resetPassword('${u.id}')">重置密码</button>
+          <button class="text-blue-500 hover:text-blue-600 mr-2" data-action="edit-user" data-id="${u.id}">编辑</button>
+          <button class="text-gray-500 hover:text-gray-600 mr-2" data-action="reset-pwd" data-id="${u.id}">重置密码</button>
+          <button class="text-red-400 hover:text-red-600" data-action="delete-user" data-id="${u.id}">删除</button>
         </td>
       </tr>`).join('');
   }
@@ -642,12 +514,15 @@ function renderPermission() {
   const roleContainer = document.getElementById('role-list');
   if (roleContainer) {
     roleContainer.innerHTML = roles.map(r => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
         <div>
           <p class="text-sm font-medium text-gray-800">${r.name}</p>
           <p class="text-xs text-gray-500">${r.description}</p>
         </div>
-        <span class="text-sm text-gray-600">${r.userCount}人</span>
+        <div class="flex items-center space-x-3">
+          <span class="text-sm text-gray-600">${r.userCount}人</span>
+          <button class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200" data-action="edit-role" data-id="${r.id}">编辑</button>
+        </div>
       </div>`).join('');
   }
 
@@ -750,29 +625,31 @@ function updateStatTexts(selector, values) {
 function renderWeather() {
   const stats = dataService.getWeatherStats();
 
-  const diffArrow = parseFloat(stats.tempChange.replace(/[^0-9.-]/g,'')) >= 0 ? 'up' : 'down';
   document.getElementById('stat-temp').textContent = stats.todayTemp;
-  document.getElementById('stat-temp-change').innerHTML = `<i class="fa fa-arrow-${diffArrow} mr-1"></i>${stats.tempChange}`;
+  document.getElementById('stat-temp-change').innerHTML = '<i class="fa fa-arrow-' + (stats.tempChange.startsWith('+') ? 'up' : 'down') + ' mr-1"></i>较昨日 ' + stats.tempChange;
   document.getElementById('stat-rainfall').textContent = stats.todayRainfall;
-  document.getElementById('stat-rainfall-desc').innerHTML = `<i class="fa fa-umbrella mr-1"></i>${stats.rainfallDesc}`;
+  document.getElementById('stat-rainfall-desc').textContent = stats.rainfallDesc;
   document.getElementById('stat-humidity').textContent = stats.todayHumidity;
-  document.getElementById('stat-humidity-desc').textContent = stats.humidityDesc;
   document.getElementById('stat-wind').textContent = stats.todayWind;
-  document.getElementById('stat-wind-desc').innerHTML = `<i class="fa fa-sun mr-1"></i>${stats.conditionLabel} · ${stats.windDesc}`;
+  document.getElementById('stat-condition').innerHTML = '<i class="fa fa-sun-o mr-1"></i>' + stats.conditionLabel;
 
   // 7日预报
   const forecast = dataService.getWeatherForecast();
   const fcContainer = document.getElementById('weather-forecast-list');
-  const condIcons = { sunny: 'fa-sun text-orange-400', cloudy: 'fa-cloud text-gray-400', rain: 'fa-tint text-blue-400', snow: 'fa-snowflake text-blue-300' };
+  const condIcons = { sunny: 'fa-sun-o text-orange-400', cloudy: 'fa-cloud text-gray-400', rain: 'fa-tint text-blue-400', snow: 'fa-snowflake-o text-blue-300' };
   fcContainer.innerHTML = forecast.slice(0, 7).map(f => `
-    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="forecast-detail" data-date="${f.date}">
       <span class="text-sm text-gray-700 w-14">${f.date}</span>
       <i class="fa ${condIcons[f.condition] || 'fa-question'} text-lg"></i>
       <span class="text-sm font-medium">${f.high}° / ${f.low}°</span>
       <span class="text-xs text-gray-500">${f.conditionLabel}</span>
     </div>`).join('');
 
-  // 天气预警已合并到仪表盘
+  // 天气预警
+  const alerts = dataService.getWeatherAlerts();
+  document.getElementById('weather-alert-list').innerHTML = alerts.length > 0
+    ? alerts.map(a => '<div class="relative">' + alertItemHTML(a) + '<button class="absolute top-2 right-2 text-xs text-gray-400 hover:text-blue-500" data-action="mark-alert-read" data-alert-id="' + a.id + '">已读</button></div>').join('')
+    : '<div class="col-span-3 text-center text-gray-400 py-6">暂无天气预警</div>';
 }
 
 // ==================== 市场价格 渲染 ====================
@@ -781,20 +658,16 @@ function renderMarket() {
   const stats = dataService.getMarketStats();
 
   document.getElementById('stat-crop-count').textContent = stats.cropCount + '个';
-  document.getElementById('stat-crop-desc').textContent = stats.marketSummary;
   document.getElementById('stat-avg-price').textContent = stats.avgPrice + '元/kg';
-  document.getElementById('stat-avg-desc').innerHTML = `<i class="fa fa-arrow-${stats.avgDiffDir} mr-1"></i>较昨日 ${stats.avgDiff}`;
   document.getElementById('stat-max-up').textContent = stats.maxUpCrop;
-  document.getElementById('stat-max-up-desc').textContent = '成交价 ' + stats.maxUpPrice;
   document.getElementById('stat-max-down').textContent = stats.maxDownCrop;
-  document.getElementById('stat-max-down-desc').textContent = '成交价 ' + stats.maxDownPrice;
 
   // 今日价格表
   const todayPrices = dataService.table('market_prices')
     .where('date', 'eq', '2024-01-15').get();
   const tbody = document.getElementById('market-price-table-body');
   tbody.innerHTML = todayPrices.map(p => `
-    <tr class="hover:bg-gray-50">
+    <tr class="hover:bg-gray-50 cursor-pointer" data-action="price-detail" data-crop="${p.cropName}">
       <td class="px-4 py-2 text-sm font-medium text-gray-800">${p.cropName}</td>
       <td class="px-4 py-2 text-xs text-gray-500">${p.market}</td>
       <td class="px-4 py-2 text-sm text-right font-medium">${p.pricePerKg.toFixed(2)}</td>
@@ -802,7 +675,12 @@ function renderMarket() {
       <td class="px-4 py-2 text-center"><span class="px-2 py-0.5 text-xs bg-${statusColor(p.trend)}-100 text-${statusColor(p.trend)}-600 rounded">${statusLabel(p.trend)}</span></td>
     </tr>`).join('');
 
-  // 市场预警已合并到仪表盘
+  // 市场预警
+  const alerts = dataService.getMarketAlerts();
+  const alertContainer = document.getElementById('market-alert-list');
+  alertContainer.innerHTML = alerts.length > 0
+    ? alerts.map(a => alertItemHTML(a)).join('')
+    : '<div class="text-center text-gray-400 py-6">暂无市场行情预警</div>';
 }
 
 // ==================== 模型监控 渲染 ====================
@@ -811,13 +689,9 @@ function renderMonitor() {
   const stats = dataService.getModelStats();
 
   document.getElementById('stat-active-models').textContent = stats.activeCount + '个';
-  document.getElementById('stat-active-desc').textContent = stats.activeSummary;
   document.getElementById('stat-avg-accuracy').textContent = stats.avgAccuracy;
-  document.getElementById('stat-avg-acc-desc').textContent = stats.accRange;
   document.getElementById('stat-drift-warning').textContent = stats.driftWarnings + '个';
-  document.getElementById('stat-drift-desc').textContent = stats.driftSummary;
   document.getElementById('stat-unknown-rate').textContent = stats.avgUnknownRate;
-  document.getElementById('stat-unknown-desc').textContent = stats.unknownSummary;
 
   // 模型版本列表
   const models = dataService.getModelVersionList();
@@ -825,7 +699,7 @@ function renderMonitor() {
   mvContainer.innerHTML = models.map(m => {
     const sc = statusColor(m.status);
     return `
-      <div class="p-3 bg-gray-50 rounded-lg">
+      <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="model-detail" data-id="${m.id}">
         <div class="flex items-center justify-between mb-1">
           <span class="text-sm font-medium text-gray-800">${m.modelName}</span>
           <span class="px-2 py-0.5 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(m.status)}</span>
@@ -842,7 +716,7 @@ function renderMonitor() {
   const recentRecords = dataService.getDiseaseHistory().slice(0, 5);
   const logTable = document.getElementById('prediction-log-table');
   logTable.innerHTML = recentRecords.map(r => `
-    <tr class="hover:bg-gray-50">
+    <tr class="hover:bg-gray-50 cursor-pointer" data-action="log-detail" data-id="${r.id}">
       <td class="px-3 py-2 text-xs text-gray-500">${formatDateTime(r.detectedAt)}</td>
       <td class="px-3 py-2 text-xs">病虫害识别模型 v3.2.1</td>
       <td class="px-3 py-2 text-xs text-gray-600">${r.fieldCode} ${r.cropAffected}图片</td>

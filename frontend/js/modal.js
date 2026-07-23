@@ -11,16 +11,15 @@ class Modal {
     this._closed = false;
   }
 
-  /** 打开弹窗 — 先关闭上一个，避免堆叠 */
+  /** 打开弹窗 */
   _open(content, options = {}) {
-    // 先关闭上一个弹窗
+    // 关闭上一个弹窗（避免多层堆叠、关闭引用错乱）
     if (this._overlay && this._overlay.parentNode) {
       this._overlay.parentNode.removeChild(this._overlay);
+      document.removeEventListener('keydown', this._escHandler);
     }
-    this._overlay = null;
-    this._resolve = null;
-    this._closed = false;
 
+    this._closed = false;
     const width = options.width || 'max-w-lg';
     const closable = options.closable !== false;
 
@@ -35,7 +34,7 @@ class Modal {
           ${closable ? '<button class="p-1 hover:bg-gray-100 rounded-lg transition-colors modal-close-btn"><i class="fa fa-times text-gray-400"></i></button>' : ''}
         </div>` : ''}
         <div class="flex-1 overflow-y-auto p-6 modal-body">${content}</div>
-        ${options.footer ? '<div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3 modal-footer">' + options.footer + '</div>' : ''}
+        ${options.footer ? `<div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3 modal-footer">${options.footer}</div>` : ''}
       </div>`;
 
     document.body.appendChild(this._overlay);
@@ -47,10 +46,11 @@ class Modal {
       });
     }
 
-    // 关闭按钮（可能有多处：标题栏 + 底部栏）
-    this._overlay.querySelectorAll('.modal-close-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() { modal.close(); });
-    });
+    // 关闭按钮（标题栏 X 和 footer「关闭」都要绑定）
+    var closeBtns = this._overlay.querySelectorAll('.modal-close-btn');
+    closeBtns.forEach(function (btn) {
+      btn.addEventListener('click', () => this.close());
+    }.bind(this));
 
     // ESC 关闭
     this._escHandler = (e) => { if (e.key === 'Escape') this.close(); };
@@ -60,6 +60,9 @@ class Modal {
   }
 
   close(result) {
+    if (this._closed) return;
+    this._closed = true;
+
     if (this._resolve) {
       this._resolve(result);
       this._resolve = null;
@@ -67,19 +70,14 @@ class Modal {
 
     if (this._overlay) {
       this._overlay.classList.add('modal-fade-out');
-      var overlay = this._overlay;
-      setTimeout(function() {
-        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      setTimeout(() => {
+        if (this._overlay && this._overlay.parentNode) {
+          this._overlay.parentNode.removeChild(this._overlay);
+        }
       }, 200);
     }
 
-    this._overlay = null;
-    this._closed = true;
-
-    if (this._escHandler) {
-      document.removeEventListener('keydown', this._escHandler);
-      this._escHandler = null;
-    }
+    document.removeEventListener('keydown', this._escHandler);
   }
 
   // ==================== 表单弹窗 ====================
@@ -215,10 +213,11 @@ class Modal {
    * @param {string} options.width
    */
   detail(options) {
+    const footer = `<button class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors modal-close-btn text-sm">关闭</button>`;
     return this._open(options.body, {
       title: options.title,
       width: options.width || 'max-w-2xl',
-      closable: true
+      footer
     });
   }
 
@@ -254,9 +253,10 @@ class Modal {
       </tbody>` : `
       <tbody><tr><td colspan="${cols.length}" class="px-4 py-8 text-center text-gray-400">暂无数据</td></tr></tbody>`;
 
-    const body = '<div class="overflow-x-auto"><table class="w-full">' + thead + tbody + '</table></div>';
+    const body = `<div class="overflow-x-auto"><table class="w-full">${thead}${tbody}</table></div>`;
 
-    return this._open(body, { title: options.title, width: 'max-w-3xl', closable: true });
+    const footer = `<button class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors modal-close-btn text-sm">关闭</button>`;
+    return this._open(body, { title: options.title, width: 'max-w-3xl', footer });
   }
 }
 

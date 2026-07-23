@@ -1,0 +1,73 @@
+统一系统架构
+推荐技术栈：
+--- 表格开始 ---
+层次 | 推荐技术
+前端 | Vue 3 + TypeScript + Vite + Pinia + Element Plus/ECharts
+业务后端 | Spring Boot
+AI 服务 | Python + FastAPI + LangChain/LlamaIndex
+关系数据库 | MySQL，涉及地图时使用 PostGIS
+向量数据库 | pgvector 或 Milvus
+缓存/任务 | Redis + Celery/RQ
+文件存储 | MinIO
+部署 | Docker Compose + Nginx
+接口文档 | OpenAPI/Swagger
+测试 | Pytest/JUnit + Vitest + Playwright
+--- 表格结束 ---
+方案建议采用“Spring Boot 业务后端 + Python AI 服务”，让业务逻辑与模型推理解耦。
+选题三：云南特色农业智能诊断与生产管理平台
+用户角色
+农户：管理地块、作物和病虫害记录。
+农技人员：审核识别结果和防治建议。
+合作社管理人员：查看生产和市场风险。
+管理员：管理模型、知识库和采集任务。
+前端功能
+农场、地块和种植档案管理。
+病害图片上传及识别结果可视化。
+农事日历和待办任务。
+天气、病虫害和市场价格趋势图。
+防治建议及规范原文对照。
+模型性能、数据漂移和未知样本监控。
+后端功能
+图片异步上传、推理和结果通知。
+农事任务生成、提醒和完成状态管理。
+定时采集天气、市场价格和农业通报。
+调用图像模型、RAG 和多 Agent 服务。
+对未知病害进行拒识并进入人工审核队列。
+维护模型、数据和知识库版本。
+数据库设计
+核心表包括：
+users、farms、fields、crops、planting_cycles、observations、diagnosis_records、weather_records、market_prices、farming_tasks、knowledge_documents、model_versions、agent_runs。
+图片存入 MinIO，关系数据库只保存文件地址、哈希值、识别结果和业务关联。
+完整业务闭环
+建立地块 → 登记作物 → 上传异常图片 → 模型识别 → RAG 检索农技规范 → Agent 综合天气与生育期 → 农技人员审核 → 生成农事任务 → 跟踪处置效果。
+软件工程硬性要求
+每组必须提交以下内容：
+      按小组提交实训结训文档（重点）
+需求规格说明书：用户故事、用例图、功能和非功能需求。
+系统设计说明书：架构图、ER 图、时序图、部署图。
+前后端接口文档：接口版本、请求参数、错误码和鉴权方式。
+数据库设计：主外键、唯一约束、索引、事务和迁移脚本。
+Git 仓库：Issue、分支、Pull Request、代码评审记录。
+测试报告：前端、后端、接口、数据库、AI 效果和性能测试。
+Docker Compose：一条命令启动前端、后端、数据库和 AI 服务。
+系统演示：必须现场完成一条端到端业务流程。
+建议代码结构：
+project/
+├── frontend/
+├── backend/
+├── ai-service/
+├── data-pipeline/
+├── deploy/
+├── tests/
+└── docs/
+评分标准
+--- 表格开始 ---
+维度 | 分值
+需求分析与系统设计 | 10
+前端功能和交互质量 | 10
+后端业务逻辑与数据库 | 20
+RAG、Agent、微调与评测 | 25
+测试、部署、性能与可维护性 | 15
+数据合规、安全与审计 | 10
+团队协作和答辩 | 10
+--- 表格结束 ---

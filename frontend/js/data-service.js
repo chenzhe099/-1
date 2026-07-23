@@ -186,90 +186,50 @@ class DataService {
 
   getDashboardStats() {
     const today = '2024-01-15';
-    const tasks = this.table('farming_tasks').where('scheduledTime', 'contains', today).get();
-    const tasksToday = tasks.length;
-    const tasksCompleted = tasks.filter(t => t.status === 'completed').length;
-    const tasksInProgress = tasks.filter(t => t.status === 'in_progress').length;
-    const tasksPending = tasks.filter(t => t.status === 'pending').length;
-
+    const tasksToday = this.table('farming_tasks')
+      .where('scheduledTime', 'contains', today).count();
     const devices = this.getAll('devices');
     const onlineCount = devices.filter(d => d.status === 'online').length;
-    const offlineCount = devices.filter(d => d.status === 'offline').length;
-    const faultCount = devices.filter(d => d.status === 'fault').length;
-
-    const allAlerts = this.table('alerts').where('isResolved', 'eq', false).get();
-    const alertCount = allAlerts.length;
-    const criticalCount = allAlerts.filter(a => a.severity === 'critical').length;
-    const warningCount = allAlerts.filter(a => a.severity === 'warning').length;
-
-    const crops = [...new Set(this.getAll('fields').map(f => f.cropName))];
-    const yieldData = this.table('yield_predictions').where('month', 'eq', '2024-06').first();
+    const alerts = this.table('alerts').where('isResolved', 'eq', false).count();
+    const yieldData = this.table('yield_predictions')
+      .where('month', 'eq', '2024-06').first();
 
     return {
       tasksToday,
-      tasksCompleted,
-      tasksInProgress,
-      tasksPending,
-      tasksSummary: `已完成 ${tasksCompleted} / 进行中 ${tasksInProgress} / 待办 ${tasksPending}`,
+      tasksChange: '+12%',
       deviceOnlineRate: Math.round((onlineCount / devices.length) * 100),
-      deviceOnline: onlineCount,
-      deviceTotal: devices.length,
-      deviceOffline: offlineCount,
-      deviceFault: faultCount,
-      deviceSummary: `在线 ${onlineCount}台 / 离线 ${offlineCount}台 / 故障 ${faultCount}台`,
-      alertCount,
-      alertCritical: criticalCount,
-      alertWarning: warningCount,
-      alertSummary: `严重 ${criticalCount}条 / 警告 ${warningCount}条`,
+      deviceChange: '+2%',
+      alertCount: alerts,
       monthlyYield: yieldData ? yieldData.predicted : 135,
       yieldUnit: '吨',
-      cropCount: crops.length,
-      yieldConfidence: yieldData ? Math.round(yieldData.confidence) : 89,
-      yieldSummary: `覆盖 ${crops.length}种作物 / 预测置信度 ${yieldData ? Math.round(yieldData.confidence) : 89}%`
+      yieldChange: '+8%'
     };
   }
 
   getFieldStatusList() {
-    var fields = this.getAll('fields');
-    var tasks = this.getAll('farming_tasks');
-    var diseases = this.getAll('disease_records');
-    var cycles = this.getAll('planting_cycles');
-
-    return fields.map(function(f) {
-      // 计算该地块的派生状态
-      var fieldTasks = tasks.filter(function(t) { return t.fieldId === f.id || t.fieldCode === f.code; });
-      var activeTasks = fieldTasks.filter(function(t) { return t.status === 'pending' || t.status === 'in_progress'; });
-      var fieldDiseases = diseases.filter(function(d) { return d.fieldId === f.id || d.fieldCode === f.code; });
-      var activeDisease = fieldDiseases.find(function(d) { return d.status === 'processing'; });
-      var fieldCycle = cycles.find(function(c) { return c.fieldId === f.id && !c.actualHarvestDate; });
-
-      // 计算运行状态
-      var derivedStatus = f.status;
-      if (activeDisease) derivedStatus = 'disease';
-      else if (activeTasks.length > 0) derivedStatus = f.status === 'fallow' ? 'growing' : f.status;
-      else if (!fieldCycle) derivedStatus = 'fallow';
-
-      return {
-        id: f.id, code: f.code, name: f.name, cropName: f.cropName,
-        status: derivedStatus, moisture: f.soilMoisture,
-        area: f.area, soilPh: f.soilPh,
-        plantedDate: f.plantedDate, expectedHarvest: f.expectedHarvest,
-        taskCount: activeTasks.length,
-        hasDisease: !!activeDisease,
-        diseaseName: activeDisease ? activeDisease.diseaseName : null,
-        growthStage: fieldCycle ? fieldCycle.growthStage : null,
-        cycleId: fieldCycle ? fieldCycle.id : null
-      };
-    });
+    return this.getAll('fields').map(f => ({
+      code: f.code,
+      name: f.name,
+      cropName: f.cropName,
+      status: f.status,
+      moisture: f.soilMoisture
+    }));
   }
 
   getTodayTasks() {
-    const today = '2024-01-15';
+    var today = '2024-01-15';
+    var rank = { high: 3, medium: 2, low: 1 };
+    var statusRank = { in_progress: 4, pending: 3, completed: 2, cancelled: 1 };
     return this.table('farming_tasks')
       .where('scheduledTime', 'contains', today)
-      .orderBy('scheduledTime', 'asc')
       .get()
-      .sort(sortTasksByPriority);
+      .sort(function (a, b) {
+        var rp = (rank[b.priority] || 0) - (rank[a.priority] || 0);
+        if (rp !== 0) return rp;
+        var rs = (statusRank[b.status] || 0) - (statusRank[a.status] || 0);
+        if (rs !== 0) return rs;
+        return (a.scheduledTime || '').localeCompare(b.scheduledTime || '');
+      });
   }
 
   getAlertList() {
@@ -298,42 +258,11 @@ class DataService {
   // ==================== 计算属性：精准农事 ====================
 
   getIrrigationPlans() {
-    // 基于土壤传感器数据 + 地块信息生成实时灌溉方案
-    var plans = this.getAll('irrigation_plans');
-    var fields = this.getAll('fields');
-    var soilReadings = this.getAll('soil_readings');
-    return plans.map(function(p) {
-      var field = fields.find(function(f) { return f.code === p.fieldCode || f.id === p.fieldId; });
-      // 从最新的土壤读数获取当前湿度
-      var latestSoil = soilReadings.filter(function(s) { return s.fieldId === p.fieldId; }).pop();
-      var currentMoisture = latestSoil ? latestSoil.moisture : (field ? field.soilMoisture : p.currentMoisture);
-      return {
-        id: p.id, fieldCode: p.fieldCode, fieldId: p.fieldId,
-        cropName: field ? field.cropName : p.cropName,
-        targetMoisture: p.targetMoisture, currentMoisture: currentMoisture,
-        waterVolume: p.waterVolume, estimatedDuration: p.estimatedDuration,
-        status: p.status, scheduledAt: p.scheduledAt
-      };
-    });
+    return this.getAll('irrigation_plans');
   }
 
   getFertilizationPlans() {
-    var plans = this.getAll('fertilization_plans');
-    var fields = this.getAll('fields');
-    var soilReadings = this.getAll('soil_readings');
-    return plans.map(function(p) {
-      var field = fields.find(function(f) { return f.code === p.fieldCode || f.id === p.fieldId; });
-      var latestSoil = soilReadings.filter(function(s) { return s.fieldId === p.fieldId; }).pop();
-      return {
-        id: p.id, fieldCode: p.fieldCode, fieldId: p.fieldId,
-        cropName: field ? field.cropName : p.cropName,
-        nKg: p.nKg, pKg: p.pKg, kKg: p.kKg, organicKg: p.organicKg,
-        status: p.status, scheduledAt: p.scheduledAt,
-        soilN: latestSoil ? latestSoil.nLevel : 85,
-        soilP: latestSoil ? latestSoil.pLevel : 72,
-        soilK: latestSoil ? latestSoil.kLevel : 78
-      };
-    });
+    return this.getAll('fertilization_plans');
   }
 
   getFarmingStats() {
@@ -353,34 +282,12 @@ class DataService {
   }
 
   getFieldManagementList() {
-    var fields = this.getAll('fields');
-    var tasks = this.getAll('farming_tasks');
-    var cycles = this.getAll('planting_cycles');
-
-    return fields.map(function(f) {
-      var fieldTasks = tasks.filter(function(t) { return t.fieldId === f.id || t.fieldCode === f.code; });
-      var activeTasks = fieldTasks.filter(function(t) { return t.status === 'pending' || t.status === 'in_progress'; });
-      var completedTasks = fieldTasks.filter(function(t) { return t.status === 'completed'; });
-      var fieldCycle = cycles.find(function(c) { return c.fieldId === f.id && !c.actualHarvestDate; });
-
-      return {
-        id: f.id, code: f.code, name: f.name,
-        cropName: f.cropName, area: f.area, status: f.status,
-        soilMoisture: f.soilMoisture, soilPh: f.soilPh,
-        plantedDate: f.plantedDate, expectedHarvest: f.expectedHarvest,
-        activeTaskCount: activeTasks.length, completedTaskCount: completedTasks.length,
-        growthStage: fieldCycle ? fieldCycle.growthStage : null,
-        location: f.location
-      };
-    });
+    return this.getAll('fields');
   }
 
   getFarmingTasks() {
-    return this.getAll('farming_tasks')
-      .sort(function(a, b) {
-        return a.scheduledTime.localeCompare(b.scheduledTime);
-      })
-      .sort(sortTasksByPriority);
+    return this.getAll('farming_tasks').sort((a, b) =>
+      a.scheduledTime.localeCompare(b.scheduledTime));
   }
 
   // ==================== 计算属性：产量预测 ====================
@@ -623,21 +530,13 @@ class DataService {
     const records = this.getAll('weather_records');
     const today = records[records.length - 1] || {};
     const yesterday = records[records.length - 2] || {};
-    const tempDiff = yesterday.temperatureHigh ? (today.temperatureHigh - yesterday.temperatureHigh).toFixed(1) : '0';
-    const diffArrow = parseFloat(tempDiff) >= 0 ? '↑' : '↓';
-    const monthRainfall = records.slice(-7).reduce((s, r) => s + (r.rainfall_mm || 0), 0);
-
     return {
       todayTemp: today.temperatureHigh + '° / ' + today.temperatureLow + '°',
-      tempChange: `较昨日 ${diffArrow}${Math.abs(parseFloat(tempDiff)).toFixed(0)}°C / 体感 ${(today.temperatureHigh - 2)}°C`,
+      tempChange: yesterday.temperatureHigh ? ((today.temperatureHigh - yesterday.temperatureHigh) > 0 ? '+' : '') + (today.temperatureHigh - yesterday.temperatureHigh).toFixed(1) + '°' : '--',
       todayRainfall: (today.rainfall_mm || 0) + 'mm',
-      rainfallDesc: (today.rainfall_mm || 0) > 0
-        ? `今日有降雨 / 近7日累计 ${monthRainfall.toFixed(1)}mm`
-        : `今日无降雨 / 近7日累计 ${monthRainfall.toFixed(1)}mm`,
+      rainfallDesc: (today.rainfall_mm || 0) > 5 ? '有降雨' : '无降雨',
       todayHumidity: (today.humidity || 0) + '%',
-      humidityDesc: `露点温度 ${Math.round((today.temperatureLow || 10) - ((100 - (today.humidity || 60)) / 5))}°C`,
       todayWind: (today.windSpeed || 0) + 'm/s',
-      windDesc: today.windSpeed > 5 ? '风力较强，注意大棚加固' : '风力适中，适宜农事作业',
       condition: today.condition || '--',
       conditionLabel: { sunny: '晴', cloudy: '多云', rain: '雨', snow: '雪' }[today.condition] || today.condition || '--'
     };
@@ -674,26 +573,20 @@ class DataService {
   getMarketStats() {
     const prices = this.getAll('market_prices');
     const cropNames = [...new Set(prices.map(p => p.cropName))];
-    const markets = [...new Set(prices.map(p => p.market))];
     const todayPrices = prices.filter(p => p.date === '2024-01-15');
     const yesterdayPrices = prices.filter(p => p.date === '2024-01-14');
     const avgToday = todayPrices.length > 0 ? (todayPrices.reduce((s, p) => s + p.pricePerKg, 0) / todayPrices.length).toFixed(2) : '--';
-    const avgYesterday = yesterdayPrices.length > 0 ? (yesterdayPrices.reduce((s, p) => s + p.pricePerKg, 0) / yesterdayPrices.length).toFixed(2) : '--';
-    const avgDiff = avgToday !== '--' && avgYesterday !== '--'
-      ? (parseFloat(avgToday) - parseFloat(avgYesterday)).toFixed(2) : '--';
+    const upCount = todayPrices.filter(p => p.trend === 'up').length;
+    const downCount = todayPrices.filter(p => p.trend === 'down').length;
     const maxUp = todayPrices.length > 0 ? todayPrices.reduce((a, b) => (b.changePercent > a.changePercent) ? b : a) : null;
     const maxDown = todayPrices.length > 0 ? todayPrices.reduce((a, b) => (b.changePercent < a.changePercent) ? b : a) : null;
     return {
       cropCount: cropNames.length,
-      marketCount: markets.length,
-      marketSummary: `覆盖 ${markets.length}个批发市场 / ${cropNames.length}个监测品种`,
       avgPrice: avgToday,
-      avgDiff: parseFloat(avgDiff) >= 0 ? `+${avgDiff}元/kg` : `${avgDiff}元/kg`,
-      avgDiffDir: parseFloat(avgDiff) >= 0 ? 'up' : 'down',
+      upCount: upCount,
+      downCount: downCount,
       maxUpCrop: maxUp ? maxUp.cropName + ' +' + maxUp.changePercent + '%' : '--',
-      maxUpPrice: maxUp ? maxUp.pricePerKg.toFixed(2) + '元/kg' : '--',
-      maxDownCrop: maxDown ? maxDown.cropName + ' ' + maxDown.changePercent + '%' : '--',
-      maxDownPrice: maxDown ? maxDown.pricePerKg.toFixed(2) + '元/kg' : '--'
+      maxDownCrop: maxDown ? maxDown.cropName + ' ' + maxDown.changePercent + '%' : '--'
     };
   }
 
@@ -719,24 +612,15 @@ class DataService {
   getModelStats() {
     const models = this.getAll('model_versions');
     const active = models.filter(m => m.status === 'active');
-    const inactive = models.filter(m => m.status !== 'active');
     const avgAccuracy = active.length > 0 ? (active.reduce((s, m) => s + (m.accuracy || 0), 0) / active.length).toFixed(1) : '--';
-    const maxAcc = active.length > 0 ? Math.max(...active.map(m => m.accuracy || 0)).toFixed(1) : '--';
-    const minAcc = active.length > 0 ? Math.min(...active.map(m => m.accuracy || 0)).toFixed(1) : '--';
     const driftWarnings = active.filter(m => m.driftScore !== null && m.driftScore > 0.2).length;
     const avgUnknownRate = active.length > 0 ? (active.reduce((s, m) => s + (m.unknownRate || 0), 0) / active.length).toFixed(1) : '--';
-    const reviewCount = this.table('agent_runs').where('humanReviewNeeded', 'eq', true).get()
-      .filter(a => a.reviewStatus === 'pending' || a.reviewStatus === null).length;
     return {
       activeCount: active.length,
-      totalVersions: models.length,
-      activeSummary: `共 ${models.length}个版本 / ${active.length}个运行中 / ${inactive.length}个已停用`,
+      totalModels: models.length,
       avgAccuracy: avgAccuracy + '%',
-      accRange: `最高 ${maxAcc}% / 最低 ${minAcc}%`,
       driftWarnings: driftWarnings,
-      driftSummary: driftWarnings > 0 ? `${driftWarnings}个模型漂移指数 >0.2，建议检查` : '所有模型漂移指数正常 (<0.2)',
       avgUnknownRate: avgUnknownRate + '%',
-      unknownSummary: `待审核 ${reviewCount}条未知样本 / 阈值置信度 <80%`,
       totalPredictions: active.reduce((s, m) => s + (m.totalPredictions || 0), 0)
     };
   }
@@ -811,102 +695,6 @@ class DataService {
       technicianCount: users.filter(u => u.role === 'technician' && u.status === 'active').length,
       farmerCount: users.filter(u => u.role === 'farmer' && u.status === 'active').length,
       managerCount: users.filter(u => u.role === 'manager' && u.status === 'active').length
-    };
-  }
-
-  // ==================== 跨模块状态同步 ====================
-
-  /**
-   * 统一状态同步：任务完成→地块状态联动，病虫害→任务生成
-   * 在任何 CRUD 操作后调用，保持模块间数据一致
-   */
-  syncModuleState() {
-    var fields = this.getAll('fields');
-    var tasks = this.getAll('farming_tasks');
-    var diseases = this.getAll('disease_records');
-    var cycles = this.getAll('planting_cycles');
-
-    fields.forEach(function(f) {
-      var fieldTasks = tasks.filter(function(t) { return t.fieldId === f.id || t.fieldCode === f.code; });
-      var activeTasks = fieldTasks.filter(function(t) { return t.status === 'pending' || t.status === 'in_progress'; });
-      var fieldDiseases = diseases.filter(function(d) { return d.fieldId === f.id || d.fieldCode === f.code; });
-      var activeDisease = fieldDiseases.find(function(d) { return d.status === 'processing'; });
-      var fieldCycle = cycles.find(function(c) { return c.fieldId === f.id && !c.actualHarvestDate; });
-
-      // 联动1：有活跃病虫害→地块状态为disease
-      if (activeDisease && f.status !== 'disease') {
-        f.status = 'disease';
-      }
-
-      // 联动2：灌溉任务完成→土壤湿度恢复正常
-      var completedWatering = fieldTasks.filter(function(t) { return t.type === 'watering' && t.status === 'completed'; });
-      if (completedWatering.length > 0 && f.soilMoisture && f.soilMoisture < 60) {
-        f.soilMoisture = Math.min(f.soilMoisture + 15, 80);
-      }
-
-      // 联动3：无活跃任务无病虫害→地块正常生长
-      if (!activeDisease && activeTasks.length === 0 && f.status === 'disease') {
-        f.status = 'growing';
-      }
-
-      // 联动4：有活跃任务→根据任务类型推断状态
-      if (activeTasks.length > 0 && f.status === 'fallow') {
-        f.status = 'growing';
-      }
-      var hasWateringNeed = activeTasks.some(function(t) { return t.type === 'watering'; });
-      if (hasWateringNeed && f.status !== 'disease') {
-        f.status = 'watering';
-      }
-    });
-
-    // 联动5：病虫害记录未处理→自动生成喷药任务
-    diseases.forEach(function(d) {
-      if (d.status === 'processing') {
-        var hasSprayTask = tasks.some(function(t) {
-          return (t.fieldId === d.fieldId || t.fieldCode === d.fieldCode) &&
-                 t.type === 'spraying' && t.status !== 'completed' && t.status !== 'cancelled';
-        });
-        if (!hasSprayTask) {
-          var taskId = 'task_' + ('s' + Date.now().toString(36));
-          tasks.push({
-            id: taskId, type: 'spraying', fieldId: d.fieldId, fieldCode: d.fieldCode,
-            cropName: d.cropAffected, scheduledTime: new Date().toISOString().slice(0, 10) + ' 09:00',
-            estimatedDuration: 1.5, status: 'pending', assignedTo: 'u002',
-            priority: 'high', notes: '自动生成：处理' + d.diseaseName, completedAt: null
-          });
-        }
-      }
-    });
-  }
-
-  /**
-   * 获取地块综合详情（跨模块聚合）
-   */
-  getFieldComprehensiveDetail(fieldId) {
-    var f = this.getById('fields', fieldId);
-    if (!f) return null;
-
-    var tasks = this.getAll('farming_tasks').filter(function(t) { return t.fieldId === fieldId || t.fieldCode === f.code; });
-    var diseases = this.getAll('disease_records').filter(function(d) { return d.fieldId === fieldId || d.fieldCode === f.code; });
-    var cycles = this.getAll('planting_cycles').filter(function(c) { return c.fieldId === fieldId; });
-    var observations = this.getAll('observations').filter(function(o) { return o.fieldId === fieldId; });
-    var irrigationPlans = this.getAll('irrigation_plans').filter(function(p) { return p.fieldId === fieldId; });
-    var fertPlans = this.getAll('fertilization_plans').filter(function(p) { return p.fieldId === fieldId; });
-
-    return {
-      field: f,
-      tasks: tasks,
-      activeTasks: tasks.filter(function(t) { return t.status === 'pending' || t.status === 'in_progress'; }),
-      completedTasks: tasks.filter(function(t) { return t.status === 'completed'; }),
-      diseases: diseases,
-      activeDisease: diseases.find(function(d) { return d.status === 'processing'; }),
-      cycles: cycles,
-      activeCycle: cycles.find(function(c) { return !c.actualHarvestDate; }),
-      observations: observations.slice(-5).reverse(),
-      irrigationPlans: irrigationPlans,
-      fertPlans: fertPlans,
-      taskSummary: tasks.length + '个任务 / ' + tasks.filter(function(t) { return t.status === 'completed'; }).length + '已完成',
-      diseaseSummary: diseases.length > 0 ? diseases.length + '条记录' : '无病虫害记录'
     };
   }
 }

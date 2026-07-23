@@ -110,11 +110,9 @@ function rebindSectionEvents() {
   var sec = document.querySelector('section:not(.hidden)');
   if (!sec) return;
   var sid = sec.id;
+  // 只负责前三个模块的事件绑定，后八个由 interactions-later.js 的事件委托接管
   var m = {
-    dashboard: setupDashboard, disease: setupDisease, farming: setupFarming,
-    prediction: setupPrediction, management: setupManagement, devices: setupDevices,
-    traceability: setupTraceability, permission: setupPermission,
-    weather: setupWeather, market: setupMarket, monitor: setupMonitor
+    dashboard: setupDashboard, disease: setupDisease, farming: setupFarming
   };
   if (m[sid]) m[sid]();
 }
