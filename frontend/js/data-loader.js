@@ -25,8 +25,8 @@ async function loadFromApi() {
   const promises = TABLE_NAMES.map(async (name) => {
     try {
       const data = await apiClient.getAll(name);
-      if (data && Array.isArray(data) && data.length > 0) {
-        bundle[name] = data;
+      if (data && Array.isArray(data)) {
+        bundle[name] = data;  // 空表也接受
         successCount++;
       }
     } catch (err) {
@@ -36,8 +36,9 @@ async function loadFromApi() {
 
   await Promise.all(promises);
 
-  if (successCount === TABLE_NAMES.length) {
-    console.log('[DataLoader] 后端 API 加载成功，' + successCount + ' 张表（MySQL 模式）');
+  // 只要有 20 张以上表加载成功就用 API（允许个别表为空）
+  if (successCount >= 20) {
+    console.log('[DataLoader] MySQL 模式：' + successCount + '/' + TABLE_NAMES.length + ' 张表');
     return bundle;
   }
   if (successCount > 0) {
