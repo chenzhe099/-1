@@ -14,6 +14,7 @@ class DiagnosisResponse(BaseModel):
     severity: str
     symptoms: Optional[str] = None
     treatment: Optional[dict] = None
+    description: Optional[str] = None
     knowledgeRefs: List[str] = []
     isUnknown: bool = False
 
