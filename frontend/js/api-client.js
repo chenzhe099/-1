@@ -39,7 +39,7 @@ class ApiClient {
       ...options.headers
     };
     try {
-      const resp = await fetch(API_BASE + path, { ...options, headers });
+      const resp = await fetch(API_BASE + path, { ...options, headers, signal: AbortSignal.timeout(3000) });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ message: 'Request failed' }));
         throw new Error(err.message || 'HTTP ' + resp.status);

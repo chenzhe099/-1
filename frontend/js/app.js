@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initNavigation();
     renderDashboard();
     initDashboardCharts();
-    setupDashboardEvents();
   }
 });
 
@@ -123,11 +122,18 @@ function renderDashboard() {
       </div>`;
   }).join('');
 
-  // 今日任务
-  const tasks = dataService.getTodayTasks();
-  document.getElementById('task-list').innerHTML = tasks.length > 0
-    ? tasks.map(t => taskItemHTML(t)).join('')
-    : '<div class="text-center text-gray-400 py-4">暂无任务</div>';
+  // 今日任务（按优先级排序，显示前4条，其余折叠）
+  var tasks = dataService.getTodayTasks();
+  var taskList = document.getElementById('task-list');
+  if (tasks.length > 0) {
+    var visibleTasks = tasks.slice(0, 4);
+    var hiddenTasks = tasks.slice(4);
+    taskList.innerHTML = visibleTasks.map(function (t) { return taskItemHTML(t); }).join('')
+      + (hiddenTasks.length > 0 ? '<div class="task-list-collapsed hidden space-y-3 mt-0">' + hiddenTasks.map(function (t) { return taskItemHTML(t); }).join('') + '</div>' : '')
+      + (hiddenTasks.length > 0 ? '<button class="w-full mt-3 py-2 text-sm text-blue-500 hover:text-blue-600 bg-blue-50 rounded-lg transition-colors" data-action="toggle-task-expand">展开剩余 ' + hiddenTasks.length + ' 条任务 <i class="fa fa-chevron-down ml-1"></i></button>' : '');
+  } else {
+    taskList.innerHTML = '<div class="text-center text-gray-400 py-4">暂无任务</div>';
+  }
 
   // 预警列表
   const alerts = dataService.getAlertList();
@@ -145,7 +151,7 @@ function renderDisease() {
   historyContainer.innerHTML = records.map(r => {
     const sc = statusColor(r.status);
     return `
-      <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="disease-detail" data-name="${r.diseaseName}">
         <div class="w-12 h-12 bg-${sc}-100 rounded-lg flex items-center justify-center mr-3">
           <i class="fa fa-bug text-${sc}-500"></i>
         </div>
@@ -165,7 +171,7 @@ function renderDisease() {
     const colorMap = { high: 'red', medium: 'orange', critical: 'red', low: 'green' };
     const c = colorMap[k.severity] || 'blue';
     return `
-      <div class="p-4 bg-${c}-50 rounded-lg border border-${c}-100 cursor-pointer hover:shadow-md transition-shadow" onclick="showDiseaseDetail('${k.id}')">
+      <div class="p-4 bg-${c}-50 rounded-lg border border-${c}-100 cursor-pointer hover:shadow-md transition-shadow" data-action="select-disease" data-id="${k.id}">
         <div class="w-10 h-10 bg-${c}-100 rounded-lg flex items-center justify-center mb-3">
           <i class="fa ${k.icon} text-${c}-600"></i>
         </div>
@@ -197,8 +203,13 @@ function renderFarming() {
         </div>
         ${p.status === 'pending' ? `
         <div class="mt-3 flex space-x-2">
-          <button class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600" onclick="executeIrrigation('${p.id}')">立即执行</button>
-          <button class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300">定时执行</button>
+          <button class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600" data-action="execute-irrigation" data-id="${p.id}">立即执行</button>
+          <button class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300" data-action="schedule-irrigation" data-id="${p.id}">定时执行</button>
+          <button class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200" data-action="irrigation-edit" data-id="${p.id}">调整参数</button>
+        </div>` : ''}
+        ${p.status !== 'pending' ? `
+        <div class="mt-3 flex space-x-2">
+          <button class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200" data-action="irrigation-edit" data-id="${p.id}">调整参数</button>
         </div>` : ''}
       </div>`;
   }).join('');
@@ -226,7 +237,7 @@ function renderFarming() {
   const fieldList = document.getElementById('field-management-list');
   if (fieldList) {
     fieldList.innerHTML = fields.map(f => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="field-detail" data-field-code="${f.code}">
         <div>
           <p class="text-sm font-medium text-gray-800">地块${f.code} - ${f.cropName}</p>
           <p class="text-xs text-gray-500">${f.area}亩 · 湿度${f.soilMoisture}%</p>
@@ -318,7 +329,7 @@ function renderManagement() {
   const recContainer = document.getElementById('farm-record-list');
   if (recContainer) {
     recContainer.innerHTML = records.map(r => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="record-detail" data-id="${r.id}">
         <div>
           <p class="text-sm font-medium text-gray-800">${taskTypeLabel(r.type)} - ${r.fieldCode}</p>
           <p class="text-xs text-gray-500">${formatDateTime(r.completedAt)}</p>
@@ -332,7 +343,7 @@ function renderManagement() {
   const persContainer = document.getElementById('personnel-list');
   if (persContainer) {
     persContainer.innerHTML = personnel.map(p => `
-      <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="person-detail" data-id="${p.id}">
         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${p.avatar}" class="w-10 h-10 rounded-full mr-3" alt="${p.name}">
         <div class="flex-1">
           <p class="text-sm font-medium text-gray-800">${p.name}</p>
@@ -347,7 +358,7 @@ function renderManagement() {
   const invContainer = document.getElementById('inventory-list');
   if (invContainer) {
     invContainer.innerHTML = inventory.map(i => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="inventory-detail" data-id="${i.id}">
         <div>
           <p class="text-sm font-medium text-gray-800">${i.name}</p>
           <p class="text-xs text-gray-500">${i.unit} × ${i.quantity}</p>
@@ -403,8 +414,8 @@ function renderDeviceList(section) {
           <p>运行: ${d.runHours}小时 · 固件 ${d.firmwareVersion}</p>
         </div>
         <div class="mt-3 flex space-x-2">
-          <button class="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 btn-device-control">远程控制</button>
-          <button class="px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 btn-device-detail">查看详情</button>
+          <button class="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 btn-device-control" data-action="device-control" data-id="${d.id}">远程控制</button>
+          <button class="px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 btn-device-detail" data-action="device-detail" data-id="${d.id}">查看详情</button>
         </div>
       </div>`;
   }).join('');
@@ -491,8 +502,9 @@ function renderPermission() {
         <td class="py-3 px-4 text-sm text-gray-600">${u.role === 'admin' ? '管理员' : u.role === 'technician' ? '技术员' : '农户'}</td>
         <td class="py-3 px-4">${badge(u.status)}</td>
         <td class="py-3 px-4 text-sm">
-          <button class="text-blue-500 hover:text-blue-600 mr-2" onclick="editUser('${u.id}')">编辑</button>
-          <button class="text-gray-500 hover:text-gray-600" onclick="resetPassword('${u.id}')">重置密码</button>
+          <button class="text-blue-500 hover:text-blue-600 mr-2" data-action="edit-user" data-id="${u.id}">编辑</button>
+          <button class="text-gray-500 hover:text-gray-600 mr-2" data-action="reset-pwd" data-id="${u.id}">重置密码</button>
+          <button class="text-red-400 hover:text-red-600" data-action="delete-user" data-id="${u.id}">删除</button>
         </td>
       </tr>`).join('');
   }
@@ -502,12 +514,15 @@ function renderPermission() {
   const roleContainer = document.getElementById('role-list');
   if (roleContainer) {
     roleContainer.innerHTML = roles.map(r => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
         <div>
           <p class="text-sm font-medium text-gray-800">${r.name}</p>
           <p class="text-xs text-gray-500">${r.description}</p>
         </div>
-        <span class="text-sm text-gray-600">${r.userCount}人</span>
+        <div class="flex items-center space-x-3">
+          <span class="text-sm text-gray-600">${r.userCount}人</span>
+          <button class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200" data-action="edit-role" data-id="${r.id}">编辑</button>
+        </div>
       </div>`).join('');
   }
 
@@ -623,7 +638,7 @@ function renderWeather() {
   const fcContainer = document.getElementById('weather-forecast-list');
   const condIcons = { sunny: 'fa-sun-o text-orange-400', cloudy: 'fa-cloud text-gray-400', rain: 'fa-tint text-blue-400', snow: 'fa-snowflake-o text-blue-300' };
   fcContainer.innerHTML = forecast.slice(0, 7).map(f => `
-    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="forecast-detail" data-date="${f.date}">
       <span class="text-sm text-gray-700 w-14">${f.date}</span>
       <i class="fa ${condIcons[f.condition] || 'fa-question'} text-lg"></i>
       <span class="text-sm font-medium">${f.high}° / ${f.low}°</span>
@@ -633,7 +648,7 @@ function renderWeather() {
   // 天气预警
   const alerts = dataService.getWeatherAlerts();
   document.getElementById('weather-alert-list').innerHTML = alerts.length > 0
-    ? alerts.map(a => alertItemHTML(a)).join('')
+    ? alerts.map(a => '<div class="relative">' + alertItemHTML(a) + '<button class="absolute top-2 right-2 text-xs text-gray-400 hover:text-blue-500" data-action="mark-alert-read" data-alert-id="' + a.id + '">已读</button></div>').join('')
     : '<div class="col-span-3 text-center text-gray-400 py-6">暂无天气预警</div>';
 }
 
@@ -652,7 +667,7 @@ function renderMarket() {
     .where('date', 'eq', '2024-01-15').get();
   const tbody = document.getElementById('market-price-table-body');
   tbody.innerHTML = todayPrices.map(p => `
-    <tr class="hover:bg-gray-50">
+    <tr class="hover:bg-gray-50 cursor-pointer" data-action="price-detail" data-crop="${p.cropName}">
       <td class="px-4 py-2 text-sm font-medium text-gray-800">${p.cropName}</td>
       <td class="px-4 py-2 text-xs text-gray-500">${p.market}</td>
       <td class="px-4 py-2 text-sm text-right font-medium">${p.pricePerKg.toFixed(2)}</td>
@@ -684,7 +699,7 @@ function renderMonitor() {
   mvContainer.innerHTML = models.map(m => {
     const sc = statusColor(m.status);
     return `
-      <div class="p-3 bg-gray-50 rounded-lg">
+      <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="model-detail" data-id="${m.id}">
         <div class="flex items-center justify-between mb-1">
           <span class="text-sm font-medium text-gray-800">${m.modelName}</span>
           <span class="px-2 py-0.5 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(m.status)}</span>
@@ -701,7 +716,7 @@ function renderMonitor() {
   const recentRecords = dataService.getDiseaseHistory().slice(0, 5);
   const logTable = document.getElementById('prediction-log-table');
   logTable.innerHTML = recentRecords.map(r => `
-    <tr class="hover:bg-gray-50">
+    <tr class="hover:bg-gray-50 cursor-pointer" data-action="log-detail" data-id="${r.id}">
       <td class="px-3 py-2 text-xs text-gray-500">${formatDateTime(r.detectedAt)}</td>
       <td class="px-3 py-2 text-xs">病虫害识别模型 v3.2.1</td>
       <td class="px-3 py-2 text-xs text-gray-600">${r.fieldCode} ${r.cropAffected}图片</td>

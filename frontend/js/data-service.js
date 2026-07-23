@@ -217,11 +217,19 @@ class DataService {
   }
 
   getTodayTasks() {
-    const today = '2024-01-15';
+    var today = '2024-01-15';
+    var rank = { high: 3, medium: 2, low: 1 };
+    var statusRank = { in_progress: 4, pending: 3, completed: 2, cancelled: 1 };
     return this.table('farming_tasks')
       .where('scheduledTime', 'contains', today)
-      .orderBy('scheduledTime', 'asc')
-      .get();
+      .get()
+      .sort(function (a, b) {
+        var rp = (rank[b.priority] || 0) - (rank[a.priority] || 0);
+        if (rp !== 0) return rp;
+        var rs = (statusRank[b.status] || 0) - (statusRank[a.status] || 0);
+        if (rs !== 0) return rs;
+        return (a.scheduledTime || '').localeCompare(b.scheduledTime || '');
+      });
   }
 
   getAlertList() {

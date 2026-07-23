@@ -28,3 +28,18 @@ body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
 
 /* 选中行高亮 */
 .row-selected { background: rgba(74, 144, 226, 0.08) !important; outline: 2px solid #4a90e2; outline-offset: -2px; border-radius: 8px; }
+
+/* ===== 统一交互状态 Token（配合 ui.js 的 loading / empty / error） ===== */
+.ui-retry-btn {
+  transition: all 0.15s ease;
+}
+.ui-retry-btn:hover {
+  background: #e5e7eb;          /* gray-200 */
+  color: #374151;               /* gray-700 */
+}
+.ui-state-container {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

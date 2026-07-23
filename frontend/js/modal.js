@@ -13,6 +13,12 @@ class Modal {
 
   /** 打开弹窗 */
   _open(content, options = {}) {
+    // 关闭上一个弹窗（避免多层堆叠、关闭引用错乱）
+    if (this._overlay && this._overlay.parentNode) {
+      this._overlay.parentNode.removeChild(this._overlay);
+      document.removeEventListener('keydown', this._escHandler);
+    }
+
     this._closed = false;
     const width = options.width || 'max-w-lg';
     const closable = options.closable !== false;
@@ -40,11 +46,11 @@ class Modal {
       });
     }
 
-    // 关闭按钮
-    const closeBtn = this._overlay.querySelector('.modal-close-btn');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.close());
-    }
+    // 关闭按钮（标题栏 X 和 footer「关闭」都要绑定）
+    var closeBtns = this._overlay.querySelectorAll('.modal-close-btn');
+    closeBtns.forEach(function (btn) {
+      btn.addEventListener('click', () => this.close());
+    }.bind(this));
 
     // ESC 关闭
     this._escHandler = (e) => { if (e.key === 'Escape') this.close(); };

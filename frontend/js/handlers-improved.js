@@ -580,28 +580,31 @@ async function showConfirmDialog(title, message) {
 
 function showAllTasksModal() {
   if (!dataService.isReady()) return;
-  const tasks = dataService.getAll('farming_tasks');
+  var tasks = dataService.getTodayTasks();
 
   modal.table({
-    title: '全部农事任务',
+    title: '今日农事任务（共 ' + tasks.length + ' 条）',
     columns: [
+      { key: 'priority', label: '优先级' },
+      { key: 'time', label: '计划时间' },
       { key: 'field', label: '地块' },
       { key: 'type', label: '任务类型' },
-      { key: 'time', label: '计划时间' },
       { key: 'duration', label: '时长' },
       { key: 'status', label: '状态' },
-      { key: 'priority', label: '优先级' }
+      { key: 'action', label: '操作' }
     ],
-    rows: tasks.sort((a, b) => b.scheduledTime.localeCompare(a.scheduledTime)),
-    rowRenderer: (t) => `
-      <tr class="hover:bg-gray-50 transition-colors">
-        <td class="px-4 py-3 text-sm text-gray-700">${t.fieldCode} · ${t.cropName || ''}</td>
-        <td class="px-4 py-3 text-sm">${taskTypeLabel(t.type)}</td>
-        <td class="px-4 py-3 text-sm text-gray-600">${formatDateTime(t.scheduledTime)}</td>
-        <td class="px-4 py-3 text-sm text-gray-600">${t.estimatedDuration}h</td>
-        <td class="px-4 py-3">${badge(t.status)}</td>
-        <td class="px-4 py-3">${badge(t.priority)}</td>
-      </tr>`
+    rows: tasks,
+    rowRenderer: function (t) {
+      return '<tr class="hover:bg-gray-50 transition-colors">'
+        + '<td class="px-4 py-3">' + badge(t.priority) + '</td>'
+        + '<td class="px-4 py-3 text-sm text-gray-600">' + formatDateTime(t.scheduledTime) + '</td>'
+        + '<td class="px-4 py-3 text-sm text-gray-700">' + (t.fieldCode || '') + ' · ' + (t.cropName || '') + '</td>'
+        + '<td class="px-4 py-3 text-sm">' + taskTypeLabel(t.type) + '</td>'
+        + '<td class="px-4 py-3 text-sm text-gray-600">' + (t.estimatedDuration || '') + 'h</td>'
+        + '<td class="px-4 py-3">' + badge(t.status) + '</td>'
+        + '<td class="px-4 py-3"><button class="text-xs text-blue-500 hover:text-blue-600 font-medium mr-2" data-action="edit-task" data-task-id="' + t.id + '">编辑</button><button class="text-xs text-red-400 hover:text-red-600 font-medium" data-action="delete-task" data-id="' + t.id + '">删除</button></td>'
+        + '</tr>';
+    }
   });
 }
 
@@ -656,24 +659,4 @@ function showRegulationDetail(docId) {
     '</div>';
 
   modal.detail({ title: '规范原文 — ' + doc.title, body: body, width: 'max-w-2xl' });
-}
-
-// ==================== 病虫害知识库详情弹窗 ====================
-
-function showDiseaseDetailModal(pestName) {
-  if (!dsReady()) return;
-  var pest = ds().table('pest_knowledge_base').where('name', 'contains', pestName.replace('查看详情','').trim()).first();
-  if (!pest) pest = ds().getAll('pest_knowledge_base')[0];
-  if (!pest) return;
-
-  var body = '<div class="space-y-4">' +
-    '<div class="flex items-center"><div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center mr-4"><i class="fa ' + (pest.icon||'fa-bug') + ' text-red-600 text-2xl"></i></div><div><h4 class="text-lg font-bold text-gray-800">' + pest.name + '</h4><p class="text-xs text-gray-500">严重级别：' + statusLabel(pest.severity) + '</p></div></div>' +
-    '<div class="bg-red-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-red-700 mb-1">症状</h5><p class="text-sm text-gray-700">' + pest.symptoms + '</p></div>' +
-    '<div class="bg-yellow-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-yellow-700 mb-1">原因</h5><p class="text-sm text-gray-700">' + pest.causes + '</p></div>' +
-    '<div class="bg-green-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-green-700 mb-1">防治方案</h5><p class="text-sm text-gray-700">' + pest.treatment + '</p></div>' +
-    '<div class="bg-blue-50 p-4 rounded-lg"><h5 class="text-sm font-semibold text-blue-700 mb-1">规范依据</h5><p class="text-sm text-gray-700">' + (pest.regulation || '请查看相关农业技术规范') + '</p>' +
-    '<button class="mt-2 text-xs text-blue-600 hover:text-blue-700" onclick="showRegulationDetail(\'kd_001\')">查看完整规范 <i class="fa fa-arrow-right ml-1"></i></button></div>' +
-    '</div>';
-
-  modal.detail({ title: '病虫害详情 — ' + pest.name, body: body, width: 'max-w-2xl' });
 }

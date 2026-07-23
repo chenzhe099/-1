@@ -46,6 +46,7 @@ function statusLabel(status) {
     sufficient:'库存充足', low:'库存偏低', depleted:'已耗尽',
     on_duty:'在岗', off_duty:'离岗', leave:'休假',
     active:'启用', disabled:'禁用',
+    high:'高', medium:'中', low:'低',
     executing:'执行中', planned:'待规划',
     resolved:'已处理', processing:'处理中',
     sunny:'晴', cloudy:'多云', rain:'雨', snow:'雪',
@@ -104,7 +105,7 @@ function taskItemHTML(task) {
   const statusCls = statusColor(task.status);
   const timeStr = task.scheduledTime ? task.scheduledTime.slice(11, 16) + ' - ' + addHours(task.scheduledTime.slice(11, 16), task.estimatedDuration) : '待定';
   return `
-    <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-task-id="${task.id}">
+    <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="edit-task" data-task-id="${task.id}">
       <div class="w-8 h-8 bg-${ti.color}-100 rounded-full flex items-center justify-center mr-3">
         <i class="fa ${ti.icon} text-${ti.color}-600"></i>
       </div>
@@ -113,6 +114,7 @@ function taskItemHTML(task) {
         <p class="text-xs text-gray-500">${timeStr} · 预计${task.estimatedDuration}小时</p>
       </div>
       <span class="px-2 py-1 text-xs bg-${statusCls}-100 text-${statusCls}-600 rounded">${statusLabel(task.status)}</span>
+      <button class="ml-2 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" data-action="delete-task" data-id="${task.id}" title="删除任务"><i class="fa fa-trash text-sm"></i></button>
     </div>`;
 }
 
@@ -132,12 +134,12 @@ function alertItemHTML(alert) {
   const c = sevColors[alert.severity] || 'blue';
   const icon = sevIcons[alert.severity] || 'fa-info-circle';
   return `
-    <div class="flex items-start p-3 bg-${c}-50 rounded-lg border border-${c}-100 hover:border-${c}-200 transition-colors cursor-pointer" data-alert-id="${alert.id}">
+    <div class="flex items-start p-3 bg-${c}-50 rounded-lg border border-${c}-100 hover:border-${c}-200 transition-colors cursor-pointer" data-action="edit-alert" data-alert-id="${alert.id}">
       <i class="fa ${icon} text-${c}-500 mr-3 mt-0.5"></i>
       <div class="flex-1">
         <p class="text-sm font-medium text-${c}-700">${alert.title}</p>
         <p class="text-xs text-gray-600">${alert.message}</p>
       </div>
-      <button class="text-xs text-${c}-500 hover:text-${c}-600" onclick="resolveAlert('${alert.id}')">处理</button>
+      <button class="text-xs text-${c}-500 hover:text-${c}-600" data-action="resolve-alert" data-alert-id="${alert.id}">处理</button>
     </div>`;
 }
