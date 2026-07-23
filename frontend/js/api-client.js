@@ -122,6 +122,8 @@ class ApiClient {
       'market_prices': 'market_prices',
       'knowledge_documents': 'knowledge_documents',
       'model_versions': 'model_versions',
+      'observations': 'observations',
+      'agent_runs': 'agent_runs',
     };
     return map[name] || name;
   }

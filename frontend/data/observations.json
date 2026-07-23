@@ -1,0 +1,5 @@
+[
+  {"id":"obs_01","fieldId":"field_a1","cropName":"番茄","type":"growth","title":"叶片发黄观察","description":"地块A1番茄下部叶片出现轻度黄化，疑似缺氮","severity":"info","observedBy":"u002","observedAt":"2024-01-15 09:00","status":"open","images":"","createdAt":"2024-01-15 09:00"},
+  {"id":"obs_02","fieldId":"field_c1","cropName":"草莓","type":"pest","title":"白粉病早期症状","description":"草莓叶片背面出现少量白色粉末状斑点","severity":"warning","observedBy":"u002","observedAt":"2024-01-15 08:00","status":"open","images":"","createdAt":"2024-01-15 08:00"},
+  {"id":"obs_03","fieldId":"field_b1","cropName":"辣椒","type":"soil","title":"土壤板结","description":"辣椒地块B1表层土壤出现轻微板结现象","severity":"info","observedBy":"u003","observedAt":"2024-01-14 16:00","status":"resolved","images":"","createdAt":"2024-01-14 16:00"}
+]

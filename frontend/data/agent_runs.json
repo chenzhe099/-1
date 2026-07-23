@@ -1,0 +1,6 @@
+[
+  {"id":"ar_01","agentName":"病害诊断Agent","agentType":"diagnosis","taskType":"disease_identify","input":"{\"imageUrl\":\"uploads/disease_01.jpg\"}","output":"{\"disease\":\"白粉病\",\"confidence\":0.92}","confidence":0.92,"status":"completed","durationMs":1250,"startedAt":"2024-01-15 08:05","completedAt":"2024-01-15 08:06","errorMessage":""},
+  {"id":"ar_02","agentName":"灌溉决策Agent","agentType":"decision","taskType":"irrigation_plan","input":"{\"fieldId\":\"field_b1\",\"moisture\":45}","output":"{\"waterVolume\":22,\"duration\":45,\"priority\":\"high\"}","confidence":0.88,"status":"completed","durationMs":850,"startedAt":"2024-01-15 07:35","completedAt":"2024-01-15 07:35","errorMessage":""},
+  {"id":"ar_03","agentName":"施肥推荐Agent","agentType":"recommendation","taskType":"fertilizer_plan","input":"{\"fieldId\":\"field_c1\",\"crop\":\"草莓\"}","output":"{\"n\":0,\"p\":0,\"k\":12,\"organic\":5}","confidence":0.85,"status":"completed","durationMs":980,"startedAt":"2024-01-14 15:00","completedAt":"2024-01-14 15:01","errorMessage":""},
+  {"id":"ar_04","agentName":"虫害识别Agent","agentType":"diagnosis","taskType":"pest_identify","input":"{\"imageUrl\":\"uploads/pest_01.jpg\"}","output":"{\"pest\":\"蚜虫\",\"confidence\":0.95}","confidence":0.95,"status":"completed","durationMs":1100,"startedAt":"2024-01-15 09:00","completedAt":"2024-01-15 09:01","errorMessage":""}
+]

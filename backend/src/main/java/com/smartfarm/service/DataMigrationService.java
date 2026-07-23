@@ -72,7 +72,9 @@ public class DataMigrationService implements CommandLineRunner {
         Map.entry("weather_records", "WeatherRecords"),
         Map.entry("market_prices", "MarketPrices"),
         Map.entry("knowledge_documents", "KnowledgeDocuments"),
-        Map.entry("model_versions", "ModelVersions")
+        Map.entry("model_versions", "ModelVersions"),
+        Map.entry("observations", "Observations"),
+        Map.entry("agent_runs", "AgentRuns")
     );
 
     @Override
