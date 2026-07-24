@@ -9,7 +9,7 @@
  */
 
 const Api = (() => {
-  const BASE_URL = 'http://172.20.10.2:9090/api/v1';
+  const BASE_URL = 'http://' + window.location.hostname + ':9090/api/v1';
   let token = localStorage.getItem('smartfarm_token') || '';
 
   // ==================== HTTP 封装 ====================
