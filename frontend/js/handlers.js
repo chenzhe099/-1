@@ -221,22 +221,56 @@ function handleDiseaseFile(file) {
   if (!file) return;
   if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { showToast('仅支持 JPG、PNG、WebP 格式','error'); return; }
   if (file.size > 10*1024*1024) { showToast('文件不能超过 10MB','error'); return; }
-  showToast('正在分析: '+file.name+' ...','info');
-  setTimeout(function() {
-    var rs = ['番茄晚疫病','蚜虫','白粉病','霜霉病','无病虫害'];
-    saveDiseaseRecord(rs[Math.floor(Math.random()*rs.length)]);
-  }, 1500);
+  showToast('正在AI分析: '+file.name+' ...','info');
+
+  // 调用真实 AI 诊断 API（DeepSeek Vision）
+  if (typeof apiClient !== 'undefined' && typeof apiClient.diagnoseDisease === 'function') {
+    apiClient.diagnoseDisease(file).then(function(result) {
+      if (result && result.diseaseName) {
+        saveDiseaseRecord(result);
+        showToast('AI识别: ' + result.diseaseName + ' (置信度: ' + Math.round(result.confidence * 100) + '%)',
+          result.isUnknown ? 'warning' : 'success');
+      } else {
+        // API 不可用，回退本地模拟
+        fallbackMockDiagnosis();
+      }
+    }).catch(function(err) {
+      console.warn('[Disease] AI诊断API失败，回退本地模拟:', err.message);
+      fallbackMockDiagnosis();
+    });
+  } else {
+    fallbackMockDiagnosis();
+  }
 }
 
-function saveDiseaseRecord(name) {
+function fallbackMockDiagnosis() {
+  var rs = ['番茄晚疫病','蚜虫','白粉病','霜霉病','无病虫害'];
+  var name = rs[Math.floor(Math.random()*rs.length)];
+  saveDiseaseRecord({
+    diseaseName: name,
+    confidence: 0.7,
+    severity: name === '无病虫害' ? 'low' : 'medium',
+    symptoms: '（离线模式，本地模拟结果）',
+    treatment: { chemical: [], biological: [], agricultural: [] },
+    description: '请确保 AI 服务已启动以获取真实诊断结果',
+    isUnknown: false
+  });
+}
+
+function saveDiseaseRecord(result) {
   if (!dsReady()) return;
+  var name = typeof result === 'string' ? result : result.diseaseName;
+  var sev = result.severity || 'medium';
   ds().insert('disease_records',{
     id:'dis_'+uid(), fieldId:'field_a1', fieldCode:'A1', diseaseName:name, cropAffected:'番茄',
     detectedAt:new Date().toISOString().slice(0,16).replace('T',' '),
-    severity:name==='无病虫害'?'低':'中', status:name==='无病虫害'?'resolved':'processing',
-    imageUrl:'', treatmentPlan:'', resolvedAt:null
+    severity: name === '无病虫害' ? 'low' : sev,
+    status: name === '无病虫害' ? 'resolved' : 'processing',
+    imageUrl:'',
+    treatmentPlan: result.treatment ? JSON.stringify(result.treatment) : '',
+    resolvedAt:null
   });
-  if (dsReady()) ds().syncModuleState(); // 病虫害→自动生成喷药任务
+  if (dsReady()) ds().syncModuleState();
   if (typeof renderDisease === 'function') renderDisease();
 }
 
