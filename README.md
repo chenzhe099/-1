@@ -232,9 +232,9 @@ docker-compose up -d
 
 | 角色 | 负责 |
 |---|---|
-| **你（前端）** | SPA 交互/UI/数据加载/事件委托 |
-| **czddady** | 后端API/数据库设计/Spring Boot/部署 |
-| **Xx / oliverdiana40** | AI服务/DeepSeek集成/图像识别 |
+| **master（前端）** | SPA 交互/UI/数据加载/事件委托 |
+| **czddady（后端）** | 后端API/数据库设计/Spring Boot/部署 |
+| **Xx （AI服务）/ oliverdiana40** | AI服务/DeepSeek集成/图像识别 |
 
 ---
 
