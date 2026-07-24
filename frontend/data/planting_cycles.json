@@ -1,0 +1,8 @@
+[
+  {"id":"pc_001","fieldId":"field_a1","farmId":"farm_01","cropId":"crop_tomato","cropName":"番茄","plantedDate":"2023-11-01","expectedHarvestDate":"2024-01-30","actualHarvestDate":null,"yieldTons":null,"qualityGrade":null,"growthStage":"结果期","notes":"品种：瑞丰一号，采用滴灌技术"},
+  {"id":"pc_002","fieldId":"field_a2","farmId":"farm_01","cropId":"crop_cucumber","cropName":"黄瓜","plantedDate":"2023-11-10","expectedHarvestDate":"2024-01-25","actualHarvestDate":null,"yieldTons":null,"qualityGrade":null,"growthStage":"采收期","notes":"品种：津研四号，大棚种植"},
+  {"id":"pc_003","fieldId":"field_b1","farmId":"farm_01","cropId":"crop_pepper","cropName":"辣椒","plantedDate":"2023-10-15","expectedHarvestDate":"2024-02-05","actualHarvestDate":null,"yieldTons":null,"qualityGrade":null,"growthStage":"开花期","notes":"品种：湘研15号，露地种植"},
+  {"id":"pc_004","fieldId":"field_b2","farmId":"farm_01","cropId":"crop_eggplant","cropName":"茄子","plantedDate":"2023-10-20","expectedHarvestDate":"2024-02-10","actualHarvestDate":null,"yieldTons":null,"qualityGrade":null,"growthStage":"结果期","notes":"品种：紫长茄，大棚种植"},
+  {"id":"pc_005","fieldId":"field_c1","farmId":"farm_01","cropId":"crop_strawberry","cropName":"草莓","plantedDate":"2023-11-15","expectedHarvestDate":"2024-02-15","actualHarvestDate":null,"yieldTons":null,"qualityGrade":null,"growthStage":"幼果期","notes":"品种：红颜，高架基质栽培"},
+  {"id":"pc_006","fieldId":"field_c2","farmId":"farm_02","cropId":"crop_tomato","cropName":"番茄","plantedDate":"2024-02-01","expectedHarvestDate":"2024-04-30","actualHarvestDate":null,"yieldTons":null,"qualityGrade":null,"growthStage":"休耕准备","notes":"轮作休耕，计划下季种植"}
+]

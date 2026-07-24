@@ -1,0 +1,14 @@
+[
+  {"id":"yp_01","month":"2024-01","actual":110,"predicted":null,"cropId":"crop_tomato"},
+  {"id":"yp_02","month":"2024-02","actual":115,"predicted":null,"cropId":"crop_tomato"},
+  {"id":"yp_03","month":"2024-03","actual":120,"predicted":null,"cropId":"crop_tomato"},
+  {"id":"yp_04","month":"2024-04","actual":125,"predicted":null,"cropId":"crop_tomato"},
+  {"id":"yp_05","month":"2024-05","actual":130,"predicted":null,"cropId":"crop_tomato"},
+  {"id":"yp_06","month":"2024-06","actual":null,"predicted":135,"cropId":"crop_tomato"},
+  {"id":"yp_07","month":"2024-07","actual":null,"predicted":140,"cropId":"crop_tomato"},
+  {"id":"yp_08","month":"2024-08","actual":null,"predicted":145,"cropId":"crop_tomato"},
+  {"id":"yp_09","month":"2024-09","actual":null,"predicted":150,"cropId":"crop_tomato"},
+  {"id":"yp_10","month":"2024-10","actual":null,"predicted":148,"cropId":"crop_tomato"},
+  {"id":"yp_11","month":"2024-11","actual":null,"predicted":142,"cropId":"crop_tomato"},
+  {"id":"yp_12","month":"2024-12","actual":null,"predicted":138,"cropId":"crop_tomato"}
+]

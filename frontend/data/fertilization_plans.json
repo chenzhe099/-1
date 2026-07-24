@@ -1,0 +1,6 @@
+[
+  {"id":"fert_01","fieldId":"field_a2","fieldCode":"A2","cropName":"黄瓜","nKg":15,"pKg":8,"kKg":12,"organicKg":30,"status":"completed","scheduledAt":"2024-01-15 08:00","executedAt":"2024-01-15 08:45"},
+  {"id":"fert_02","fieldId":"field_c1","fieldCode":"C1","cropName":"草莓","nKg":10,"pKg":5,"kKg":15,"organicKg":20,"status":"planned","scheduledAt":"2024-01-18 09:00","executedAt":null},
+  {"id":"fert_03","fieldId":"field_a1","fieldCode":"A1","cropName":"番茄","nKg":20,"pKg":10,"kKg":18,"organicKg":40,"status":"completed","scheduledAt":"2024-01-10 08:00","executedAt":"2024-01-10 09:00"},
+  {"id":"fert_04","fieldId":"field_b1","fieldCode":"B1","cropName":"辣椒","nKg":0,"pKg":0,"kKg":0,"organicKg":0,"status":"planned","scheduledAt":null,"executedAt":null}
+]

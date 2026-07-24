@@ -1,0 +1,8 @@
+[
+  {"id":"field_a1","code":"A1","name":"番茄种植区","cropId":"crop_tomato","cropName":"番茄","area":2.5,"status":"growing","soilMoisture":62,"soilPh":6.5,"plantedDate":"2023-11-01","expectedHarvest":"2024-01-30","location":{"lat":30.25,"lng":120.18}},
+  {"id":"field_a2","code":"A2","name":"黄瓜种植区","cropId":"crop_cucumber","cropName":"黄瓜","area":2.0,"status":"growing","soilMoisture":68,"soilPh":6.8,"plantedDate":"2023-11-10","expectedHarvest":"2024-01-25","location":{"lat":30.26,"lng":120.19}},
+  {"id":"field_b1","code":"B1","name":"辣椒种植区","cropId":"crop_pepper","cropName":"辣椒","area":1.8,"status":"watering","soilMoisture":45,"soilPh":6.3,"plantedDate":"2023-10-15","expectedHarvest":"2024-02-05","location":{"lat":30.24,"lng":120.20}},
+  {"id":"field_b2","code":"B2","name":"茄子种植区","cropId":"crop_eggplant","cropName":"茄子","area":2.2,"status":"growing","soilMoisture":60,"soilPh":6.7,"plantedDate":"2023-10-20","expectedHarvest":"2024-02-10","location":{"lat":30.25,"lng":120.21}},
+  {"id":"field_c1","code":"C1","name":"草莓种植区","cropId":"crop_strawberry","cropName":"草莓","area":1.5,"status":"disease","soilMoisture":55,"soilPh":5.8,"plantedDate":"2023-11-15","expectedHarvest":"2024-02-15","location":{"lat":30.23,"lng":120.17}},
+  {"id":"field_c2","code":"C2","name":"玉米试验田","cropId":"crop_tomato","cropName":"番茄（轮作）","area":3.0,"status":"fallow","soilMoisture":50,"soilPh":6.5,"plantedDate":"2024-02-01","expectedHarvest":"2024-04-30","location":{"lat":30.22,"lng":120.16}}
+]

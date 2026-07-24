@@ -1,0 +1,8 @@
+[
+  {"id":"prod_01","name":"有机番茄","cropId":"crop_tomato","batchNumber":"TP20240115","fieldId":"field_a1","harvestDate":"2024-01-15","quantityTons":45,"traceStatus":"traced","qrCode":"QR_TP20240115","certifications":["cert_01","cert_02"]},
+  {"id":"prod_02","name":"黄瓜","cropId":"crop_cucumber","batchNumber":"HG20240118","fieldId":"field_a2","harvestDate":"2024-01-18","quantityTons":32,"traceStatus":"traced","qrCode":"QR_HG20240118","certifications":["cert_03"]},
+  {"id":"prod_03","name":"辣椒","cropId":"crop_pepper","batchNumber":"LJ20240120","fieldId":"field_b1","harvestDate":"2024-01-20","quantityTons":28,"traceStatus":"pending","qrCode":"","certifications":[]},
+  {"id":"prod_04","name":"草莓","cropId":"crop_strawberry","batchNumber":"CM20240122","fieldId":"field_c1","harvestDate":"2024-01-22","quantityTons":23.5,"traceStatus":"traced","qrCode":"QR_CM20240122","certifications":["cert_04","cert_05"]},
+  {"id":"prod_05","name":"有机番茄（第二批）","cropId":"crop_tomato","batchNumber":"TP20240201","fieldId":"field_c2","harvestDate":"2024-02-01","quantityTons":50,"traceStatus":"traced","qrCode":"QR_TP20240201","certifications":["cert_06","cert_07"]},
+  {"id":"prod_06","name":"茄子","cropId":"crop_eggplant","batchNumber":"QZ20240125","fieldId":"field_b2","harvestDate":"2024-01-25","quantityTons":18,"traceStatus":"pending","qrCode":"","certifications":[]}
+]

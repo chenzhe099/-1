@@ -1,0 +1,68 @@
+[
+  {
+    "id":"pest_01","name":"番茄晚疫病","scientificName":"Phytophthora infestans",
+    "symptoms":"叶片出现暗绿色水渍状斑点，湿度大时叶背出现白色霉层，茎部出现褐色条斑，果实腐烂",
+    "causes":"低温高湿（<24°C, >75%RH）环境，病原菌通过风雨传播",
+    "prevention":["选用抗病品种","合理密植，加强通风","避免偏施氮肥","及时清除病残体"],
+    "chemicalControl":["霜脲·锰锌可湿性粉剂 800-1000倍液","烯酰·吡唑酯水分散粒剂 1500倍液","安全间隔期7-10天"],
+    "biologicalControl":["枯草芽孢杆菌可湿性粉剂","木霉菌制剂土壤处理"],
+    "agriculturalControl":["实行3年以上轮作","高畦栽培，地膜覆盖","控制灌溉量，降低田间湿度"],
+    "affectedCrops":["crop_tomato"],
+    "severity":"high","icon":"fa-leaf","color":"red"
+  },
+  {
+    "id":"pest_02","name":"蚜虫","scientificName":"Aphidoidea",
+    "symptoms":"叶片卷曲发黄，生长点萎缩，植株矮小，叶片和嫩茎上有蜜露，诱发煤污病",
+    "causes":"温暖干燥气候利于繁殖，5-6月和9-10月为高发期",
+    "prevention":["悬挂黄色粘虫板诱杀","清除田间杂草","合理施肥，避免氮肥过多"],
+    "chemicalControl":["吡虫啉可湿性粉剂 2000倍液","啶虫脒乳油 1500倍液","安全间隔期5-7天"],
+    "biologicalControl":["释放瓢虫（每亩2000-3000头）","释放草蛉","蚜霉菌制剂喷洒"],
+    "agriculturalControl":["间作驱避植物（大蒜、洋葱）","银灰色地膜覆盖驱避","及时摘除虫叶"],
+    "affectedCrops":["crop_eggplant","crop_cucumber","crop_pepper"],
+    "severity":"medium","icon":"fa-bug","color":"orange"
+  },
+  {
+    "id":"pest_03","name":"白粉病","scientificName":"Erysiphales",
+    "symptoms":"叶片和茎部出现白色粉状物，严重时叶片枯黄脱落，果实发育不良",
+    "causes":"温暖干燥与高湿交替，通风不良，种植过密",
+    "prevention":["选用抗病品种","合理密植，加强通风透光","控制氮肥，增施磷钾肥"],
+    "chemicalControl":["硫磺悬浮剂 300-500倍液","苯醚甲环唑水分散粒剂 1500倍液","安全间隔期7-10天"],
+    "biologicalControl":["小苏打溶液（0.5%）叶面喷施","枯草芽孢杆菌制剂"],
+    "agriculturalControl":["清除病残体并深埋","合理灌溉，避免叶面长时间湿润","轮作倒茬"],
+    "affectedCrops":["crop_strawberry","crop_cucumber"],
+    "severity":"medium","icon":"fa-snowflake-o","color":"gray"
+  },
+  {
+    "id":"pest_04","name":"霜霉病","scientificName":"Peronosporaceae",
+    "symptoms":"叶背出现霜状灰白色霉层，叶片正面出现多角形黄褐色病斑，严重时整叶枯死",
+    "causes":"高湿度（>85%RH），温度15-22°C，露水持续时间长",
+    "prevention":["加强通风降湿","合理灌溉，避免大水漫灌","及时整枝打杈"],
+    "chemicalControl":["甲霜灵·锰锌可湿性粉剂 500倍液","霜霉威盐酸盐水剂 600倍液","安全间隔期5-7天"],
+    "biologicalControl":["哈茨木霉菌制剂","寡雄腐霉菌制剂"],
+    "agriculturalControl":["选用抗病砧木嫁接","高畦覆膜栽培","雨后及时排水"],
+    "affectedCrops":["crop_cucumber","crop_pepper"],
+    "severity":"high","icon":"fa-tint","color":"blue"
+  },
+  {
+    "id":"pest_05","name":"灰霉病","scientificName":"Botrytis cinerea",
+    "symptoms":"花器和果实出现灰色霉层，果实软腐，叶片出现水渍状大斑",
+    "causes":"低温高湿（<20°C, >90%RH），通风不良，植株伤口多",
+    "prevention":["加强通风，降低湿度","及时摘除病花病果","减少植株伤口"],
+    "chemicalControl":["嘧霉胺悬浮剂 1000倍液","腐霉利可湿性粉剂 800倍液","安全间隔期7天"],
+    "biologicalControl":["木霉菌制剂喷施","芽孢杆菌制剂"],
+    "agriculturalControl":["地膜覆盖降低地面蒸发","合理密植","清洁田园"],
+    "affectedCrops":["crop_tomato","crop_strawberry"],
+    "severity":"high","icon":"fa-circle-o","color":"purple"
+  },
+  {
+    "id":"pest_06","name":"根结线虫","scientificName":"Meloidogyne spp.",
+    "symptoms":"根部形成瘤状结节，植株矮小黄化，中午萎蔫，产量大幅下降",
+    "causes":"连作种植，沙质土壤，温度25-30°C利于繁殖",
+    "prevention":["选用抗线虫品种","太阳能土壤消毒","避免连作"],
+    "chemicalControl":["噻唑膦颗粒剂 2-3kg/亩沟施","阿维菌素乳油 1000倍液灌根"],
+    "biologicalControl":["淡紫拟青霉菌剂","施用含有益微生物的有机肥"],
+    "agriculturalControl":["水旱轮作","种植万寿菊等驱避植物","夏季深翻晒土"],
+    "affectedCrops":["crop_tomato","crop_cucumber"],
+    "severity":"critical","icon":"fa-chain-broken","color":"red"
+  }
+]

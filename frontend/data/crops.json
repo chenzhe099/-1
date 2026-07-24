@@ -1,0 +1,7 @@
+[
+  {"id":"crop_tomato","name":"番茄","nameEn":"Tomato","category":"vegetable","growthDays":90,"optimalTempMin":20,"optimalTempMax":28,"optimalHumidity":65,"icon":"fa-apple"},
+  {"id":"crop_cucumber","name":"黄瓜","nameEn":"Cucumber","category":"vegetable","growthDays":70,"optimalTempMin":22,"optimalTempMax":30,"optimalHumidity":70,"icon":"fa-leaf"},
+  {"id":"crop_pepper","name":"辣椒","nameEn":"Pepper","category":"vegetable","growthDays":100,"optimalTempMin":18,"optimalTempMax":32,"optimalHumidity":60,"icon":"fa-fire"},
+  {"id":"crop_eggplant","name":"茄子","nameEn":"Eggplant","category":"vegetable","growthDays":110,"optimalTempMin":22,"optimalTempMax":30,"optimalHumidity":65,"icon":"fa-circle"},
+  {"id":"crop_strawberry","name":"草莓","nameEn":"Strawberry","category":"fruit","growthDays":85,"optimalTempMin":15,"optimalTempMax":25,"optimalHumidity":70,"icon":"fa-heart"}
+]

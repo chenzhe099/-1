@@ -1,0 +1,9 @@
+[
+  {"id":"mv_001","modelName":"病虫害图像识别模型","version":"v3.2.1","deployedAt":"2024-01-10 09:00:00","accuracy":94.5,"driftScore":0.12,"status":"active","totalPredictions":2847,"unknownRate":3.2,"description":"基于ResNet-50骨干网络，训练数据含云南地区52种常见病虫害，Top-1准确率94.5%"},
+  {"id":"mv_007","modelName":"DeepSeek Vision 病虫害识别","version":"v1.0 (deepseek-chat)","deployedAt":"2026-07-23 14:00:00","accuracy":96.8,"driftScore":0.03,"status":"active","totalPredictions":156,"unknownRate":0.8,"description":"接入DeepSeek Vision API，支持多模态图像分析，覆盖120+作物病害，实时诊断+防治建议+规范对照"},
+  {"id":"mv_002","modelName":"病虫害图像识别模型","version":"v3.1.0","deployedAt":"2023-12-01 10:00:00","accuracy":92.8,"driftScore":0.25,"status":"inactive","totalPredictions":15230,"unknownRate":4.8,"description":"v3.1版本，新增12种病害识别能力，优化小目标检测"},
+  {"id":"mv_003","modelName":"产量预测模型","version":"v2.0.0","deployedAt":"2024-01-05 14:00:00","accuracy":89.2,"driftScore":0.08,"status":"active","totalPredictions":856,"unknownRate":0.5,"description":"基于LSTM时间序列预测，融合气象、土壤、生长阶段多模态数据，MAPE误差10.8%"},
+  {"id":"mv_004","modelName":"产量预测模型","version":"v1.8.0","deployedAt":"2023-11-15 08:00:00","accuracy":86.5,"driftScore":0.31,"status":"deprecated","totalPredictions":4100,"unknownRate":1.2,"description":"v1.8版本，纯时序模型，未引入气象特征"},
+  {"id":"mv_005","modelName":"灌溉决策推荐模型","version":"v1.5.0","deployedAt":"2023-12-20 11:00:00","accuracy":91.8,"driftScore":0.05,"status":"active","totalPredictions":3200,"unknownRate":0.8,"description":"基于土壤湿度、气象预报和作物需水模型的多因素灌溉决策"},
+  {"id":"mv_006","modelName":"病虫害知识库RAG模型","version":"v2.1.0","deployedAt":"2024-01-12 16:00:00","accuracy":null,"driftScore":null,"status":"active","totalPredictions":1200,"unknownRate":null,"description":"基于Milvus向量数据库 + bge-large-zh-v1.5 Embedding，检索农技规范知识库"}
+]

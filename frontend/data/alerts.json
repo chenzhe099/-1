@@ -1,0 +1,8 @@
+[
+  {"id":"alert_01","type":"pest","title":"病虫害预警","message":"地块C1检测到潜在草莓白粉病风险，建议立即检查并采取防治措施","severity":"critical","fieldId":"field_c1","isRead":false,"isResolved":false,"createdAt":"2024-01-15 08:00","actionRequired":"立即查看并启动防治方案"},
+  {"id":"alert_02","type":"drought","title":"土壤湿度偏低","message":"地块B1土壤湿度降至45%，低于辣椒生长阈值（60%），需要立即灌溉","severity":"warning","fieldId":"field_b1","isRead":false,"isResolved":false,"createdAt":"2024-01-15 07:30","actionRequired":"启动B1灌溉方案（22m³，预计45分钟）"},
+  {"id":"alert_03","type":"maintenance","title":"设备维护提醒","message":"灌溉泵#3运行时间已达3200小时，超过维护周期，需尽快安排检修","severity":"info","fieldId":null,"isRead":true,"isResolved":false,"createdAt":"2024-01-14 10:00","actionRequired":"安排维护计划"},
+  {"id":"alert_04","type":"temperature","title":"温度异常预警","message":"温室温度超过30°C，可能影响草莓生长，需要通风降温","severity":"warning","fieldId":"field_c1","isRead":false,"isResolved":false,"createdAt":"2024-01-15 12:00","actionRequired":"开启通风系统"},
+  {"id":"alert_05","type":"market","title":"市场行情提醒","message":"番茄价格同比上涨5%，建议适时采收上市","severity":"info","fieldId":null,"isRead":true,"isResolved":true,"createdAt":"2024-01-14 08:00","actionRequired":""},
+  {"id":"alert_06","type":"pest","title":"蚜虫复发预警","message":"地块B2茄子蚜虫防治后7天，建议复查防治效果","severity":"warning","fieldId":"field_b2","isRead":false,"isResolved":false,"createdAt":"2024-01-15 09:00","actionRequired":"安排复查"}
+]
