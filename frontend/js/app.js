@@ -718,7 +718,7 @@ function renderMonitor() {
   logTable.innerHTML = recentRecords.map(r => `
     <tr class="hover:bg-gray-50 cursor-pointer" data-action="log-detail" data-id="${r.id}">
       <td class="px-3 py-2 text-xs text-gray-500">${formatDateTime(r.detectedAt)}</td>
-      <td class="px-3 py-2 text-xs">病虫害识别模型 v3.2.1</td>
+      <td class="px-3 py-2 text-xs">${r.modelName || 'DeepSeek 病虫害识别模型'}</td>
       <td class="px-3 py-2 text-xs text-gray-600">${r.fieldCode} ${r.cropAffected}图片</td>
       <td class="px-3 py-2 text-center"><span class="px-2 py-0.5 text-xs bg-${statusColor(r.status)}-100 text-${statusColor(r.status)}-600 rounded">${r.diseaseName}</span></td>
     </tr>`).join('');
