@@ -38,7 +38,7 @@ ai-service:
 
 # DeepSeek API (直连，不依赖 Python AI 服务)
 deepseek:
-  api-key: ${DEEPSEEK_API_KEY:}
+  api-key: sk-16afde554c52421c8d2ae3cb4ba0165b
   base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
   model: ${DEEPSEEK_MODEL:deepseek-chat}
 

@@ -1,7 +1,1 @@
-[
-  {"id":"dis_01","fieldId":"field_c1","fieldCode":"C1","diseaseName":"草莓白粉病","cropAffected":"草莓","detectedAt":"2024-01-13 09:15","severity":"medium","status":"processing","imageUrl":"assets/disease/strawberry_powdery.jpg","treatmentPlan":"喷洒硫磺悬浮剂，间隔7天重复一次，加强通风","resolvedAt":null},
-  {"id":"dis_02","fieldId":"field_a1","fieldCode":"A1","diseaseName":"番茄晚疫病","cropAffected":"番茄","detectedAt":"2024-01-15 10:30","severity":"high","status":"resolved","imageUrl":"assets/disease/tomato_late_blight.jpg","treatmentPlan":"喷洒霜脲·锰锌可湿性粉剂，清除病叶，加强通风降湿","resolvedAt":"2024-01-18 16:00"},
-  {"id":"dis_03","fieldId":"field_a2","fieldCode":"A2","diseaseName":"无病虫害","cropAffected":"黄瓜","detectedAt":"2024-01-14 14:20","severity":"low","status":"resolved","imageUrl":"","treatmentPlan":"","resolvedAt":null},
-  {"id":"dis_04","fieldId":"field_b2","fieldCode":"B2","diseaseName":"蚜虫","cropAffected":"茄子","detectedAt":"2024-01-13 09:15","severity":"medium","status":"processing","imageUrl":"assets/disease/eggplant_aphid.jpg","treatmentPlan":"喷洒吡虫啉可湿性粉剂，释放瓢虫进行生物防治","resolvedAt":null},
-  {"id":"dis_05","fieldId":"field_b1","fieldCode":"B1","diseaseName":"辣椒霜霉病","cropAffected":"辣椒","detectedAt":"2024-01-10 11:00","severity":"high","status":"resolved","imageUrl":"assets/disease/pepper_downy.jpg","treatmentPlan":"喷洒甲霜灵·锰锌，清除病株，轮作倒茬","resolvedAt":"2024-01-14 09:30"}
-]
+[]

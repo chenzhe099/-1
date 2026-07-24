@@ -199,13 +199,7 @@ function setupDisease() {
 
   var cm = document.getElementById('btn-camera-disease');
   if (cm) cm.onclick = function() {
-    showToast('正在启动摄像头...（模拟模式）','info');
-    setTimeout(function() {
-      var rs = ['番茄晚疫病','蚜虫','白粉病','霜霉病','无病虫害'];
-      var r = rs[Math.floor(Math.random()*rs.length)];
-      saveDiseaseRecord(r);
-      showToast('AI识别结果: ' + r, r==='无病虫害'?'success':'warning');
-    }, 1500);
+    showToast('请点击「上传图片」选择照片进行识别','info');
   };
 
   document.querySelectorAll('#knowledge-base-grid > div').forEach(function(card) {
