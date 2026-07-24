@@ -122,6 +122,8 @@ class ApiClient {
       'market_prices': 'market_prices',
       'knowledge_documents': 'knowledge_documents',
       'model_versions': 'model_versions',
+      'observations': 'observations',
+      'agent_runs': 'agent_runs',
     };
     return map[name] || name;
   }
@@ -140,6 +142,42 @@ class ApiClient {
   async getKnowledgeBase() { return this._get('/disease/knowledge'); }
   async getDiseasePestTrend() { return this._get('/disease/trend'); }
   async searchKnowledge(keyword) { return this._get('/disease/knowledge/search?name=' + encodeURIComponent(keyword)); }
+
+  /**
+   * 上传图片进行病虫害诊断
+   * @param {File} file - 图片文件
+   * @param {string} [cropName] - 作物名称（可选）
+   * @returns {Promise<Object>} 诊断结果 { diseaseName, confidence, severity, symptoms, treatment, description, isUnknown }
+   */
+  async diagnoseDisease(file, cropName) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (cropName) {
+      formData.append('cropName', cropName);
+    }
+    const headers = this._token ? { 'Authorization': 'Bearer ' + this._token } : {};
+    // 不设置 Content-Type，让浏览器自动带 boundary
+    try {
+      const resp = await fetch(API_BASE + '/disease/diagnose', {
+        method: 'POST',
+        body: formData,
+        headers,
+        signal: AbortSignal.timeout(30000), // 图片识别可能较慢，30s超时
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ message: '诊断请求失败' }));
+        throw new Error(err.message || 'HTTP ' + resp.status);
+      }
+      const json = await resp.json();
+      return json.data !== undefined ? json.data : json;
+    } catch (e) {
+      if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+        console.warn('[ApiClient] 后端不可用，诊断失败');
+        return null;
+      }
+      throw e;
+    }
+  }
 
   // ==================== Farming（精准农事） ====================
 

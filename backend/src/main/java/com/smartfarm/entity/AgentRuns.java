@@ -1,10 +1,7 @@
 package com.smartfarm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "agent_runs")
@@ -13,51 +10,40 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class AgentRuns {
-
     @Id
+    @Column(length = 36)
     private String id;
 
-    @Column(name = "agent_name")
+    @Column(name = "agentName")
     private String agentName;
 
-    @Column(name = "task_type")
+    @Column(name = "agentType")
+    private String agentType;
+
+    @Column(name = "taskType")
     private String taskType;
 
-    @Column(name = "started_at")
-    private String startedAt;
+    @Column(name = "input", columnDefinition = "TEXT")
+    private String input;
 
-    @Column(name = "completed_at")
-    private String completedAt;
+    @Column(name = "output", columnDefinition = "TEXT")
+    private String output;
 
-    @Column(name = "duration_ms")
-    private Long durationMs;
+    @Column(name = "confidence")
+    private Double confidence;
 
-    @Column(name = "input_summary")
-    private String inputSummary;
-
-    @Column(name = "output_summary", columnDefinition = "TEXT")
-    private String outputSummary;
-
+    @Column(name = "status")
     private String status;
 
-    @Column(name = "tokens_used")
-    private Integer tokensUsed;
+    @Column(name = "durationMs")
+    private Long durationMs;
 
-    @Column(name = "model_version_id")
-    private String modelVersionId;
+    @Column(name = "startedAt")
+    private String startedAt;
 
-    @Column(name = "rag_sources", columnDefinition = "TEXT")
-    private String ragSources;
+    @Column(name = "completedAt")
+    private String completedAt;
 
-    @Column(name = "human_review_needed")
-    private Boolean humanReviewNeeded;
-
-    @Column(name = "review_status")
-    private String reviewStatus;
-
-    @Column(name = "reviewer_id")
-    private String reviewerId;
-
-    @Column(name = "review_notes", columnDefinition = "TEXT")
-    private String reviewNotes;
+    @Column(name = "errorMessage", columnDefinition = "TEXT")
+    private String errorMessage;
 }

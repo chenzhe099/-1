@@ -1,10 +1,7 @@
 package com.smartfarm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "observations")
@@ -13,43 +10,40 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class Observations {
-
     @Id
+    @Column(length = 36)
     private String id;
 
-    @Column(name = "cycle_id")
-    private String cycleId;
-
-    @Column(name = "field_id")
+    @Column(name = "fieldId")
     private String fieldId;
 
-    @Column(name = "farm_id")
-    private String farmId;
+    @Column(name = "cropName")
+    private String cropName;
 
-    @Column(name = "observed_at")
+    @Column(name = "type")
+    private String type;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "severity")
+    private String severity;
+
+    @Column(name = "observedBy")
+    private String observedBy;
+
+    @Column(name = "observedAt")
     private String observedAt;
 
-    @Column(name = "observer_id")
-    private String observerId;
+    @Column(name = "status")
+    private String status;
 
-    @Column(name = "growth_stage")
-    private String growthStage;
+    @Column(name = "images")
+    private String images;
 
-    @Column(name = "height_cm")
-    private Double heightCm;
-
-    @Column(name = "leaf_color")
-    private String leafColor;
-
-    @Column(name = "pest_signs")
-    private String pestSigns;
-
-    @Column(name = "soil_moisture")
-    private Integer soilMoisture;
-
-    @Column(name = "photo_url")
-    private String photoUrl;
-
-    @Column(columnDefinition = "TEXT")
-    private String notes;
+    @Column(name = "createdAt")
+    private String createdAt;
 }

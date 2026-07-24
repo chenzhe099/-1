@@ -154,40 +154,23 @@ class DataService {
     return rows.reduce((s, r) => s + (Number(r[field]) || 0), 0) / rows.length;
   }
 
-  // ---- 更新操作（用于交互） ----
-  // 同时同步本地数据 + 后端 API（MySQL）
-
-  /** 检测 API 是否可用 */
-  _apiAvailable() {
-    return typeof apiClient !== 'undefined' && apiClient !== null;
-  }
-
-  /** 同步到后端（静默失败，不阻塞 UI） */
-  _syncToApi(method, table, ...args) {
-    if (!this._apiAvailable()) return;
-    try {
-      const fn = apiClient[method].bind(apiClient);
-      fn(table, ...args).then(r => {
-        console.log(`[DataService] ✅ API ${method} ${table} 成功`);
-      }).catch(err => {
-        console.warn(`[DataService] ❌ API ${method} ${table} 失败:`, err.message);
-      });
-    } catch (e) {
-      console.warn(`[DataService] ❌ API ${method} ${table} 异常:`, e.message);
-    }
-  }
+  // ---- 更新操作（先写内存 → 再同步 MySQL） ----
 
   update(table, id, changes) {
     const row = (this._tables[table] || []).find(r => r.id === id);
-    if (row) Object.assign(row, changes);
-    this._syncToApi('update', table, id, changes);
-    return !!row;
+    if (!row) return false;
+    const oldValues = { ...row };
+    Object.assign(row, changes);
+    // 异步同步到后端 MySQL
+    this._syncToBackend('update', table, id, changes, oldValues);
+    return true;
   }
 
   insert(table, row) {
     if (!this._tables[table]) this._tables[table] = [];
     this._tables[table].push(row);
-    this._syncToApi('insert', table, row);
+    // 异步同步到后端 MySQL
+    this._syncToBackend('insert', table, row.id, row, null);
     return row;
   }
 
@@ -195,9 +178,43 @@ class DataService {
     const arr = this._tables[table];
     if (!arr) return false;
     const idx = arr.findIndex(r => r.id === id);
-    if (idx >= 0) { arr.splice(idx, 1); }
-    this._syncToApi('delete', table, id);
-    return idx >= 0;
+    if (idx >= 0) {
+      const deleted = arr.splice(idx, 1)[0];
+      // 异步同步到后端 MySQL
+      this._syncToBackend('delete', table, id, null, deleted);
+      return true;
+    }
+    return false;
+  }
+
+  // 后台异步同步到 MySQL（失败回滚内存数据）
+  async _syncToBackend(action, table, id, data, fallback) {
+    try {
+      if (typeof apiClient === 'undefined') return;
+      if (action === 'update') {
+        await apiClient.update(table, id, data);
+      } else if (action === 'insert') {
+        await apiClient.insert(table, data);
+      } else if (action === 'delete') {
+        await apiClient.delete(table, id);
+      }
+    } catch (e) {
+      console.warn('[DataService] MySQL 同步失败 (' + action + ' ' + table + '/' + id + '): ' + e.message);
+      // API 失败时回滚内存数据
+      if (action === 'update' && fallback) {
+        const row = (this._tables[table] || []).find(r => r.id === id);
+        if (row) Object.assign(row, fallback);
+      } else if (action === 'delete' && fallback) {
+        if (!this._tables[table]) this._tables[table] = [];
+        this._tables[table].push(fallback);
+      } else if (action === 'insert') {
+        const arr = this._tables[table];
+        if (arr) {
+          const idx = arr.findIndex(r => r.id === id);
+          if (idx >= 0) arr.splice(idx, 1);
+        }
+      }
+    }
   }
 
   // ---- 内部方法 ----

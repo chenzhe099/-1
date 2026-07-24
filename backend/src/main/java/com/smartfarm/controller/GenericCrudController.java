@@ -35,7 +35,7 @@ public class GenericCrudController {
         "yield_predictions", "environment_readings", "soil_readings",
         "alerts", "operation_logs", "inventory", "personnel",
         "farms", "planting_cycles", "weather_records", "market_prices",
-        "knowledge_documents", "model_versions"
+        "knowledge_documents", "model_versions", "observations", "agent_runs"
     );
 
     private String toCamel(String snake) {
