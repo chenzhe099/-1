@@ -36,11 +36,15 @@ jwt:
 ai-service:
   url: ${AI_SERVICE_URL:http://localhost:8000}
 
-# DeepSeek API (直连，不依赖 Python AI 服务)
-deepseek:
-  api-key: sk-16afde554c52421c8d2ae3cb4ba0165b
-  base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
-  model: ${DEEPSEEK_MODEL:deepseek-chat}
+# AI 模型配置（支持多模型切换）
+ai:
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+    model: ${DEEPSEEK_MODEL:deepseek-chat}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-2.0-flash}
 
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
