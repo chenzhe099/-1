@@ -222,6 +222,11 @@ function handleDiseaseFile(file) {
   if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { showToast('仅支持 JPG、PNG、WebP 格式','error'); return; }
   if (file.size > 10*1024*1024) { showToast('文件不能超过 10MB','error'); return; }
 
+  // 获取选择的模型
+  var modelSelect = document.getElementById('disease-model-select');
+  var model = modelSelect ? modelSelect.value : 'deepseek';
+  var modelName = modelSelect ? modelSelect.options[modelSelect.selectedIndex].text : 'DeepSeek Vision';
+
   // 显示识别进度条
   var container = document.getElementById('disease-history-list');
   var oldHtml = container.innerHTML;
@@ -229,29 +234,30 @@ function handleDiseaseFile(file) {
     <div class="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-3">
       <div class="flex items-center mb-2">
         <i class="fa fa-spinner fa-spin text-blue-500 mr-2"></i>
-        <span class="text-sm font-medium text-blue-700">AI 正在识别病虫害...</span>
+        <span class="text-sm font-medium text-blue-700">${modelName} 正在识别...</span>
       </div>
       <div class="text-xs text-blue-600 mb-2">${file.name} (${(file.size/1024).toFixed(0)}KB)</div>
       <div class="w-full bg-blue-200 rounded-full h-2 mb-1">
         <div class="bg-blue-500 h-2 rounded-full transition-all" style="width:20%" id="diag-bar"></div>
       </div>
-      <div class="text-xs text-blue-500" id="diag-status">上传中...</div>
+      <div class="text-xs text-blue-500" id="diag-status">上传图片到 ${modelName}...</div>
     </div>` + oldHtml;
 
   var bar = document.getElementById('diag-bar');
   var st = document.getElementById('diag-status');
   var w = 20, t = setInterval(function(){
     if(w<90){ w+=Math.random()*12; if(bar) bar.style.width=w+'%'; }
-    if(w>40&&st) st.textContent='DeepSeek Vision 分析图像特征...';
+    if(w>40&&st) st.textContent=modelName+' 分析图像特征...';
     if(w>70&&st) st.textContent='匹配病虫害知识库...';
   },500);
 
-  apiClient.diagnoseDisease(file).then(function(r){
+  apiClient.diagnoseDisease(file, null, model).then(function(r){
     clearInterval(t); if(bar) bar.style.width='100%'; if(st) st.textContent='完成';
     if(r && r.diseaseName){
+      r._model = modelName;
       saveDiseaseRecord(r);
       showToast('识别: '+r.diseaseName+' (置信度:'+Math.round(r.confidence*100)+'%)', r.isUnknown?'warning':'success');
-    } else showToast('AI 服务未响应，请检查后端','error');
+    } else showToast('AI 服务未响应','error');
     setTimeout(function(){ if(typeof renderDisease==='function') renderDisease(); },500);
   }).catch(function(err){
     clearInterval(t); if(st) st.textContent='失败: '+err.message;

@@ -145,23 +145,24 @@ function renderDashboard() {
 // ==================== 病虫害 渲染 ====================
 
 function renderDisease() {
-  // 识别历史
+  // 识别历史（增强版：显示置信度 + 严重程度 + 点击查看详情）
   const records = dataService.getDiseaseHistory();
   const historyContainer = document.getElementById('disease-history-list');
-  historyContainer.innerHTML = records.map(r => {
-    const sc = statusColor(r.status);
+  historyContainer.innerHTML = records.length > 0 ? records.map(r => {
+    var sevMap = { low: '低', medium: '中', high: '高', critical: '严重' };
+    var sevColor = { low: 'green', medium: 'orange', high: 'red', critical: 'red' };
     return `
-      <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="disease-detail" data-name="${r.diseaseName}">
-        <div class="w-12 h-12 bg-${sc}-100 rounded-lg flex items-center justify-center mr-3">
-          <i class="fa fa-bug text-${sc}-500"></i>
+      <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border border-gray-100" data-action="disease-detail" data-name="${r.diseaseName}">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-sm font-medium text-gray-800">${r.diseaseName}</span>
+          <span class="px-1.5 py-0.5 text-xs bg-${sevColor[r.severity]||'gray'}-100 text-${sevColor[r.severity]||'gray'}-600 rounded">${sevMap[r.severity]||r.severity||'中'}</span>
         </div>
-        <div class="flex-1">
-          <p class="text-sm font-medium text-gray-800">${r.diseaseName}</p>
-          <p class="text-xs text-gray-500">${formatDateTime(r.detectedAt)}</p>
+        <div class="flex items-center justify-between text-xs text-gray-400">
+          <span><i class="fa fa-clock-o mr-1"></i>${formatDateTime(r.detectedAt)}</span>
+          <span><i class="fa fa-tag mr-1"></i>${r.cropAffected||'未知作物'}</span>
         </div>
-        <span class="px-2 py-1 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(r.status)}</span>
       </div>`;
-  }).join('');
+  }).join('') : '<div class="text-center text-gray-400 py-6"><i class="fa fa-inbox text-2xl mb-2 block"></i>暂无识别记录</div>';
 
   // 知识库
   const kb = dataService.getKnowledgeBase();

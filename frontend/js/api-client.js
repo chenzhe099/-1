@@ -149,12 +149,11 @@ class ApiClient {
    * @param {string} [cropName] - 作物名称（可选）
    * @returns {Promise<Object>} 诊断结果 { diseaseName, confidence, severity, symptoms, treatment, description, isUnknown }
    */
-  async diagnoseDisease(file, cropName) {
+  async diagnoseDisease(file, cropName, model) {
     const formData = new FormData();
     formData.append('file', file);
-    if (cropName) {
-      formData.append('cropName', cropName);
-    }
+    if (cropName) formData.append('cropName', cropName);
+    if (model) formData.append('model', model);
     const headers = this._token ? { 'Authorization': 'Bearer ' + this._token } : {};
     // 不设置 Content-Type，让浏览器自动带 boundary
     try {

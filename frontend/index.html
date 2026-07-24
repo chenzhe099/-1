@@ -315,6 +315,18 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                             <h3 class="font-semibold text-gray-800 mb-4">上传图片识别病虫害</h3>
+                            <!-- 模型选择 -->
+                            <div class="mb-4">
+                                <label class="text-xs text-gray-500 mb-1 block">选择识别模型</label>
+                                <select id="disease-model-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="deepseek">DeepSeek Vision (deepseek-chat)</option>
+                                    <option value="gpt-4o">GPT-4o (OpenAI)</option>
+                                    <option value="claude">Claude 3.5 Sonnet (Anthropic)</option>
+                                    <option value="gemini">Gemini 2.0 Flash (Google)</option>
+                                    <option value="qwen-vl">Qwen-VL-Max (阿里云)</option>
+                                    <option value="local">本地 ResNet-50 (离线)</option>
+                                </select>
+                            </div>
                             <div class="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-400 transition-colors cursor-pointer upload-area">
                                 <i class="fa fa-upload text-gray-400 text-4xl mb-4"></i>
                                 <p class="text-gray-600 mb-2">点击或拖拽图片到此处</p>

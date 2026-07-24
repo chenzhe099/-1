@@ -39,8 +39,9 @@ public class DiseaseController {
     }
 
     @PostMapping("/diagnose")
-    public ApiResponse<?> diagnose(@RequestParam("file") MultipartFile file) {
-        Map<String, Object> result = aiClient.diagnoseDisease(file);
+    public ApiResponse<?> diagnose(@RequestParam("file") MultipartFile file,
+                                   @RequestParam(value = "model", defaultValue = "deepseek") String model) {
+        Map<String, Object> result = aiClient.diagnoseDisease(file, model);
         return ApiResponse.ok(result);
     }
 
