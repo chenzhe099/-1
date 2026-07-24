@@ -3,7 +3,7 @@
  * 通过 HTTP 调用后端 REST API，连接 MySQL 数据库
  * 保持与 DataService 相同的方法签名，最小化前端改动
  */
-const API_BASE = 'http://172.20.10.2:9090/api/v1';
+const API_BASE = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:9090/api/v1';
 
 class ApiClient {
   constructor() {
