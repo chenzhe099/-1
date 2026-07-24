@@ -9,7 +9,7 @@
  */
 
 const Api = (() => {
-  const BASE_URL = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:9090/api/v1';
+  const BASE_URL = typeof API_URL !== 'undefined' ? API_URL : 'http://' + window.location.hostname + ':9090/api/v1';
   let token = localStorage.getItem('smartfarm_token') || '';
 
   // ==================== HTTP 封装 ====================
