@@ -155,16 +155,39 @@ class DataService {
   }
 
   // ---- 更新操作（用于交互） ----
+  // 同时同步本地数据 + 后端 API（MySQL）
+
+  /** 检测 API 是否可用 */
+  _apiAvailable() {
+    return typeof apiClient !== 'undefined' && apiClient !== null;
+  }
+
+  /** 同步到后端（静默失败，不阻塞 UI） */
+  _syncToApi(method, table, ...args) {
+    if (!this._apiAvailable()) return;
+    try {
+      const fn = apiClient[method].bind(apiClient);
+      fn(table, ...args).then(r => {
+        console.log(`[DataService] ✅ API ${method} ${table} 成功`);
+      }).catch(err => {
+        console.warn(`[DataService] ❌ API ${method} ${table} 失败:`, err.message);
+      });
+    } catch (e) {
+      console.warn(`[DataService] ❌ API ${method} ${table} 异常:`, e.message);
+    }
+  }
 
   update(table, id, changes) {
     const row = (this._tables[table] || []).find(r => r.id === id);
     if (row) Object.assign(row, changes);
+    this._syncToApi('update', table, id, changes);
     return !!row;
   }
 
   insert(table, row) {
     if (!this._tables[table]) this._tables[table] = [];
     this._tables[table].push(row);
+    this._syncToApi('insert', table, row);
     return row;
   }
 
@@ -172,8 +195,9 @@ class DataService {
     const arr = this._tables[table];
     if (!arr) return false;
     const idx = arr.findIndex(r => r.id === id);
-    if (idx >= 0) { arr.splice(idx, 1); return true; }
-    return false;
+    if (idx >= 0) { arr.splice(idx, 1); }
+    this._syncToApi('delete', table, id);
+    return idx >= 0;
   }
 
   // ---- 内部方法 ----
@@ -287,7 +311,7 @@ class DataService {
 
   getFarmingTasks() {
     return this.getAll('farming_tasks').sort((a, b) =>
-      a.scheduledTime.localeCompare(b.scheduledTime));
+      (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
   }
 
   // ==================== 计算属性：产量预测 ====================
@@ -437,7 +461,7 @@ class DataService {
 
   getOperationLogs() {
     return this.getAll('operation_logs').sort((a, b) =>
-      b.timestamp.localeCompare(a.timestamp));
+      (b.timestamp || '').localeCompare(a.timestamp || ''));
   }
 
   // ==================== 计算属性：图表数据 ====================
@@ -456,7 +480,7 @@ class DataService {
 
   getSoilMoistureTrend() {
     const readings = this.getAll('soil_readings').sort((a, b) =>
-      a.timestamp.localeCompare(b.timestamp));
+      (a.timestamp || '').localeCompare(b.timestamp || ''));
     return {
       labels: readings.map(r => r.timestamp.slice(11, 16)),
       moisture: readings.map(r => r.moisture)
@@ -626,7 +650,7 @@ class DataService {
   }
 
   getModelVersionList() {
-    return this.getAll('model_versions').sort((a, b) => b.deployedAt.localeCompare(a.deployedAt));
+    return this.getAll('model_versions').sort((a, b) => (b.deployedAt || '').localeCompare(a.deployedAt || ''));
   }
 
   getModelPerformanceTrend() {
@@ -663,7 +687,7 @@ class DataService {
   getPlantingCycles(farmId) {
     let cycles = this.getAll('planting_cycles');
     if (farmId) cycles = cycles.filter(c => c.farmId === farmId);
-    return cycles.sort((a, b) => b.plantedDate.localeCompare(a.plantedDate));
+    return cycles.sort((a, b) => (b.plantedDate || '').localeCompare(a.plantedDate || ''));
   }
 
   // ==================== 计算属性：知识库（规范对照） ====================
