@@ -218,17 +218,38 @@ function viewDiseaseRecord(id) {
   var r = ds().getById('disease_records', id);
   if (!r) { showToast('记录不存在', 'error'); return; }
   var sevMap = { low: '低', medium: '中', high: '高', critical: '严重' };
+  var treatment = {};
+  try { treatment = typeof r.treatmentPlan === 'string' ? JSON.parse(r.treatmentPlan) : (r.treatmentPlan || {}); } catch(e) {}
+  var chem = (treatment.chemical || []).join('<br>') || '无';
+  var bio = (treatment.biological || []).join('<br>') || '无';
+  var agri = (treatment.agricultural || []).join('<br>') || '无';
   var html = `
     <div class="space-y-3 text-sm">
-      <div><span class="text-gray-400">病害名称：</span><span class="font-medium">${r.diseaseName}</span></div>
-      <div><span class="text-gray-400">严重程度：</span>${sevMap[r.severity]||r.severity||'中'}</div>
-      <div><span class="text-gray-400">作物：</span>${r.cropAffected||'未知'}</div>
-      <div><span class="text-gray-400">检测时间：</span>${formatDateTime(r.detectedAt)}</div>
-      <div><span class="text-gray-400">地块：</span>${r.fieldCode||'未指定'}</div>
-      <div><span class="text-gray-400">治疗计划：</span><pre class="text-xs bg-gray-100 p-2 rounded mt-1 max-h-32 overflow-auto">${r.treatmentPlan||'无'}</pre></div>
+      <div class="bg-blue-50 p-3 rounded-lg text-center">
+        <span class="text-lg font-bold text-blue-700">${r.diseaseName}</span>
+        <span class="ml-2 px-2 py-0.5 text-xs bg-${r.severity==='high'?'red':r.severity==='medium'?'orange':'green'}-100 text-${r.severity==='high'?'red':r.severity==='medium'?'orange':'green'}-600 rounded">${sevMap[r.severity]||'中'}</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-gray-600">
+        <div><span class="text-gray-400">作物：</span>${r.cropAffected||'未指定'}</div>
+        <div><span class="text-gray-400">地块：</span>${r.fieldCode||'未指定'}</div>
+        <div><span class="text-gray-400">检测时间：</span>${formatDateTime(r.detectedAt)}</div>
+        <div><span class="text-gray-400">状态：</span>${r.status||'processing'}</div>
+      </div>
+      <div class="border-t pt-2">
+        <h4 class="font-medium text-gray-700 mb-1"><i class="fa fa-flask text-blue-500 mr-1"></i>化学防治</h4>
+        <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded">${chem}</div>
+      </div>
+      <div>
+        <h4 class="font-medium text-gray-700 mb-1"><i class="fa fa-leaf text-green-500 mr-1"></i>生物防治</h4>
+        <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded">${bio}</div>
+      </div>
+      <div>
+        <h4 class="font-medium text-gray-700 mb-1"><i class="fa fa-tint text-orange-500 mr-1"></i>农业防治</h4>
+        <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded">${agri}</div>
+      </div>
     </div>`;
-  if (typeof showModal === 'function') showModal('识别详情 - ' + r.diseaseName, html);
-  else alert(r.diseaseName + ' | 作物:' + (r.cropAffected||'未知') + ' | 时间:' + formatDateTime(r.detectedAt));
+  if (typeof showModal === 'function') showModal('🔍 ' + r.diseaseName, html);
+  else alert(r.diseaseName + ' | 时间:' + formatDateTime(r.detectedAt));
 }
 
 function deleteDiseaseRecord(id) {
@@ -276,33 +297,42 @@ function handleDiseaseFile(file) {
     if(w>70&&st) st.textContent='匹配病虫害知识库...';
   },500);
 
-  AiClient.diagnosis.upload(file, model).then(function(r){
+  AiClient.diagnosis.upload(file, null).then(function(r){
     clearInterval(t); if(bar) bar.style.width='100%'; if(st) st.textContent='完成';
+    console.log('[诊断] 响应:', r);
     if(r && r.diseaseName){
-      r._model = modelName;
       saveDiseaseRecord(r);
-      showToast('识别: '+r.diseaseName+' (置信度:'+Math.round(r.confidence*100)+'%)', r.isUnknown?'warning':'success');
-    } else showToast('AI 服务未响应','error');
+      showToast(r.diseaseName + ' (置信度:'+Math.round(r.confidence*100)+'%)', r.isUnknown?'warning':'success');
+    } else if(r && r.error) {
+      showToast('服务异常: '+r.error, 'error');
+    } else {
+      showToast('AI 服务未响应','error');
+    }
     setTimeout(function(){ if(typeof renderDisease==='function') renderDisease(); },500);
   }).catch(function(err){
-    clearInterval(t); if(st) st.textContent='失败: '+err.message;
-    showToast('诊断失败: '+(err.message||'网络错误'),'error');
+    clearInterval(t); if(st) st.textContent='错误: '+err.message;
+    console.error('[诊断] 失败:', err);
+    showToast('请求失败: '+(err.message||'网络错误'),'error');
     setTimeout(function(){ if(typeof renderDisease==='function') renderDisease(); },1000);
   });
 }
 
 function saveDiseaseRecord(result) {
   if (!dsReady()) return;
-  var name = typeof result === 'string' ? result : (result.diseaseName || '未知病害');
+  var name = typeof result === 'string' ? result : (result.diseaseName || 'AI识别结果');
   var sev = result.severity || 'medium';
   var isUnknown = name === '未知病害' || name === '识别失败' || result.isUnknown;
+  // 当地时间
+  var now = new Date();
+  var pad = function(n) { return n < 10 ? '0' + n : n; };
+  var localTime = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
   ds().insert('disease_records',{
-    id:'dis_'+uid(), fieldId:'field_a1', fieldCode:'A1', diseaseName:name, cropAffected: result.cropAffected || '未指定',
-    detectedAt:new Date().toISOString().slice(0,16).replace('T',' '),
+    id:'dis_'+uid(), fieldId:'field_a1', fieldCode:'A1', diseaseName:name, cropAffected: result.cropAffected || result.cropName || '未指定',
+    detectedAt: localTime,
     severity: isUnknown ? 'low' : sev,
     status: isUnknown ? 'review' : 'processing',
-    imageUrl:'',
-    treatmentPlan: result.treatment ? JSON.stringify(result.treatment) : '',
+    imageUrl: result.imageUrl || '',
+    treatmentPlan: result.treatment ? JSON.stringify(result.treatment) : (result.treatmentPlan || ''),
     resolvedAt:null
   });
   ds().syncModuleState();
