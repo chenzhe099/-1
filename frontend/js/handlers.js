@@ -317,6 +317,15 @@ function handleDiseaseFile(file) {
   });
 }
 
+
+// 安全同步到后端（旧版本数据服务没有syncModuleState方法）
+function _safeSync() {
+  try {
+    var d = ds();
+    if (typeof d.syncModuleState === 'function') d.syncModuleState();
+    else if (typeof d._syncToBackend === 'function') d._syncToBackend('update','disease_records',null,null,null);
+  } catch(e) {}
+}
 function saveDiseaseRecord(result) {
   if (!dsReady()) return;
   var name = typeof result === 'string' ? result : (result.diseaseName || 'AI识别结果');
@@ -335,7 +344,7 @@ function saveDiseaseRecord(result) {
     treatmentPlan: result.treatment ? JSON.stringify(result.treatment) : (result.treatmentPlan || ''),
     resolvedAt:null
   });
-  ds().syncModuleState();
+  _safeSync();
 }
 
 // ==================== 精准农事 ====================
@@ -349,7 +358,7 @@ function setupFarming() {
       var p = ds().getById('irrigation_plans', planId);
       if (!p) return;
       ds().update('irrigation_plans', planId, { status: 'executing' });
-      ds().syncModuleState();
+      _safeSync();
       renderFarming();
       showToast('地块 ' + p.fieldCode + ' 灌溉方案已启动执行', 'success');
     };
@@ -370,7 +379,7 @@ function setupFarming() {
         submitLabel: '确认定时',
         onSubmit: function(d) {
           ds().update('irrigation_plans', planId, { status: 'executing', scheduledAt: d.date + ' ' + d.time });
-          ds().syncModuleState();
+          _safeSync();
           renderFarming();
           showToast('地块' + p.fieldCode + ' 灌溉已定时: ' + d.date + ' ' + d.time, 'success');
         }
@@ -391,7 +400,7 @@ function setupFarming() {
           ds().update('fields', p.fieldId, { soilMoisture: Math.min(field.soilMoisture + 15, 80) });
         }
       }
-      ds().syncModuleState();
+      _safeSync();
       renderFarming();
       showToast('地块 ' + p.fieldCode + ' 灌溉已完成，土壤湿度已更新', 'success');
     };
@@ -419,7 +428,7 @@ function setupFarming() {
             kKg: parseFloat(d.kKg), organicKg: parseFloat(d.organicKg),
             status: 'planned'
           });
-          ds().syncModuleState();
+          _safeSync();
           renderFarming();
           showToast('地块' + p.fieldCode + ' 施肥方案已保存', 'success');
         }
@@ -436,7 +445,7 @@ function setupFarming() {
       modal.confirm('执行施肥', '确定立即执行地块 ' + p.fieldCode + ' 的施肥方案吗？\nN: ' + p.nKg + 'kg  P: ' + p.pKg + 'kg  K: ' + p.kKg + 'kg  有机: ' + p.organicKg + 'kg').then(function(ok) {
         if (ok) {
           ds().update('fertilization_plans', planId, { status: 'completed' });
-          ds().syncModuleState();
+          _safeSync();
           renderFarming();
           showToast('地块 ' + p.fieldCode + ' 施肥已执行', 'success');
         }

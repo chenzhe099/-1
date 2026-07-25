@@ -550,19 +550,19 @@ function showDiseaseDetailModal(pestName) {
       <div class="grid grid-cols-1 gap-4">
         <div class="bg-white rounded-xl p-4 border border-gray-100">
           <h5 class="font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-shield text-blue-500 mr-2"></i>预防措施</h5>
-          <ul class="space-y-1">${pest.prevention.map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
+          <ul class="space-y-1">${(Array.isArray(pest.prevention)?pest.prevention:[]).map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-100">
           <h5 class="font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-flask text-red-500 mr-2"></i>化学防治</h5>
-          <ul class="space-y-1">${pest.chemicalControl.map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-red-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
+          <ul class="space-y-1">${(Array.isArray(pest.chemicalControl)?pest.chemicalControl:[]).map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-red-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-100">
           <h5 class="font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-leaf text-green-500 mr-2"></i>生物防治</h5>
-          <ul class="space-y-1">${pest.biologicalControl.map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
+          <ul class="space-y-1">${(Array.isArray(pest.biologicalControl)?pest.biologicalControl:[]).map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
         </div>
         <div class="bg-white rounded-xl p-4 border border-gray-100">
           <h5 class="font-semibold text-gray-800 mb-2 flex items-center"><i class="fa fa-wrench text-yellow-500 mr-2"></i>农业防治</h5>
-          <ul class="space-y-1">${pest.agriculturalControl.map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
+          <ul class="space-y-1">${(Array.isArray(pest.agriculturalControl)?pest.agriculturalControl:[]).map(p => `<li class="text-sm text-gray-600 flex items-start"><span class="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>${p}</li>`).join('')}</ul>
         </div>
       </div>
     </div>`;
