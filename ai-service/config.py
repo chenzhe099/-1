@@ -31,11 +31,11 @@ MODELS = {
         "name": "Qwen VL 72B",
         "api_key": os.getenv("OPENROUTER_API_KEY", ""),
         "base_url": os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
-        "model": os.getenv("OPENROUTER_MODEL", "qwen/qwen-vl-72b-instruct:free"),
+        "model": os.getenv("OPENROUTER_MODEL", "qwen/qwen2.5-vl-72b-instruct"),
         "timeout": int(os.getenv("OPENROUTER_TIMEOUT", "60")),
     },
     "gemini": {
-        "name": "Gemini 2.5 Flash",
+        "name": "Gemini 2.0 Flash",
         "api_key": os.getenv("GEMINI_API_KEY", ""),
         "base_url": os.getenv("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"),
         "model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
