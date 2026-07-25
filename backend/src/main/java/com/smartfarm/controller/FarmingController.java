@@ -75,4 +75,28 @@ public class FarmingController {
         stats.put("fertilizationCount", fertilizationRepo.count());
         return ApiResponse.ok(stats);
     }
+
+    // ==================== AI 智能灌溉 ====================
+
+    @PostMapping("/irrigation/ai-plan")
+    public ApiResponse<?> aiIrrigationPlan(@RequestBody Map<String, Object> params) {
+        Map<String, Object> result = aiClient.irrigationPlan(params);
+        return ApiResponse.ok(result);
+    }
+
+    // ==================== AI 智能施肥 ====================
+
+    @PostMapping("/fertilization/ai-plan")
+    public ApiResponse<?> aiFertilizationPlan(@RequestBody Map<String, Object> params) {
+        Map<String, Object> result = aiClient.fertilizationPlan(params);
+        return ApiResponse.ok(result);
+    }
+
+    // ==================== AI Agent 农事决策 ====================
+
+    @PostMapping("/agent/decision")
+    public ApiResponse<?> agentDecision(@RequestBody Map<String, Object> params) {
+        Map<String, Object> result = aiClient.agentDecision(params);
+        return ApiResponse.ok(result);
+    }
 }

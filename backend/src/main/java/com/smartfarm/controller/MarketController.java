@@ -3,6 +3,7 @@ package com.smartfarm.controller;
 import com.smartfarm.dto.response.ApiResponse;
 import com.smartfarm.entity.*;
 import com.smartfarm.repository.*;
+import com.smartfarm.service.AiClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 public class MarketController {
 
     private final MarketPricesRepository marketRepo;
+    private final AiClientService aiClient;
 
     @GetMapping("/stats")
     public ApiResponse<Map<String, Object>> getStats() {
@@ -44,5 +46,13 @@ public class MarketController {
     @GetMapping("/alerts")
     public ApiResponse<List<Map<String, Object>>> getAlerts() {
         return ApiResponse.ok(new ArrayList<>());
+    }
+
+    // ==================== AI 市场行情分析 ====================
+
+    @PostMapping("/ai-analysis")
+    public ApiResponse<?> aiMarketAnalysis(@RequestBody Map<String, Object> params) {
+        Map<String, Object> result = aiClient.marketAnalysis(params);
+        return ApiResponse.ok(result);
     }
 }

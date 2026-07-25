@@ -22,6 +22,21 @@ async def search_knowledge(request: RAGSearchRequest):
     return RAGSearchResponse(**result)
 
 
+@router.post("/rag/generate")
+async def generate_answer(request: RAGSearchRequest):
+    """
+    RAG 增强生成：检索 + AI 生成回答
+
+    不仅检索相关规范，还会使用 LLM 基于检索结果生成专业回答。
+    当 LLM 不可用时，仅返回检索结果。
+
+    - **query**: 检索查询文本
+    - **topK**: 检索文档数量 (1-20)
+    """
+    result = rag_service.generate_answer(request.query, request.topK)
+    return {"status": "ok", **result}
+
+
 @router.post("/rag/index")
 async def index_document(document: dict):
     """索引新知识文档到知识库"""

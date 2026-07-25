@@ -45,6 +45,16 @@ public class DiseaseController {
         return ApiResponse.ok(result);
     }
 
+    // ==================== AI RAG 知识库检索 ====================
+
+    @PostMapping("/rag/search")
+    public ApiResponse<?> ragSearch(@RequestBody Map<String, Object> params) {
+        String query = (String) params.getOrDefault("query", "");
+        int topK = params.containsKey("topK") ? ((Number) params.get("topK")).intValue() : 5;
+        Map<String, Object> result = aiClient.ragSearch(query, topK);
+        return ApiResponse.ok(result);
+    }
+
     @GetMapping("/trend")
     public ApiResponse<Map<String, Object>> getTrend() {
         List<DiseaseRecords> records = diseaseRepo.findAll();

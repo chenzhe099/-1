@@ -112,7 +112,7 @@ function rebindSectionEvents() {
   var sid = sec.id;
   // 只负责前三个模块的事件绑定，后八个由 interactions-later.js 的事件委托接管
   var m = {
-    dashboard: setupDashboard, disease: setupDisease, farming: setupFarming
+    dashboard: setupDashboard, disease: setupDisease, farming: setupFarming, 'ai-chat': setupAiChat
   };
   if (m[sid]) m[sid]();
 }
@@ -921,4 +921,174 @@ function reviewSample(sampleId, action) {
   }
   renderMonitor();
   showToast('样本已' + (action === 'approve' ? '确认通过' : '驳回重新识别'), action === 'approve' ? 'success' : 'warning');
+}
+
+// ==================== AI 智能助手 ====================
+
+var aiChatHistory = [];
+
+function setupAiChat() {
+  // 发送按钮
+  var sendBtn = document.getElementById('btn-ai-send');
+  var input = document.getElementById('ai-chat-input');
+  if (sendBtn && input) {
+    sendBtn.onclick = function() { sendAiMessage(input.value.trim()); };
+    input.onkeydown = function(e) { if (e.key === 'Enter') { sendAiMessage(input.value.trim()); } };
+  }
+
+  // 快捷问题按钮
+  document.querySelectorAll('.quick-question').forEach(function(btn) {
+    btn.onclick = function() { sendAiMessage(this.textContent.trim()); };
+  });
+
+  // 清空按钮
+  var clearBtn = document.getElementById('btn-clear-chat');
+  if (clearBtn) {
+    clearBtn.onclick = function() {
+      aiChatHistory = [];
+      document.getElementById('ai-chat-messages').innerHTML = '';
+      addAiMessage('assistant', '对话已清空，有什么可以帮您的？🌱');
+    };
+  }
+
+  // AI 快捷操作按钮
+  var diagBtn = document.getElementById('btn-ai-diagnosis');
+  if (diagBtn) diagBtn.onclick = function() { navigateTo('disease'); };
+
+  var irrBtn = document.getElementById('btn-ai-irrigation');
+  if (irrBtn) irrBtn.onclick = function() {
+    sendAiMessage('请根据当前地块A1番茄结果期的数据，生成一份智能灌溉方案。土壤湿度45%，温度30°C。');
+  };
+
+  var fertBtn = document.getElementById('btn-ai-fertilizer');
+  if (fertBtn) fertBtn.onclick = function() {
+    sendAiMessage('请为地块A1番茄结果期生成一份测土配方施肥方案。N:75ppm P:80ppm K:65ppm。');
+  };
+
+  var agentBtn = document.getElementById('btn-ai-agent');
+  if (agentBtn) agentBtn.onclick = function() {
+    sendAiMessage('请综合天气（温度30°C，湿度80%）、土壤（湿度45%，K偏低）、病虫害风险和市场行情，为番茄结果期给出综合农事决策建议。');
+  };
+
+  var marketBtn = document.getElementById('btn-ai-market');
+  if (marketBtn) marketBtn.onclick = function() {
+    sendAiMessage('请分析近期番茄的市场行情和价格走势，给出销售建议。');
+  };
+
+  // 检测 AI 服务状态
+  checkAiStatus();
+}
+
+function checkAiStatus() {
+  var badge = document.getElementById('ai-mode-badge');
+  if (!badge) return;
+  AiClient.chat.health().then(function(h) {
+    if (h && h.llmAvailable) {
+      badge.textContent = '✅ AI 在线 — DeepSeek 驱动';
+      badge.className = 'text-xs text-green-500';
+    } else {
+      badge.textContent = '⚠ Mock 模式（未配置 API Key，使用本地规则引擎）';
+      badge.className = 'text-xs text-yellow-500';
+    }
+  }).catch(function() {
+    badge.textContent = '❌ AI 服务未连接';
+    badge.className = 'text-xs text-red-500';
+  });
+}
+
+function sendAiMessage(message) {
+  if (!message) return;
+  var container = document.getElementById('ai-chat-messages');
+  var input = document.getElementById('ai-chat-input');
+  if (!container || !input) return;
+
+  // 添加用户消息
+  addAiMessage('user', message);
+  input.value = '';
+
+  // 添加加载提示
+  var loadId = 'ai-load-' + Date.now();
+  container.innerHTML += '<div class="flex items-start" id="' + loadId + '"><div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3"><i class="fa fa-spinner fa-spin text-green-600 text-sm"></i></div><div class="bg-gray-50 rounded-xl p-3"><p class="text-sm text-gray-400">AI 思考中...</p></div></div>';
+  container.scrollTop = container.scrollHeight;
+
+  // 调用 AI API
+  AiClient.chat.send(message, {
+    history: aiChatHistory.slice(-6),
+    useRag: true
+  }).then(function(resp) {
+    // 移除加载提示
+    var loadEl = document.getElementById(loadId);
+    if (loadEl) loadEl.remove();
+
+    if (resp && resp.reply) {
+      aiChatHistory.push({ role: 'user', content: message });
+      aiChatHistory.push({ role: 'assistant', content: resp.reply });
+      addAiMessage('assistant', resp.reply, resp.sources, resp.followUpQuestions);
+    } else {
+      addAiMessage('assistant', getMockReply(message));
+    }
+  }).catch(function() {
+    var loadEl = document.getElementById(loadId);
+    if (loadEl) loadEl.remove();
+    addAiMessage('assistant', getMockReply(message));
+  });
+}
+
+function addAiMessage(role, text, sources, followUps) {
+  var container = document.getElementById('ai-chat-messages');
+  if (!container) return;
+
+  var isUser = role === 'user';
+  var html = '<div class="flex items-start' + (isUser ? ' flex-row-reverse' : '') + '">';
+  if (!isUser) {
+    html += '<div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0"><i class="fa fa-leaf text-green-600 text-sm"></i></div>';
+  }
+  html += '<div class="' + (isUser ? 'bg-green-500 text-white' : 'bg-gray-50 text-gray-700') + ' rounded-xl p-3 max-w-lg">';
+  html += '<p class="text-sm whitespace-pre-wrap">' + escapeHtml(text) + '</p>';
+
+  if (sources && sources.length > 0) {
+    html += '<div class="mt-2 pt-2 border-t border-gray-200"><p class="text-xs text-gray-500">📚 参考来源：</p>';
+    sources.forEach(function(s) { html += '<span class="inline-block px-1.5 py-0.5 text-xs bg-blue-50 text-blue-600 rounded mr-1 mt-1">' + escapeHtml(s) + '</span>'; });
+    html += '</div>';
+  }
+
+  if (followUps && followUps.length > 0) {
+    html += '<div class="mt-2 pt-2 border-t border-gray-200 space-y-1">';
+    followUps.forEach(function(q) {
+      html += '<button class="block w-full text-left text-xs text-blue-500 hover:text-blue-600 py-0.5 follow-up-btn">💡 ' + escapeHtml(q) + '</button>';
+    });
+    html += '</div>';
+  }
+  html += '</div></div>';
+
+  container.innerHTML += html;
+  container.scrollTop = container.scrollHeight;
+
+  // 绑定追问按钮
+  setTimeout(function() {
+    container.querySelectorAll('.follow-up-btn').forEach(function(btn) {
+      btn.onclick = function() { sendAiMessage(this.textContent.replace('💡 ', '').trim()); };
+    });
+  }, 100);
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function getMockReply(message) {
+  var msg = message.toLowerCase();
+  if (msg.includes('病害') || msg.includes('病虫害') || msg.includes('白粉') || msg.includes('晚疫'))
+    return '根据农业技术规范，建议采取综合防治措施：\n\n1️⃣ 农业防治：及时清除病残体，合理密植保证通风\n2️⃣ 生物防治：使用芽孢杆菌制剂，每亩用量200g\n3️⃣ 化学防治：发病初期喷洒霜脲·锰锌800倍液，间隔7-10天\n\n⚠ 收获前7天停止用药。建议上传病害图片获取更精准的诊断。';
+  if (msg.includes('灌溉') || msg.includes('浇水') || msg.includes('湿度'))
+    return '当前土壤湿度45%，低于建议值(60-80%)，需要灌溉。\n\n💧 建议方案：\n- 灌溉量：15-20m³/亩\n- 方式：滴灌\n- 时间：清晨6:00-8:00\n- 预计持续：45分钟\n- 目标湿度：65%\n\n提示：未来24h无降雨预报，可放心灌溉。';
+  if (msg.includes('施肥') || msg.includes('肥料') || msg.includes('养分'))
+    return '根据测土配方结果(N:75 P:80 K:65)，建议：\n\n🌱 基肥：腐熟鸡粪2000kg/亩\n🧪 追肥：硫酸钾15kg/亩（结果期）\n⚠ 注意：施肥后立即浇水，避免与碱性农药混用\n\n预估成本：350元/亩';
+  if (msg.includes('价格') || msg.includes('行情') || msg.includes('市场'))
+    return '近期市场行情分析：\n\n🍅 番茄：上涨趋势(+5%)，建议适时采收\n🥒 黄瓜：价格稳定，按计划采收\n🌶 辣椒：价格上涨中\n\n建议近成熟期作物尽快安排采收上市。';
+  if (msg.includes('决策') || msg.includes('综合'))
+    return '综合农事决策建议：\n\n🌤 天气：当前30°C，湿度80%，注意高温防控\n💧 灌溉：土壤湿度45%偏低，建议立即灌溉\n🦠 病虫害：高温高湿条件下真菌病害风险升高，建议预防性喷药\n📊 市场：番茄价格呈上涨趋势，近成熟期果实可适时采收\n\n⚠ 综合风险等级：中等';
+  return '感谢咨询！我是智慧农业AI助手，可以帮您解答：\n\n🌱 病虫害防治 | 💧 水肥管理 | 🌤 气象农事\n📊 市场行情 | 🔧 设备管理 | 📋 农技规范\n\n请详细描述您的问题。';
 }

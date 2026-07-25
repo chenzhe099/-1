@@ -1,5 +1,11 @@
 """AI 服务配置"""
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 强制从 ai-service 目录加载 .env
+_env_path = Path(__file__).parent / ".env"
+load_dotenv(_env_path)
 
 MOCK_MODE = os.getenv("MOCK_MODE", "true").lower() == "true"
 MODEL_CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.7"))

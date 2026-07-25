@@ -7,7 +7,7 @@
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import diagnosis, rag, agent, model_monitor
+from routers import diagnosis, rag, agent, model_monitor, chat
 
 app = FastAPI(
     title="SmartFarm AI Service",
@@ -33,6 +33,7 @@ app.include_router(diagnosis.router, prefix="/api/v1", tags=["病虫害识别"])
 app.include_router(rag.router, prefix="/api/v1", tags=["RAG检索"])
 app.include_router(agent.router, prefix="/api/v1", tags=["Agent决策"])
 app.include_router(model_monitor.router, prefix="/api/v1", tags=["模型监控"])
+app.include_router(chat.router, prefix="/api/v1", tags=["AI智能对话"])
 
 
 @app.get("/")
@@ -55,6 +56,7 @@ async def health():
             "rag": "/api/v1/rag/health",
             "agent": "/api/v1/agent/health",
             "model_monitor": "/api/v1/model/health",
+            "chat": "/api/v1/chat/health",
         }
     }
 

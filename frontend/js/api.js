@@ -168,9 +168,36 @@ const Api = (() => {
     logs:      () => get('/alerts/logs'),
   };
 
+  // ==================== AI 智能服务 ====================
+  const ai = {
+    // 病虫害诊断（上传图片）
+    diagnose:  (file, model = 'deepseek') => {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('model', model);
+      return request('POST', '/disease/diagnose', fd, true);
+    },
+    // RAG 知识库检索
+    ragSearch: (query, topK = 5) => post('/disease/rag/search', { query, topK }),
+    // Agent 农事决策
+    agentDecide: (params) => post('/farming/agent/decision', params),
+    // 智能灌溉方案
+    irrigationPlan: (params) => post('/farming/irrigation/ai-plan', params),
+    // 智能施肥方案
+    fertilizationPlan: (params) => post('/farming/fertilization/ai-plan', params),
+    // 产量预测
+    predictYield: (params) => post('/prediction/yield/ai-predict', params),
+    // 市场行情分析
+    marketAnalysis: (params) => post('/market/ai-analysis', params),
+    // 溯源报告生成
+    traceReport: (id, params) => post(`/traceability/products/${id}/ai-report`, params),
+    // IoT 异常检测
+    detectAnomaly: (data) => post('/monitor/anomaly/detect', data),
+  };
+
   return {
     login, logout, getCurrentUser,
     dashboard, users, farms, tasks, devices,
-    disease, traceability, weather, market, monitor, alerts
+    disease, traceability, weather, market, monitor, alerts, ai
   };
 })();

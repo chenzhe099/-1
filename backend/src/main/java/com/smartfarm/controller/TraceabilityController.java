@@ -3,6 +3,7 @@ package com.smartfarm.controller;
 import com.smartfarm.dto.response.ApiResponse;
 import com.smartfarm.entity.*;
 import com.smartfarm.repository.*;
+import com.smartfarm.service.AiClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,7 @@ public class TraceabilityController {
     private final ProductsRepository productRepo;
     private final ProductionTimelineRepository timelineRepo;
     private final QualityCertificationsRepository certRepo;
+    private final AiClientService aiClient;
 
     @GetMapping("/stats")
     public ApiResponse<Map<String, Object>> getStats() {
@@ -51,5 +53,14 @@ public class TraceabilityController {
     public ApiResponse<Products> addProduct(@RequestBody Products product) {
         if (product.getId() == null) product.setId("prod_" + System.currentTimeMillis());
         return ApiResponse.ok(productRepo.save(product));
+    }
+
+    // ==================== AI 溯源报告生成 ====================
+
+    @PostMapping("/products/{id}/ai-report")
+    public ApiResponse<?> generateTraceReport(@PathVariable String id, @RequestBody Map<String, Object> params) {
+        params.put("productId", id);
+        Map<String, Object> result = aiClient.generateTraceReport(params);
+        return ApiResponse.ok(result);
     }
 }

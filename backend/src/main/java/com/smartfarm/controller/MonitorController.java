@@ -3,6 +3,7 @@ package com.smartfarm.controller;
 import com.smartfarm.dto.response.ApiResponse;
 import com.smartfarm.entity.*;
 import com.smartfarm.repository.*;
+import com.smartfarm.service.AiClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,7 @@ public class MonitorController {
 
     private final ModelVersionsRepository modelRepo;
     private final DiseaseRecordsRepository diseaseRepo;
+    private final AiClientService aiClient;
 
     @GetMapping("/stats")
     public ApiResponse<Map<String, Object>> getStats() {
@@ -49,5 +51,13 @@ public class MonitorController {
         perf.put("accuracy", models.stream().map(ModelVersions::getAccuracy).toList());
         perf.put("drift", models.stream().map(m -> m.getDriftScore() != null ? m.getDriftScore() : 0).toList());
         return ApiResponse.ok(perf);
+    }
+
+    // ==================== AI IoT 设备异常检测 ====================
+
+    @PostMapping("/anomaly/detect")
+    public ApiResponse<?> detectAnomaly(@RequestBody List<Map<String, Object>> timeSeriesData) {
+        Map<String, Object> result = aiClient.detectAnomaly(timeSeriesData);
+        return ApiResponse.ok(result);
     }
 }
