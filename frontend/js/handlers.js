@@ -211,6 +211,37 @@ function setupDisease() {
   });
 }
 
+// ==================== 识别历史查看 & 删除 ====================
+
+function viewDiseaseRecord(id) {
+  if (!dsReady()) return;
+  var r = ds().getById('disease_records', id);
+  if (!r) { showToast('记录不存在', 'error'); return; }
+  var sevMap = { low: '低', medium: '中', high: '高', critical: '严重' };
+  var html = `
+    <div class="space-y-3 text-sm">
+      <div><span class="text-gray-400">病害名称：</span><span class="font-medium">${r.diseaseName}</span></div>
+      <div><span class="text-gray-400">严重程度：</span>${sevMap[r.severity]||r.severity||'中'}</div>
+      <div><span class="text-gray-400">作物：</span>${r.cropAffected||'未知'}</div>
+      <div><span class="text-gray-400">检测时间：</span>${formatDateTime(r.detectedAt)}</div>
+      <div><span class="text-gray-400">地块：</span>${r.fieldCode||'未指定'}</div>
+      <div><span class="text-gray-400">治疗计划：</span><pre class="text-xs bg-gray-100 p-2 rounded mt-1 max-h-32 overflow-auto">${r.treatmentPlan||'无'}</pre></div>
+    </div>`;
+  if (typeof showModal === 'function') showModal('识别详情 - ' + r.diseaseName, html);
+  else alert(r.diseaseName + ' | 作物:' + (r.cropAffected||'未知') + ' | 时间:' + formatDateTime(r.detectedAt));
+}
+
+function deleteDiseaseRecord(id) {
+  if (!dsReady()) return;
+  var r = ds().getById('disease_records', id);
+  if (!r) { showToast('记录不存在', 'error'); return; }
+  if (typeof confirm === 'function' ? confirm('确定删除「' + r.diseaseName + '」的识别记录？') : true) {
+    ds().delete('disease_records', id);
+    showToast('已删除: ' + r.diseaseName, 'success');
+    if (typeof renderDisease === 'function') renderDisease();
+  }
+}
+
 function handleDiseaseFile(file) {
   if (!file) return;
   if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { showToast('仅支持 JPG、PNG、WebP 格式','error'); return; }

@@ -152,10 +152,13 @@ function renderDisease() {
     var sevMap = { low: '低', medium: '中', high: '高', critical: '严重' };
     var sevColor = { low: 'green', medium: 'orange', high: 'red', critical: 'red' };
     return `
-      <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border border-gray-100" data-action="disease-detail" data-name="${r.diseaseName}">
+      <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-100">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-sm font-medium text-gray-800">${r.diseaseName}</span>
-          <span class="px-1.5 py-0.5 text-xs bg-${sevColor[r.severity]||'gray'}-100 text-${sevColor[r.severity]||'gray'}-600 rounded">${sevMap[r.severity]||r.severity||'中'}</span>
+          <span class="text-sm font-medium text-gray-800 cursor-pointer hover:text-blue-600" onclick="viewDiseaseRecord('${r.id}')">${r.diseaseName}</span>
+          <div class="flex items-center space-x-2">
+            <span class="px-1.5 py-0.5 text-xs bg-${sevColor[r.severity]||'gray'}-100 text-${sevColor[r.severity]||'gray'}-600 rounded">${sevMap[r.severity]||r.severity||'中'}</span>
+            <button class="text-red-400 hover:text-red-600 text-xs" onclick="deleteDiseaseRecord('${r.id}')" title="删除"><i class="fa fa-trash"></i></button>
+          </div>
         </div>
         <div class="flex items-center justify-between text-xs text-gray-400">
           <span><i class="fa fa-clock-o mr-1"></i>${formatDateTime(r.detectedAt)}</span>
