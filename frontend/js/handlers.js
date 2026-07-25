@@ -240,10 +240,8 @@ function viewDiseaseRecord(id) {
         <span class="ml-2 px-2 py-0.5 text-xs bg-${r.severity==='high'?'red':r.severity==='medium'?'orange':'green'}-100 text-${r.severity==='high'?'red':r.severity==='medium'?'orange':'green'}-600 rounded">${sevMap[r.severity]||'中'}</span>
       </div>
       <div class="grid grid-cols-2 gap-2 text-gray-600">
-        <div><span class="text-gray-400">作物：</span>${r.cropAffected||'未指定'}</div>
-        <div><span class="text-gray-400">地块：</span>${r.fieldCode||'未指定'}</div>
         <div><span class="text-gray-400">检测时间：</span>${formatDateTime(r.detectedAt)}</div>
-        <div><span class="text-gray-400">状态：</span>${r.status||'processing'}</div>
+        <div><span class="text-gray-400">严重程度：</span>${sevMap[r.severity]||'中'}</div>
       </div>
       <div class="border-t pt-2">
         <h4 class="font-medium text-gray-700 mb-1"><i class="fa fa-flask text-blue-500 mr-1"></i>化学防治</h4>
