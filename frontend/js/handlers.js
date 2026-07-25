@@ -336,11 +336,7 @@ function handleDiseaseFile(file) {
 
 // 安全同步到后端（旧版本数据服务没有syncModuleState方法）
 function _safeSync() {
-  try {
-    var d = ds();
-    if (typeof d.syncModuleState === 'function') d.syncModuleState();
-    else if (typeof d._syncToBackend === 'function') d._syncToBackend('update','disease_records',null,null,null);
-  } catch(e) {}
+  // 已废弃：ds().insert() 已自动调用 _syncToBackend
 }
 function saveDiseaseRecord(result) {
   if (!dsReady()) return;
