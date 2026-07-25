@@ -230,34 +230,42 @@ function viewDiseaseRecord(id) {
   var sevMap = { low: '低', medium: '中', high: '高', critical: '严重' };
   var treatment = {};
   try { treatment = typeof r.treatmentPlan === 'string' ? JSON.parse(r.treatmentPlan) : (r.treatmentPlan || {}); } catch(e) {}
-  var chem = (treatment.chemical || []).join('<br>') || '无';
-  var bio = (treatment.biological || []).join('<br>') || '无';
-  var agri = (treatment.agricultural || []).join('<br>') || '无';
-  var html = `
-    <div class="space-y-3 text-sm">
-      <div class="bg-blue-50 p-3 rounded-lg text-center">
-        <span class="text-lg font-bold text-blue-700">${r.diseaseName}</span>
-        <span class="ml-2 px-2 py-0.5 text-xs bg-${r.severity==='high'?'red':r.severity==='medium'?'orange':'green'}-100 text-${r.severity==='high'?'red':r.severity==='medium'?'orange':'green'}-600 rounded">${sevMap[r.severity]||'中'}</span>
-      </div>
-      <div class="grid grid-cols-2 gap-2 text-gray-600">
-        <div><span class="text-gray-400">检测时间：</span>${formatDateTime(r.detectedAt)}</div>
-        <div><span class="text-gray-400">严重程度：</span>${sevMap[r.severity]||'中'}</div>
-      </div>
-      <div class="border-t pt-2">
-        <h4 class="font-medium text-gray-700 mb-1"><i class="fa fa-flask text-blue-500 mr-1"></i>化学防治</h4>
-        <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded">${chem}</div>
-      </div>
-      <div>
-        <h4 class="font-medium text-gray-700 mb-1"><i class="fa fa-leaf text-green-500 mr-1"></i>生物防治</h4>
-        <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded">${bio}</div>
-      </div>
-      <div>
-        <h4 class="font-medium text-gray-700 mb-1"><i class="fa fa-tint text-orange-500 mr-1"></i>农业防治</h4>
-        <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded">${agri}</div>
-      </div>
-    </div>`;
-  if (typeof showModal === 'function') showModal('🔍 ' + r.diseaseName, html);
-  else alert(r.diseaseName + ' | 时间:' + formatDateTime(r.detectedAt));
+  var chem = treatment.chemical || [];
+  var bio = treatment.biological || [];
+  var agri = treatment.agricultural || [];
+  var sev = r.severity || 'medium';
+  var sevLabel = sevMap[sev] || '中';
+
+  var html = '<div class="space-y-4 text-sm">' +
+    '<div class="bg-blue-50 p-4 rounded-xl text-center">' +
+      '<div class="text-xl font-bold text-blue-700 mb-1">' + (r.diseaseName||'未知病害') + '</div>' +
+      '<div class="text-xs text-blue-500">置信度 ' + Math.round((r.confidence||0)*100) + '% · ' + sevLabel + '严重 · ' + formatDateTime(r.detectedAt) + '</div>' +
+    '</div>';
+
+  if (chem.length > 0) {
+    html += '<div class="border-l-4 border-red-400 pl-3"><div class="font-medium text-red-700 mb-2"><i class="fa fa-flask mr-1"></i>化学防治</div>' +
+      '<ol class="list-decimal list-inside space-y-1 text-gray-600">' +
+      chem.map(function(c){ return '<li class="text-xs">' + c + '</li>'; }).join('') +
+      '</ol></div>';
+  }
+  if (bio.length > 0) {
+    html += '<div class="border-l-4 border-green-400 pl-3"><div class="font-medium text-green-700 mb-2"><i class="fa fa-leaf mr-1"></i>生物防治</div>' +
+      '<ol class="list-decimal list-inside space-y-1 text-gray-600">' +
+      bio.map(function(b){ return '<li class="text-xs">' + b + '</li>'; }).join('') +
+      '</ol></div>';
+  }
+  if (agri.length > 0) {
+    html += '<div class="border-l-4 border-orange-400 pl-3"><div class="font-medium text-orange-700 mb-2"><i class="fa fa-tint mr-1"></i>农业防治</div>' +
+      '<ol class="list-decimal list-inside space-y-1 text-gray-600">' +
+      agri.map(function(a){ return '<li class="text-xs">' + a + '</li>'; }).join('') +
+      '</ol></div>';
+  }
+
+  html += '<div class="text-center text-xs text-gray-400 pt-2 border-t">' +
+      '由 AI 多模型协诊断 · 仅供参考，具体用药请遵当地农技指导</div>';
+  html += '</div>';
+
+  if (typeof showModal === 'function') showModal('🔍 ' + (r.diseaseName||'诊断详情'), html);
 }
 
 function deleteDiseaseRecord(id) {
