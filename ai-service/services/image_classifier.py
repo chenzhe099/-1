@@ -83,18 +83,29 @@ class MultiModelClassifier:
             ]}
         ]
 
-        resp = client.chat.completions.create(
-            model=cfg["model"], messages=messages, max_tokens=1024, temperature=0.2)
-        content = resp.choices[0].message.content.strip()
-        if content.startswith("```"): content = content.split("\n", 1)[1].rsplit("\n```", 1)[0]
         try:
-            r = json.loads(content)
-            r["modelUsed"] = cfg["name"]
-            return r
-        except:
-            return {"diseaseName": "解析异常", "confidence": 0, "isUnknown": True,
-                    "symptoms": content[:300], "modelUsed": cfg["name"], "severity": "low",
-                    "treatment": {}}
+            resp = client.chat.completions.create(
+                model=cfg["model"], messages=messages, max_tokens=1024, temperature=0.2)
+            content = resp.choices[0].message.content.strip()
+            if content.startswith("```"): content = content.split("\n", 1)[1].rsplit("\n```", 1)[0]
+            try:
+                r = json.loads(content)
+                r["modelUsed"] = cfg["name"]
+                return r
+            except:
+                return {"diseaseName": "解析异常", "confidence": 0, "isUnknown": True,
+                        "symptoms": content[:300], "modelUsed": cfg["name"], "severity": "low",
+                        "treatment": {}}
+        except Exception as e:
+            # 模型调用失败，回退到 qwen 或 mock
+            logger.warning(f"{cfg['name']}调用失败: {e}")
+            fallback_key = "qwen" if model_key != "qwen" and "qwen" in self._clients else None
+            if fallback_key:
+                return self._call_openai_compat(image_bytes, filename, crop_name,
+                    MODELS[fallback_key], fallback_key)
+            return {"diseaseName": "诊断失败", "confidence": 0, "isUnknown": True,
+                    "symptoms": f"{cfg['name']}调用失败: {str(e)[:200]}", "severity": "low",
+                    "treatment": {}, "modelUsed": f"{cfg['name']}(失败)"}
 
     def _call_gemini(self, image_bytes, filename, crop_name, cfg):
         ext = (filename or "x.jpg").rsplit(".", 1)[-1].lower()

@@ -296,7 +296,7 @@ CREATE TABLE IF NOT EXISTS weather_records (
     humidity INT DEFAULT 0,
     rainfall_mm DOUBLE DEFAULT 0,
     wind_speed DOUBLE DEFAULT 0,
-    condition VARCHAR(20) DEFAULT '' COMMENT 'sunny/cloudy/rain/snow',
+    `condition` VARCHAR(20) DEFAULT '' COMMENT 'sunny/cloudy/rain/snow',
     forecast TEXT,
     UNIQUE KEY uk_weather_date_loc (date, location),
     INDEX idx_weather_date (date)
@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS market_prices (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     crop_name VARCHAR(50) NOT NULL,
     price_per_kg DOUBLE DEFAULT 0,
-    unit VARCHAR(20) DEFAULT '元/公斤',
+    unit VARCHAR(20) COLLATE utf8mb4_unicode_ci DEFAULT '元/公斤',
     market VARCHAR(100) DEFAULT '',
     date DATE NOT NULL,
     change_percent DOUBLE DEFAULT 0,
