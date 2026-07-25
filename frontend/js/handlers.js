@@ -293,13 +293,14 @@ function handleDiseaseFile(file) {
 
 function saveDiseaseRecord(result) {
   if (!dsReady()) return;
-  var name = typeof result === 'string' ? result : result.diseaseName;
+  var name = typeof result === 'string' ? result : (result.diseaseName || '未知病害');
   var sev = result.severity || 'medium';
+  var isUnknown = name === '未知病害' || name === '识别失败' || result.isUnknown;
   ds().insert('disease_records',{
-    id:'dis_'+uid(), fieldId:'field_a1', fieldCode:'A1', diseaseName:name, cropAffected:'番茄',
+    id:'dis_'+uid(), fieldId:'field_a1', fieldCode:'A1', diseaseName:name, cropAffected: result.cropAffected || '未指定',
     detectedAt:new Date().toISOString().slice(0,16).replace('T',' '),
-    severity: name === '无病虫害' ? 'low' : sev,
-    status: name === '无病虫害' ? 'resolved' : 'processing',
+    severity: isUnknown ? 'low' : sev,
+    status: isUnknown ? 'review' : 'processing',
     imageUrl:'',
     treatmentPlan: result.treatment ? JSON.stringify(result.treatment) : '',
     resolvedAt:null

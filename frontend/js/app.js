@@ -151,10 +151,15 @@ function renderDisease() {
   historyContainer.innerHTML = records.length > 0 ? records.map(r => {
     var sevMap = { low: '低', medium: '中', high: '高', critical: '严重' };
     var sevColor = { low: 'green', medium: 'orange', high: 'red', critical: 'red' };
+    var isUnknown = r.diseaseName === '未知病害' || r.diseaseName === '识别失败' || r.isUnknown;
+    var nameColor = isUnknown ? 'text-orange-600' : 'text-gray-800';
     return `
       <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-100">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-sm font-medium text-gray-800 cursor-pointer hover:text-blue-600" onclick="viewDiseaseRecord('${r.id}')">${r.diseaseName}</span>
+          <span class="text-sm font-medium ${nameColor} cursor-pointer hover:text-blue-600" onclick="viewDiseaseRecord('${r.id}')">
+            ${r.diseaseName||'未知病害'}
+            ${isUnknown ? '<span class="ml-1 px-1 py-0.5 text-xs bg-orange-100 text-orange-600 rounded">未知</span>' : ''}
+          </span>
           <div class="flex items-center space-x-2">
             <span class="px-1.5 py-0.5 text-xs bg-${sevColor[r.severity]||'gray'}-100 text-${sevColor[r.severity]||'gray'}-600 rounded">${sevMap[r.severity]||r.severity||'中'}</span>
             <button class="text-red-400 hover:text-red-600 text-xs" onclick="deleteDiseaseRecord('${r.id}')" title="删除"><i class="fa fa-trash"></i></button>
