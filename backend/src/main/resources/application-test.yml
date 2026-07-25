@@ -18,6 +18,11 @@ jwt:
 ai-service:
   url: http://localhost:8000
 
+deepseek:
+  api-key: sk-0cd35e7792624bddbb917c510ec48de2
+  base-url: https://api.deepseek.com/v1
+  model: deepseek-v4-pro
+
 minio:
   endpoint: http://localhost:9000
   access-key: minioadmin

@@ -11,7 +11,7 @@
 // 后端 API 地址
 // 本机: http://localhost:9090/api/v1
 // 同事电脑: http://10.141.141.159:9090/api/v1
-const API_URL = 'http://10.141.141.159:9090/api/v1';
+const API_URL = 'http://localhost:9090/api/v1';
 
 // AI 服务地址（Python FastAPI ai-service，默认端口 8000）
 // 用于前端直连 AI 服务的场景（如图像识别、AI对话等）
