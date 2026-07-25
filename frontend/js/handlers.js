@@ -276,7 +276,7 @@ function handleDiseaseFile(file) {
     if(w>70&&st) st.textContent='匹配病虫害知识库...';
   },500);
 
-  apiClient.diagnoseDisease(file, null, model).then(function(r){
+  AiClient.diagnosis.upload(file, model).then(function(r){
     clearInterval(t); if(bar) bar.style.width='100%'; if(st) st.textContent='完成';
     if(r && r.diseaseName){
       r._model = modelName;
