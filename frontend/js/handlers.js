@@ -19,6 +19,16 @@ function uid() { return 'a' + Date.now().toString(36) + Math.random().toString(3
 function dsReady() { return typeof dataService !== 'undefined' && dataService.isReady(); }
 function ds() { return dataService; }
 
+function showModal(title, html) {
+  const old = document.querySelector('.custom-modal-overlay');
+  if (old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'custom-modal-overlay fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+  overlay.innerHTML = '<div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"><div class="flex items-center justify-between p-4 border-b sticky top-0 bg-white rounded-t-2xl"><h3 class="font-semibold text-gray-800">' + title + '</h3><button class="text-gray-400 hover:text-gray-600 text-xl" onclick="this.closest(\'.custom-modal-overlay\').remove()">×</button></div><div class="p-4">' + html + '</div></div>';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
 // ==================== 初始化 ====================
 
 // ==================== 登录系统 ====================
