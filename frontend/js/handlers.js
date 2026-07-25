@@ -313,7 +313,7 @@ function handleDiseaseFile(file) {
     if(w>70&&st) st.textContent='匹配病虫害知识库...';
   },500);
 
-  AiClient.diagnosis.upload(file, null).then(function(r){
+  AiClient.diagnosis.upload(file, null, model).then(function(r){
     clearInterval(t); if(bar) bar.style.width='100%'; if(st) st.textContent='完成';
     console.log('[诊断] 响应:', r);
     if(r && r.diseaseName){

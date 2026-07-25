@@ -49,10 +49,11 @@ const AiClient = (() => {
      * @param {string} cropName - 作物名称（可选）
      * @returns {Object} 识别结果 { diseaseName, confidence, severity, treatment, ... }
      */
-    async upload(file, cropName = null) {
+    async upload(file, cropName = null, model = null) {
       const formData = new FormData();
       formData.append('file', file);
       if (cropName) formData.append('cropName', cropName);
+      if (model) formData.append('model', model);
       return upload('/diagnosis', formData);
     },
 
