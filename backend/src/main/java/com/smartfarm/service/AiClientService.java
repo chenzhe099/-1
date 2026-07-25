@@ -26,13 +26,13 @@ public class AiClientService {
     @Value("${deepseek.base-url:https://api.deepseek.com/v1}")
     private String deepseekBaseUrl;
 
-    @Value("${deepseek.model:deepseek-chat}")
+    @Value("${deepseek.model:deepseek-vision}")
     private String deepseekModel;
 
     // ==================== 模型配置 ====================
 
     private static final Map<String, Map<String, String>> MODEL_CONFIG = Map.of(
-        "deepseek", Map.of("name", "DeepSeek Vision", "url", "https://api.deepseek.com/v1", "model", "deepseek-chat"),
+        "deepseek", Map.of("name", "DeepSeek Vision", "url", "https://api.deepseek.com/v1", "model", "deepseek-vision"),
         "gpt-4o",   Map.of("name", "GPT-4o", "url", "https://api.openai.com/v1", "model", "gpt-4o"),
         "claude",   Map.of("name", "Claude 3.5 Sonnet", "url", "https://api.anthropic.com/v1", "model", "claude-3-5-sonnet-20241022"),
         "gemini",   Map.of("name", "Gemini 2.0 Flash", "url", "https://generativelanguage.googleapis.com/v1beta", "model", "gemini-2.0-flash"),
