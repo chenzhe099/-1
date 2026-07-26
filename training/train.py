@@ -46,22 +46,32 @@ elif not os.listdir(DATA_DIR):
     print(f"   然后重新运行 python train.py")
     exit(1)
 
-# ===== 扫描图片 =====
+# ===== 扫描图片（递归查找所有子目录中的图片） =====
 images, labels = [], []
-classes = sorted([d for d in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, d))])
+class_names_set = set()
+# 递归遍历，找到所有包含图片的目录作为类别
+for root, dirs, files in os.walk(DATA_DIR):
+    imgs = [f for f in files if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    if imgs:
+        cls = os.path.basename(root)  # 目录名即类别名
+        if cls.lower() == 'images':
+            cls = os.path.basename(os.path.dirname(root))  # 如果底层是 images/，用上层名
+        class_names_set.add(cls)
+        for fname in imgs:
+            images.append(os.path.join(root, fname))
+            labels.append(cls)
+
+# 统一类名映射
+classes = sorted(class_names_set)
 class_to_idx = {c: i for i, c in enumerate(classes)}
-for cls in classes:
-    cls_dir = os.path.join(DATA_DIR, cls)
-    for fname in os.listdir(cls_dir):
-        if fname.lower().endswith(('.jpg', '.jpeg', '.png')):
-            images.append(os.path.join(cls_dir, fname))
-            labels.append(class_to_idx[cls])
+label_indices = [class_to_idx[l] for l in labels]
 
 print(f"📊 {len(classes)} 个类别, {len(images)} 张图片")
 for i, c in enumerate(classes):
     cnt = labels.count(i)
     print(f"  {i+1:2d}. {c}: {cnt} 张")
 
+# 分层划分
 np.random.seed(SEED)
 indices = np.random.permutation(len(images))
 val_n = int(len(images) * VAL_SPLIT)
@@ -89,8 +99,8 @@ class ImgDataset(Dataset):
     def __getitem__(self, i):
         return self.transform(Image.open(self.imgs[i]).convert("RGB")), self.labels[i]
 
-train_ds = ImgDataset([images[i] for i in train_idx], [labels[i] for i in train_idx], train_tf)
-val_ds = ImgDataset([images[i] for i in val_idx], [labels[i] for i in val_idx], val_tf)
+train_ds = ImgDataset([images[i] for i in train_idx], [label_indices[i] for i in train_idx], train_tf)
+val_ds = ImgDataset([images[i] for i in val_idx], [label_indices[i] for i in val_idx], val_tf)
 
 train_loader = DataLoader(train_ds, BATCH_SIZE, shuffle=True, num_workers=4, pin_memory=True)
 val_loader = DataLoader(val_ds, BATCH_SIZE, num_workers=4, pin_memory=True)
