@@ -500,74 +500,69 @@ function viewTrace(productId) {
 // ==================== 权限管理 渲染 ====================
 
 function renderPermission() {
+  if (!dataService.isReady()) return;
+  var users = dataService.getAll('users') || [];
+  var roles = dataService.getAll('roles') || [];
+  var rc = {};
+  users.forEach(function(u) { rc[u.role] = (rc[u.role]||0) + 1; });
+
+  // 统计卡片
+  var se = document.getElementById('perm-stats');
+  if (se) {
+    var stats = [
+      {l:'用户总数',v:users.length,i:'fa-users',c:'indigo'},
+      {l:'管理员',v:rc.admin||0,i:'fa-user-circle',c:'blue'},
+      {l:'技术员',v:rc.technician||0,i:'fa-user-md',c:'green'},
+      {l:'农户',v:rc.farmer||0,i:'fa-user',c:'orange'},
+      {l:'合作社',v:rc.manager||0,i:'fa-building',c:'teal'},
+    ];
+    se.innerHTML = stats.map(function(s) {
+      return '<div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="flex items-start justify-between"><div><p class="text-sm text-gray-500">'+s.l+'</p><p class="text-2xl font-bold text-'+s.c+'-600 mt-1">'+s.v+'人</p></div><div class="w-12 h-12 bg-'+s.c+'-100 rounded-lg flex items-center justify-center"><i class="fa '+s.i+' text-'+s.c+'-600 text-xl"></i></div></div></div>';
+    }).join('');
+  }
+
   // 用户表
-  const users = dataService.getUserList();
-  const tbody = document.getElementById('user-table-body');
+  var tbody = document.getElementById('user-table-body');
   if (tbody) {
-    tbody.innerHTML = users.map(u => `
-      <tr class="border-b border-gray-100 hover:bg-gray-50">
-        <td class="py-3 px-4 text-sm font-medium text-gray-800">${u.username}</td>
-        <td class="py-3 px-4 text-sm text-gray-600">${u.displayName}</td>
-        <td class="py-3 px-4 text-sm text-gray-600">${u.role === 'admin' ? '管理员' : u.role === 'technician' ? '技术员' : '农户'}</td>
-        <td class="py-3 px-4">${badge(u.status)}</td>
-        <td class="py-3 px-4 text-sm">
-          <button class="text-blue-500 hover:text-blue-600 mr-2" data-action="edit-user" data-id="${u.id}">编辑</button>
-          <button class="text-gray-500 hover:text-gray-600 mr-2" data-action="reset-pwd" data-id="${u.id}">重置密码</button>
-          <button class="text-red-400 hover:text-red-600" data-action="delete-user" data-id="${u.id}">删除</button>
-        </td>
-      </tr>`).join('');
+    var rcb = {admin:'bg-blue-100 text-blue-600',technician:'bg-green-100 text-green-600',farmer:'bg-orange-100 text-orange-600',manager:'bg-teal-100 text-teal-600'};
+    var rnm = {admin:'管理员',technician:'技术员',farmer:'农户',manager:'合作社管理'};
+    var scb = {active:'bg-green-100 text-green-600',disabled:'bg-red-100 text-red-600'};
+    var snm = {active:'启用',disabled:'禁用'};
+    tbody.innerHTML = users.map(function(u) {
+      return '<tr class="border-b border-gray-50 hover:bg-gray-50"><td class="py-3 px-4 text-sm">'+u.username+'</td><td class="py-3 px-4 text-sm">'+u.displayName+'</td><td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded '+ (rcb[u.role]||'') +'">'+ (rnm[u.role]||u.role) +'</span></td><td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded '+ (scb[u.status]||'') +'">'+ (snm[u.status]||u.status) +'</span></td><td class="py-3 px-4"><button class="text-sm text-blue-500 hover:text-blue-600 mr-2" data-action="edit-user" data-id="'+u.id+'">编辑</button><button class="text-sm text-gray-500 hover:text-gray-600 mr-2" data-action="reset-pwd" data-id="'+u.id+'">重置密码</button><button class="text-sm text-red-400 hover:text-red-600" data-action="delete-user" data-id="'+u.id+'">删除</button></td></tr>';
+    }).join('');
   }
 
   // 角色列表
-  const roles = dataService.getRoleList();
-  const roleContainer = document.getElementById('role-list');
+  var roleContainer = document.getElementById('role-list');
   if (roleContainer) {
-    roleContainer.innerHTML = roles.map(r => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-        <div>
-          <p class="text-sm font-medium text-gray-800">${r.name}</p>
-          <p class="text-xs text-gray-500">${r.description}</p>
-        </div>
-        <div class="flex items-center space-x-3">
-          <span class="text-sm text-gray-600">${r.userCount}人</span>
-          <button class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200" data-action="edit-role" data-id="${r.id}">编辑</button>
-        </div>
-      </div>`).join('');
+    var clr = {admin:'blue',farmer:'orange',technician:'green',manager:'teal'};
+    var icn = {admin:'fa-user-circle',farmer:'fa-user',technician:'fa-user-md',manager:'fa-building'};
+    roleContainer.innerHTML = roles.map(function(r) {
+      var c = clr[r.id]||'gray', cnt = rc[r.id]||0;
+      return '<div class="p-3 bg-'+c+'-50 rounded-lg border border-'+c+'-100"><div class="flex items-center justify-between"><div class="flex items-center"><div class="w-8 h-8 bg-'+c+'-100 rounded-lg flex items-center justify-center mr-2"><i class="fa '+(icn[r.id]||'fa-shield')+' text-'+c+'-600"></i></div><span class="text-sm font-medium">'+r.name+'</span></div><span class="text-xs text-gray-500">'+cnt+'人</span></div><p class="text-xs text-gray-500 mt-1">'+r.description+'</p><button class="mt-1 px-2 py-0.5 text-xs bg-white border border-gray-200 rounded hover:bg-'+c+'-50" data-action="edit-role" data-id="'+r.id+'">编辑权限</button></div>';
+    }).join('');
   }
 
   // 权限配置
-  const permContainer = document.getElementById('permission-config-list');
+  var permContainer = document.getElementById('permission-config-list');
   if (permContainer && roles.length > 0) {
-    const adminRole = roles[0];
-    permContainer.innerHTML = Object.entries(adminRole.permissions).map(([mod, perms]) => {
-      const modNames = { dashboard:'数据总览', disease:'病虫害识别', farming:'精准农事', prediction:'产量预测', management:'农场管理', devices:'设备监控', traceability:'溯源管理', permission:'权限管理' };
-      return `
-        <div class="flex items-center justify-between py-2 border-b border-gray-100">
-          <span class="text-sm text-gray-700">${modNames[mod] || mod}</span>
-          <div class="flex items-center space-x-4">
-            <label class="flex items-center text-xs text-gray-500">
-              <input type="checkbox" ${perms.view ? 'checked' : ''} class="mr-1" disabled> 查看
-            </label>
-            <label class="flex items-center text-xs text-gray-500">
-              <input type="checkbox" ${perms.edit ? 'checked' : ''} class="mr-1" disabled> 编辑
-            </label>
-          </div>
-        </div>`;
+    var adminRole = roles[0];
+    var perms = typeof adminRole.permissions === 'string' ? JSON.parse(adminRole.permissions) : (adminRole.permissions || {});
+    var modNames = {dashboard:'数据总览',disease:'病虫害识别',farming:'农事管理',prediction:'产量预测',management:'农场管理',devices:'设备监控',traceability:'溯源管理',permission:'权限管理'};
+    permContainer.innerHTML = Object.entries(perms).map(function(e) {
+      var mod = e[0], p = e[1];
+      return '<div class="flex items-center justify-between py-2 border-b border-gray-100"><span class="text-sm text-gray-700">'+(modNames[mod]||mod)+'</span><div class="flex items-center space-x-4"><label class="flex items-center text-xs text-gray-500"><input type="checkbox" '+(p.view?'checked':'')+' class="mr-1" disabled> 查看</label><label class="flex items-center text-xs text-gray-500"><input type="checkbox" '+(p.edit?'checked':'')+' class="mr-1" disabled> 编辑</label></div></div>';
     }).join('');
   }
 
   // 操作日志
-  const logs = dataService.getOperationLogs();
-  const logContainer = document.getElementById('operation-log-list');
+  var logs = dataService.getAll('operation_logs') || [];
+  var logContainer = document.getElementById('operation-log-list');
   if (logContainer) {
-    logContainer.innerHTML = logs.map(l => `
-      <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-        <div class="flex-1">
-          <p class="text-sm font-medium text-gray-800">${l.action}</p>
-          <p class="text-xs text-gray-500">${l.username} · ${l.module}</p>
-        </div>
-        <span class="text-xs text-gray-400">${formatDateTime(l.timestamp)}</span>
-      </div>`).join('');
+    logContainer.innerHTML = logs.slice(0, 10).map(function(l) {
+      return '<div class="flex items-center p-3 bg-gray-50 rounded-lg"><div class="flex-1"><p class="text-sm font-medium text-gray-800">'+l.action+'</p><p class="text-xs text-gray-500">'+(l.username||'')+' · '+(l.module||'')+'</p></div><span class="text-xs text-gray-400">'+formatDateTime(l.timestamp||l.createdAt)+'</span></div>';
+    }).join('') || '<p class="text-gray-400 text-sm text-center py-4">暂无操作日志</p>';
   }
 }
 

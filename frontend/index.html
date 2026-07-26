@@ -1779,63 +1779,7 @@
                 </section>
 
                 <section id="permission" class="space-y-6 hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">用户总数</p>
-                                    <p class="text-2xl font-bold text-gray-800 mt-1">28人</p>
-                                </div>
-                                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-users text-indigo-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">管理员</p>
-                                    <p class="text-2xl font-bold text-blue-600 mt-1">3人</p>
-                                </div>
-                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-user-circle text-blue-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">技术员</p>
-                                    <p class="text-2xl font-bold text-green-600 mt-1">8人</p>
-                                </div>
-                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-user-md text-green-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">农户</p>
-                                    <p class="text-2xl font-bold text-orange-600 mt-1">17人</p>
-                                </div>
-                                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-user text-orange-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">合作社管理</p>
-                                    <p class="text-2xl font-bold text-teal-600 mt-1">2人</p>
-                                </div>
-                                <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-building text-teal-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4" id="perm-stats"></div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -1856,94 +1800,13 @@
                                             <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">操作</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="user-table-body">
-                                        <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                                            <td class="py-3 px-4">admin</td>
-                                            <td class="py-3 px-4">管理员</td>
-                                            <td class="py-3 px-4"><span class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded">管理员</span></td>
-                                            <td class="py-3 px-4"><span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">启用</span></td>
-                                            <td class="py-3 px-4">
-                                                <button class="text-sm text-blue-500 hover:text-blue-600 mr-2" data-action="edit-user" data-id="u001">编辑</button>
-                                                <button class="text-sm text-gray-500 hover:text-gray-600">重置密码</button><button class="text-xs text-red-400 hover:text-red-600 ml-2" data-action="delete-user" data-id="u001">删除</button>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                                            <td class="py-3 px-4">zhang_tech</td>
-                                            <td class="py-3 px-4">张技术员</td>
-                                            <td class="py-3 px-4"><span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">技术员</span></td>
-                                            <td class="py-3 px-4"><span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">启用</span></td>
-                                            <td class="py-3 px-4">
-                                                <button class="text-sm text-blue-500 hover:text-blue-600 mr-2" data-action="edit-user" data-id="u001">编辑</button>
-                                                <button class="text-sm text-gray-500 hover:text-gray-600">重置密码</button><button class="text-xs text-red-400 hover:text-red-600 ml-2" data-action="delete-user" data-id="u002">删除</button>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                                            <td class="py-3 px-4">li_farmer</td>
-                                            <td class="py-3 px-4">李农户</td>
-                                            <td class="py-3 px-4"><span class="px-2 py-1 text-xs bg-orange-100 text-orange-600 rounded">农户</span></td>
-                                            <td class="py-3 px-4"><span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">启用</span></td>
-                                            <td class="py-3 px-4">
-                                                <button class="text-sm text-blue-500 hover:text-blue-600 mr-2" data-action="edit-user" data-id="u001">编辑</button>
-                                                <button class="text-sm text-gray-500 hover:text-gray-600">重置密码</button><button class="text-xs text-red-400 hover:text-red-600 ml-2" data-action="delete-user" data-id="u003">删除</button>
-                                            </td>
-                                        </tr>
-                                        <tr class="hover:bg-gray-50 transition-colors">
-                                            <td class="py-3 px-4">wang_admin</td>
-                                            <td class="py-3 px-4">王管理员</td>
-                                            <td class="py-3 px-4"><span class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded">管理员</span></td>
-                                            <td class="py-3 px-4"><span class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded">禁用</span></td>
-                                            <td class="py-3 px-4">
-                                                <button class="text-sm text-blue-500 hover:text-blue-600 mr-2" data-action="edit-user" data-id="u001">编辑</button>
-                                                <button class="text-sm text-gray-500 hover:text-gray-600">重置密码</button><button class="text-xs text-red-400 hover:text-red-600 ml-2" data-action="delete-user" data-id="u004">删除</button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
+                                    <tbody id="user-table-body"></tbody>
                                 </table>
                             </div>
                         </div>
                         <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                             <h3 class="font-semibold text-gray-800 mb-4">角色管理</h3>
-                            <div class="space-y-3" id="role-list">
-                                <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center">
-                                            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2">
-                                                <i class="fa fa-user-circle text-blue-600"></i>
-                                            </div>
-                                            <span class="text-sm font-medium text-gray-800">管理员</span>
-                                        </div>
-                                        <span class="text-xs text-gray-500">3人</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">拥有系统全部权限</p>
-                                </div>
-                                <button class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200" data-action="edit-role" data-id="role_admin">编辑</button>
-                                <div class="p-3 bg-green-50 rounded-lg border border-green-100">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center">
-                                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-2">
-                                                <i class="fa fa-user-md text-green-600"></i>
-                                            </div>
-                                            <span class="text-sm font-medium text-gray-800">技术员</span>
-                                        </div>
-                                        <span class="text-xs text-gray-500">8人</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">可查看和管理农事数据</p>
-                                </div>
-                                <button class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200" data-action="edit-role" data-id="role_technician">编辑</button>
-                                <div class="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center">
-                                            <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-2">
-                                                <i class="fa fa-user text-orange-600"></i>
-                                            </div>
-                                            <span class="text-sm font-medium text-gray-800">农户</span>
-                                        </div>
-                                        <span class="text-xs text-gray-500">17人</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">查看基本信息和执行农事任务</p>
-                                </div>
-                                <button class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200" data-action="edit-role" data-id="role_farmer">编辑</button>
-                            </div>
+                            <div class="space-y-3" id="role-list"></div>
                                 <button class="w-full mt-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors" data-action="add-role">
                                 <i class="fa fa-plus mr-1"></i>添加角色
                             </button>

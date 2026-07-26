@@ -1175,3 +1175,112 @@ function getMockReply(message) {
     return '综合农事决策建议：\n\n🌤 天气：当前30°C，湿度80%，注意高温防控\n💧 灌溉：土壤湿度45%偏低，建议立即灌溉\n🦠 病虫害：高温高湿条件下真菌病害风险升高，建议预防性喷药\n📊 市场：番茄价格呈上涨趋势，近成熟期果实可适时采收\n\n⚠ 综合风险等级：中等';
   return '感谢咨询！我是智慧农业AI助手，可以帮您解答：\n\n🌱 病虫害防治 | 💧 水肥管理 | 🌤 气象农事\n📊 市场行情 | 🔧 设备管理 | 📋 农技规范\n\n请详细描述您的问题。';
 }
+
+// ==================== 权限管理 ====================
+
+function renderPermission() {
+  if (!dsReady()) return;
+  var users = ds().getAll('users') || [];
+  var roles = ds().getAll('roles') || [];
+  var rc = {};
+  users.forEach(function(u) { rc[u.role] = (rc[u.role]||0) + 1; });
+  var stats = [
+    {l:'用户总数',v:users.length,i:'fa-users',c:'indigo'},
+    {l:'管理员',v:rc.admin||0,i:'fa-user-circle',c:'blue'},
+    {l:'技术员',v:rc.technician||0,i:'fa-user-md',c:'green'},
+    {l:'农户',v:rc.farmer||0,i:'fa-user',c:'orange'},
+    {l:'合作社',v:rc.manager||0,i:'fa-building',c:'teal'},
+  ];
+  var se = document.getElementById('perm-stats');
+  if (se) se.innerHTML = stats.map(function(s) {
+    return '<div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="flex items-start justify-between"><div><p class="text-sm text-gray-500">'+s.l+'</p><p class="text-2xl font-bold text-'+s.c+'-600 mt-1">'+s.v+'人</p></div><div class="w-12 h-12 bg-'+s.c+'-100 rounded-lg flex items-center justify-center"><i class="fa '+s.i+' text-'+s.c+'-600 text-xl"></i></div></div></div>';
+  }).join('');
+  var rcb = {admin:'bg-blue-100 text-blue-600',technician:'bg-green-100 text-green-600',farmer:'bg-orange-100 text-orange-600',manager:'bg-teal-100 text-teal-600'};
+  var rnm = {admin:'管理员',technician:'技术员',farmer:'农户',manager:'合作社管理'};
+  var scb = {active:'bg-green-100 text-green-600',disabled:'bg-red-100 text-red-600'};
+  var snm = {active:'启用',disabled:'禁用'};
+  var tb = document.getElementById('user-table-body');
+  if (tb) tb.innerHTML = users.map(function(u) {
+    return '<tr class="border-b border-gray-50 hover:bg-gray-50"><td class="py-3 px-4 text-sm">'+u.username+'</td><td class="py-3 px-4 text-sm">'+u.displayName+'</td><td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded '+ (rcb[u.role]||'') +'">'+ (rnm[u.role]||u.role) +'</span></td><td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded '+ (scb[u.status]||'') +'">'+ (snm[u.status]||u.status) +'</span></td><td class="py-3 px-4"><button class="text-sm text-blue-500 hover:text-blue-600 mr-2" onclick="editUser(\x27'+u.id+'\x27)">编辑</button><button class="text-sm text-gray-500 hover:text-gray-600 mr-2" onclick="resetUserPwd(\x27'+u.id+'\x27)">重置密码</button><button class="text-sm text-red-400 hover:text-red-600" onclick="deleteUser(\x27'+u.id+'\x27)">删除</button></td></tr>';
+  }).join('');
+  var clr = {admin:'blue',farmer:'orange',technician:'green',manager:'teal'};
+  var icn = {admin:'fa-user-circle',farmer:'fa-user',technician:'fa-user-md',manager:'fa-building'};
+  var rl = document.getElementById('role-list');
+  if (rl) rl.innerHTML = roles.map(function(r) {
+    var c = clr[r.id]||'gray', cnt = rc[r.id]||0;
+    return '<div class="p-3 bg-'+c+'-50 rounded-lg border border-'+c+'-100"><div class="flex items-center justify-between"><div class="flex items-center"><div class="w-8 h-8 bg-'+c+'-100 rounded-lg flex items-center justify-center mr-2"><i class="fa '+(icn[r.id]||'fa-shield')+' text-'+c+'-600"></i></div><span class="text-sm font-medium">'+r.name+'</span></div><span class="text-xs text-gray-500">'+cnt+'人</span></div><p class="text-xs text-gray-500 mt-1">'+r.description+'</p><button class="mt-1 px-2 py-0.5 text-xs bg-white border border-gray-200 rounded hover:bg-'+c+'-50" onclick="editRole(\x27'+r.id+'\x27)">编辑权限</button></div>';
+  }).join('');
+}
+
+function editUser(id) {
+  var u = ds().getById('users', id); if (!u) return;
+  var roles = ds().getAll('roles')||[];
+  var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">用户名</label><input id="eu-username" class="w-full px-3 py-2 border rounded text-sm" value="'+u.username+'"></div><div><label class="text-xs text-gray-500">姓名</label><input id="eu-name" class="w-full px-3 py-2 border rounded text-sm" value="'+u.displayName+'"></div><div><label class="text-xs text-gray-500">角色</label><select id="eu-role" class="w-full px-3 py-2 border rounded text-sm">'+roles.map(function(r){return '<option value="'+r.id+'" '+(r.id===u.role?'selected':'')+'>'+r.name+'</option>';}).join('')+'</select></div><div><label class="text-xs text-gray-500">状态</label><select id="eu-status" class="w-full px-3 py-2 border rounded text-sm"><option value="active" '+(u.status==='active'?'selected':'')+'>启用</option><option value="disabled" '+(u.status==='disabled'?'selected':'')+'>禁用</option></select></div></div>';
+  modal.confirm('编辑用户', h, function(ok) {
+    if (!ok) return;
+    ds().update('users', u.id, { username: document.getElementById('eu-username').value, displayName: document.getElementById('eu-name').value, role: document.getElementById('eu-role').value, status: document.getElementById('eu-status').value });
+    renderPermission(); showToast('用户更新成功','success');
+  });
+}
+
+function resetUserPwd(id) {
+  modal.confirm('重置密码', '<p class="text-sm">确定将密码重置为 <b>123456</b> 吗？</p>', function(ok) {
+    if (!ok) return;
+    ds().update('users', id, { password: '123456', passwordHash: '' });
+    showToast('密码已重置','success');
+  });
+}
+
+function deleteUser(id) {
+  var u = ds().getById('users', id);
+  modal.confirm('删除用户', '<p class="text-sm">确定删除用户 <b>'+u.displayName+'</b> 吗？此操作不可撤销。</p>', function(ok) {
+    if (!ok) return;
+    ds().delete('users', id); renderPermission(); showToast('用户已删除','success');
+  });
+}
+
+function editRole(id) {
+  var r = ds().getById('roles', id); if (!r) return;
+  var mods = ['dashboard','disease','farming','prediction','management','devices','traceability','permission'];
+  var names = {dashboard:'数据总览',disease:'病虫害识别',farming:'农事管理',prediction:'产量预测',management:'农场管理',devices:'设备监控',traceability:'溯源管理',permission:'权限管理'};
+  var perms = typeof r.permissions === 'string' ? JSON.parse(r.permissions) : (r.permissions || {});
+  var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">角色名</label><input id="er-name" class="w-full px-3 py-2 border rounded text-sm" value="'+r.name+'"></div><p class="text-sm font-medium mt-2">模块权限</p>';
+  mods.forEach(function(m) {
+    var p = perms[m]||{view:false,edit:false};
+    h += '<div class="flex items-center justify-between p-2 bg-gray-50 rounded"><span class="text-sm">'+names[m]+'</span><div class="flex gap-3"><label class="text-xs"><input type="checkbox" id="perm-'+m+'-view" '+(p.view?'checked':'')+'> 查看</label><label class="text-xs"><input type="checkbox" id="perm-'+m+'-edit" '+(p.edit?'checked':'')+'> 编辑</label></div></div>';
+  });
+  h += '</div>';
+  modal.confirm('编辑角色权限', h, function(ok) {
+    if (!ok) return;
+    var np = {};
+    mods.forEach(function(m) { np[m] = {view: document.getElementById('perm-'+m+'-view').checked, edit: document.getElementById('perm-'+m+'-edit').checked}; });
+    ds().update('roles', id, { name: document.getElementById('er-name').value, permissions: JSON.stringify(np) });
+    renderPermission(); showToast('角色权限已更新','success');
+  });
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target.closest('[data-action="add-user"]')) {
+    var roles = dsReady() ? (ds().getAll('roles')||[]) : [];
+    var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">用户名</label><input id="nu-un" class="w-full px-3 py-2 border rounded text-sm" placeholder="英文用户名"></div><div><label class="text-xs text-gray-500">姓名</label><input id="nu-nm" class="w-full px-3 py-2 border rounded text-sm" placeholder="中文姓名"></div><div><label class="text-xs text-gray-500">角色</label><select id="nu-rl" class="w-full px-3 py-2 border rounded text-sm">'+roles.map(function(r){return '<option value="'+r.id+'">'+r.name+'</option>';}).join('')+'</select></div></div>';
+    modal.confirm('添加用户', h, function(ok) {
+      if (!ok) return;
+      var un = document.getElementById('nu-un').value.trim();
+      var nm = document.getElementById('nu-nm').value.trim();
+      if (!un||!nm) { showToast('请填写完整信息','error'); return; }
+      var uid = 'u' + Math.floor(Math.random()*9000+1000);
+      ds().insert('users', {id:uid, username:un, displayName:nm, role:document.getElementById('nu-rl').value, status:'active', password:'123456', createdAt: new Date().toISOString()});
+      renderPermission(); showToast('用户添加成功','success');
+    });
+  }
+  if (e.target.closest('[data-action="add-role"]')) {
+    var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">角色ID</label><input id="nr-id" class="w-full px-3 py-2 border rounded text-sm" placeholder="custom_role"></div><div><label class="text-xs text-gray-500">角色名称</label><input id="nr-nm" class="w-full px-3 py-2 border rounded text-sm" placeholder="新角色"></div><div><label class="text-xs text-gray-500">描述</label><input id="nr-ds" class="w-full px-3 py-2 border rounded text-sm" placeholder="角色描述"></div></div>';
+    modal.confirm('添加角色', h, function(ok) {
+      if (!ok) return;
+      var rid = document.getElementById('nr-id').value.trim();
+      if (!rid) { showToast('请输入角色ID','error'); return; }
+      ds().insert('roles', {id:rid, name:document.getElementById('nr-nm').value, nameEn:rid, description:document.getElementById('nr-ds').value, permissions:'{}'});
+      renderPermission(); showToast('角色添加成功','success');
+    });
+  }
+});
