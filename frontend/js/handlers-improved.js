@@ -8,8 +8,18 @@
 // ==================== 仪表盘：新建任务弹窗 ====================
 
 function showCreateTaskModal() {
-  const fields = dataService.isReady() ? dataService.getAll('fields') : [];
-  const users = dataService.isReady() ? dataService.getAll('users') : [];
+  var fields = (dataService.isReady && dataService.isReady()) ? (dataService.getAll('fields') || []) : [];
+  // 如果从 dataService 获取不到，用硬编码兜底
+  if (!fields.length) {
+    fields = [
+      {code:'A1', cropName:'番茄', area:2.5, id:'field_a1'},
+      {code:'A2', cropName:'黄瓜', area:3.0, id:'field_a2'},
+      {code:'B1', cropName:'辣椒', area:1.8, id:'field_b1'},
+      {code:'C1', cropName:'茄子', area:2.0, id:'field_c1'},
+    ];
+  }
+  var users = (dataService.isReady && dataService.isReady()) ? (dataService.getAll('users') || []) : [];
+  var rn = {admin:'管理员',technician:'技术员',farmer:'农户',manager:'合作社管理'};
 
   modal.form({
     title: '新建农事任务',
@@ -25,13 +35,13 @@ function showCreateTaskModal() {
         ]
       },
       { name: 'fieldCode', label: '目标地块', type: 'select', required: true,
-        options: fields.map(f => ({ value: f.code, label: `${f.code} - ${f.cropName} (${f.area}亩)` }))
+        options: fields.map(function(f){ return { value: f.code||f.fieldCode||f.id, label: (f.code||f.fieldCode||'') + ' - ' + (f.cropName||f.name||'') + ' (' + (f.area||'') + '亩)' }; })
       },
       { name: 'date', label: '执行日期', type: 'date', required: true, value: new Date().toISOString().slice(0, 10) },
       { name: 'time', label: '执行时间', type: 'time', required: true, value: '08:30' },
       { name: 'duration', label: '预计时长（小时）', type: 'number', required: true, value: '1.5', hint: '输入数字，如 1.5' },
       { name: 'assignedTo', label: '指派人', type: 'select',
-        options: [{ value: '', label: '-- 不指定 --' }, ...users.map(u => ({ value: u.id, label: `${u.displayName} (${u.role === 'admin' ? '管理员' : u.role === 'technician' ? '技术员' : '农户'})` }))]
+        options: [{ value: '', label: '-- 不指定 --' }].concat(users.map(function(u){ return { value: u.id, label: u.displayName + ' (' + (rn[u.role]||u.role) + ')' }; }))
       },
       { name: 'priority', label: '优先级', type: 'select',
         options: [{ value: 'medium', label: '中' }, { value: 'high', label: '高' }, { value: 'low', label: '低' }]
