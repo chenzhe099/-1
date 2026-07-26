@@ -76,15 +76,23 @@
                 </div>
             </nav>
             <div class="p-3 border-t border-gray-200">
-                <div class="flex items-center">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=agri" class="w-9 h-9 rounded-full" alt="用户头像">
-                    <div class="ml-3 flex-1">
-                        <p class="text-sm font-medium text-gray-700">管理员</p>
-                        <p class="text-xs text-gray-500">Admin</p>
-                    </div>
-                    <button id="btn-logout" onclick="doLogout()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="退出登录">
-                        <i class="fa fa-sign-out text-gray-500"></i>
+                <div class="relative" id="user-dropdown-wrapper">
+                    <button onclick="toggleUserDropdown()" class="w-full flex items-center p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <i class="fa fa-user-circle text-gray-500 text-lg mr-2"></i>
+                        <div class="flex-1 text-left">
+                            <p class="text-sm font-medium text-gray-700" id="current-user-name">管理员</p>
+                            <p class="text-xs text-gray-500" id="current-user-role">管理员</p>
+                        </div>
+                        <i class="fa fa-chevron-down text-gray-400 text-xs"></i>
                     </button>
+                    <div id="user-dropdown" class="absolute bottom-full left-0 right-0 mb-1 bg-white rounded-lg shadow-lg border border-gray-200 hidden" style="z-index:100">
+                        <div class="p-2 space-y-1" id="user-switch-list"></div>
+                        <div class="border-t border-gray-100 p-2">
+                            <button onclick="doLogoutNow()" class="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 rounded">
+                                <i class="fa fa-sign-out mr-1"></i>退出登录
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -2289,6 +2297,22 @@
     <script src="js/handlers.js"></script>
     <script src="js/handlers-improved.js"></script>
     <script src="js/api.js"></script>
+    <script>
+    // ========== 账号切换 ==========
+    window._currentUser = null;
+    window._initUserList = function() {
+        var users = [];
+        try { if (typeof dataService !== 'undefined' && dataService.isReady && dataService.isReady()) { users = dataService.getAll('users') || []; } } catch(e) {}
+        if (!users.length) { users = [ {id:'u001',username:'admin',displayName:'管理员',role:'admin'}, {id:'u002',username:'zhang_tech',displayName:'张技术员',role:'technician'}, {id:'u003',username:'li_farmer',displayName:'李农户',role:'farmer'}, {id:'u007',username:'zhou_manager',displayName:'周管理员',role:'manager'} ]; }
+        var rn = {admin:'管理员',technician:'技术员',farmer:'农户',manager:'合作社管理'};
+        var list = document.getElementById('user-switch-list');
+        if (!list) return;
+        list.innerHTML = users.map(function(u) { return '<button onclick="switchUser(\''+u.id+'\',\''+u.displayName+'\',\''+(rn[u.role]||u.role)+'\')" class="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 rounded flex items-center gap-2"><i class="fa fa-circle text-xs text-green-500"></i>'+u.displayName+'<span class="text-xs text-gray-400 ml-2">- '+(rn[u.role]||u.role)+'</span></button>'; }).join('');
+    };
+    window.toggleUserDropdown = function() { var dd=document.getElementById('user-dropdown'); dd.classList.toggle('hidden'); if (!dd.classList.contains('hidden')) window._initUserList(); };
+    window.switchUser = function(id,name,role) { window._currentUser={id:id,name:name,role:role}; document.getElementById('current-user-name').textContent=name; document.getElementById('current-user-role').textContent=role; document.getElementById('user-dropdown').classList.add('hidden'); };
+    window.doLogoutNow = function() { window._currentUser=null; document.getElementById('current-user-name').textContent='未登录'; document.getElementById('current-user-role').textContent='点击登录'; document.getElementById('user-dropdown').classList.add('hidden'); };
+    </script>
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
