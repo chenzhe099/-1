@@ -1,0 +1,13 @@
+{
+  "model_name": "EfficientNet-B3 Pest/Disease Classifier",
+  "version": "v2.0.0",
+  "num_classes": 15,
+  "image_size": 300,
+  "architecture": "efficientnet_b3",
+  "pretrained": "ImageNet1K_V1",
+  "val_accuracy": 0.9994,
+  "test_accuracy": 0.9984,
+  "test_f1": 0.9984,
+  "training": "Phase 1 (frozen) + Phase 2 (full fine-tune) on RTX 4050",
+  "dataset": "PlantVillage (20,638 images, 15 classes)"
+}

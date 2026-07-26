@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>病虫害识别测试</title>
+<style>
+body { font-family: sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+h2 { color: #2d6a4f; }
+.upload { border: 2px dashed #ccc; padding: 40px; text-align: center; cursor: pointer; border-radius: 12px; }
+.upload:hover { border-color: #409eff; background: #ecf5ff; }
+#result { margin-top: 20px; padding: 16px; border-radius: 8px; display: none; }
+.success { background: #f0f9eb; border: 1px solid #c2e7b0; }
+.warning { background: #fdf6ec; border: 1px solid #f5dab1; }
+#fileInput { display: none; }
+.loading { color: #409eff; }
+</style>
+</head>
+<body>
+
+<h2>病虫害识别测试</h2>
+<p>模型: 本地 EfficientNet-B3 | 15类病虫害 | CUDA 加速</p>
+
+<div class="upload" onclick="document.getElementById('fileInput').click()">
+  <p style="font-size:48px;">📷</p>
+  <p>点击选择图片</p>
+</div>
+<input type="file" id="fileInput" accept="image/*" onchange="recognize(this.files[0])">
+
+<div id="result"></div>
+
+<script>
+async function recognize(file) {
+  const resultDiv = document.getElementById('result');
+  resultDiv.style.display = 'block';
+  resultDiv.className = 'loading';
+  resultDiv.innerHTML = '<p>🔍 正在识别...</p>';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const resp = await fetch('http://localhost:8000/api/v1/diagnosis/local', {
+      method: 'POST',
+      body: formData,
+      signal: AbortSignal.timeout(30000),
+    });
+    const r = await resp.json();
+
+    resultDiv.className = r.isUnknown ? 'warning' : 'success';
+    resultDiv.innerHTML = `
+      <h3>${r.isUnknown ? '⚠️' : '✅'} ${r.diseaseName}</h3>
+      <p>置信度: <b>${(r.confidence*100).toFixed(1)}%</b></p>
+      <p>严重程度: ${r.severity}</p>
+      ${r.symptoms ? '<p>症状: '+r.symptoms+'</p>' : ''}
+      ${r.treatment?.chemical ? '<p>💊 化学防治: '+r.treatment.chemical.slice(0,2).join('；')+'</p>' : ''}
+      ${r.treatment?.biological ? '<p>🌿 生物防治: '+r.treatment.biological.slice(0,2).join('；')+'</p>' : ''}
+      <p><small>模型: ${r.modelUsed || 'EfficientNet-B3 v1.0'}</small></p>
+    `;
+  } catch (e) {
+    resultDiv.className = 'warning';
+    resultDiv.innerHTML = '<p>❌ 识别失败: '+e.message+'</p><p>请确认 AI 服务已启动: <code>http://localhost:8000</code></p>';
+  }
+}
+</script>
+
+</body>
+</html>

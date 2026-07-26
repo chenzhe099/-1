@@ -157,8 +157,14 @@ class ApiClient {
     if (model) formData.append('model', model);
     const headers = this._token ? { 'Authorization': 'Bearer ' + this._token } : {};
     // 不设置 Content-Type，让浏览器自动带 boundary
+
+    // 本地模型直接调用 AI 服务（端口 8000），无需经过后端
+    const url = (model === 'local')
+      ? 'http://' + window.location.hostname + ':8000/api/v1/diagnosis/local'
+      : API_BASE + '/disease/diagnose';
+
     try {
-      const resp = await fetch(API_BASE + '/disease/diagnose', {
+      const resp = await fetch(url, {
         method: 'POST',
         body: formData,
         headers,
@@ -169,6 +175,7 @@ class ApiClient {
         throw new Error(err.message || 'HTTP ' + resp.status);
       }
       const json = await resp.json();
+      // AI 服务直接返回结果，后端返回 { data: {...} } 格式
       return json.data !== undefined ? json.data : json;
     } catch (e) {
       if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {

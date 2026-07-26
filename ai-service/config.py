@@ -16,3 +16,11 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 DEEPSEEK_TIMEOUT = int(os.getenv("DEEPSEEK_TIMEOUT", "30"))
+
+# 本地模型配置
+LOCAL_MODEL_PATH = os.getenv(
+    "LOCAL_MODEL_PATH",
+    os.path.join(os.path.dirname(__file__), "models", "pest_classifier_efficientnet_b3.pth")
+)
+LOCAL_MODEL_ENABLED = os.getenv("LOCAL_MODEL_ENABLED", "true").lower() == "true"
+LOCAL_MODEL_DEVICE = os.getenv("LOCAL_MODEL_DEVICE", "cpu")  # "cpu", "cuda", or "auto"
