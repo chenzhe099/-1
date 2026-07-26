@@ -11,3 +11,8 @@
 // 全部本地运行
 const API_URL = 'http://localhost:9090/api/v1';
 const AI_SERVICE_URL = 'http://localhost:8000/api/v1';
+
+// DeepSeek API 配置（用于 AI 助手对话）
+window.APP_CONFIG = {
+    DEEPSEEK_API_KEY: 'sk-your-deepseek-api-key'
+};

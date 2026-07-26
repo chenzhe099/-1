@@ -780,3 +780,172 @@ function setupTraceability() {
     };
   });
 }
+
+// ==================== AI 智慧农业助手 (DeepSeek API) ====================
+
+function setupAiChat() {
+  var messagesEl = document.getElementById('chat-messages');
+  var inputEl = document.getElementById('chat-input');
+  var sendBtn = document.getElementById('btn-chat-send');
+  var clearBtn = document.getElementById('btn-clear-chat');
+
+  if (!messagesEl || !inputEl || !sendBtn) return;
+
+  var conversationHistory = [];
+  var pendingRequest = null;
+
+  // 系统提示词
+  var SYSTEM_PROMPT = '你是一个智慧农业助手，只能回答与农业种植、病虫害防治、灌溉施肥、农场管理、气象监测相关的问题。任何与农业无关的问题，请回复"抱歉，我只能回答智慧农业相关问题。"';
+
+  function createMsgBubble(role, text) {
+    var div = document.createElement('div');
+    div.className = 'flex items-start';
+    if (role === 'assistant') {
+      div.innerHTML = '<div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0"><i class="fa fa-leaf text-green-600 text-sm"></i></div>'
+        + '<div class="bg-gray-50 rounded-xl p-3 max-w-md"><p class="text-sm text-gray-700 chat-msg-text">' + escapeHtml(text) + '</p></div>';
+    } else {
+      div.innerHTML = '<div class="flex-1"></div>'
+        + '<div class="bg-green-500 rounded-xl p-3 max-w-md ml-auto"><p class="text-sm text-white chat-msg-text">' + escapeHtml(text) + '</p></div>';
+    }
+    return div;
+  }
+
+  function escapeHtml(str) {
+    var d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML.replace(/\n/g, '<br>');
+  }
+
+  function createLoadingBubble() {
+    var div = document.createElement('div');
+    div.className = 'flex items-start chat-loading';
+    div.innerHTML = '<div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0"><i class="fa fa-leaf text-green-600 text-sm"></i></div>'
+      + '<div class="bg-gray-50 rounded-xl p-4"><div class="flex space-x-1"><div class="w-2 h-2 bg-green-400 rounded-full animate-bounce" style="animation-delay:0s"></div><div class="w-2 h-2 bg-green-400 rounded-full animate-bounce" style="animation-delay:0.2s"></div><div class="w-2 h-2 bg-green-400 rounded-full animate-bounce" style="animation-delay:0.4s"></div></div></div>';
+    return div;
+  }
+
+  function removeLoadingBubble() {
+    var el = messagesEl.querySelector('.chat-loading');
+    if (el) el.remove();
+  }
+
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function sendMessage() {
+    var text = inputEl.value.trim();
+    if (!text) return;
+
+    // 添加用户消息到界面
+    messagesEl.appendChild(createMsgBubble('user', text));
+    inputEl.value = '';
+    scrollToBottom();
+
+    // 添加对话历史
+    conversationHistory.push({ role: 'user', content: text });
+    if (conversationHistory.length > 20) {
+      conversationHistory = conversationHistory.slice(-20);
+    }
+
+    // 显示加载动画
+    var loadingBubble = createLoadingBubble();
+    messagesEl.appendChild(loadingBubble);
+    scrollToBottom();
+
+    // 构建消息列表
+    var messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+    for (var i = 0; i < conversationHistory.length; i++) {
+      messages.push(conversationHistory[i]);
+    }
+
+    // 获取 API Key
+    var apiKey = '';
+    if (window.APP_CONFIG && window.APP_CONFIG.DEEPSEEK_API_KEY) {
+      apiKey = window.APP_CONFIG.DEEPSEEK_API_KEY;
+    }
+
+    if (!apiKey || apiKey.indexOf('your-deepseek') !== -1) {
+      removeLoadingBubble();
+      messagesEl.appendChild(createMsgBubble('assistant', '错误：DeepSeek API Key 未配置。请在 js/config.js 中设置 window.APP_CONFIG.DEEPSEEK_API_KEY。'));
+      scrollToBottom();
+      return;
+    }
+
+    // 调用 DeepSeek API
+    pendingRequest = fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+
+    pendingRequest.then(function(response) {
+      if (!response.ok) {
+        return response.json().then(function(errData) {
+          throw new Error(errData.error && errData.error.message ? errData.error.message : 'API 请求失败 (HTTP ' + response.status + ')');
+        });
+      }
+      return response.json();
+    }).then(function(data) {
+      removeLoadingBubble();
+      var reply = data.choices && data.choices[0] && data.choices[0].message
+        ? data.choices[0].message.content
+        : '抱歉，未能获取有效回复。';
+      conversationHistory.push({ role: 'assistant', content: reply });
+      if (conversationHistory.length > 20) {
+        conversationHistory = conversationHistory.slice(-20);
+      }
+      messagesEl.appendChild(createMsgBubble('assistant', reply));
+      scrollToBottom();
+    }).catch(function(err) {
+      removeLoadingBubble();
+      var errMsg = '请求失败：';
+      if (err.message.indexOf('Failed to fetch') !== -1) {
+        errMsg += '网络连接异常，请检查网络后重试。';
+      } else if (err.message.indexOf('401') !== -1) {
+        errMsg += 'API Key 无效，请检查 js/config.js 中的配置。';
+      } else if (err.message.indexOf('429') !== -1) {
+        errMsg += '请求过于频繁，请稍后再试。';
+      } else if (err.message.indexOf('500') !== -1) {
+        errMsg += 'DeepSeek 服务器异常，请稍后再试。';
+      } else {
+        errMsg += err.message;
+      }
+      messagesEl.appendChild(createMsgBubble('assistant', errMsg));
+      scrollToBottom();
+    }).finally(function() {
+      pendingRequest = null;
+    });
+  }
+
+  function clearChat() {
+    // 保留欢迎消息
+    var firstMsg = messagesEl.querySelector('.flex.items-start');
+    messagesEl.innerHTML = '';
+    if (firstMsg) {
+      messagesEl.appendChild(firstMsg);
+    } else {
+      messagesEl.appendChild(createMsgBubble('assistant', '您好！我是智慧农业AI助手\n我可以帮您解答病虫害防治、水肥管理、农事决策、市场行情等农业相关问题。'));
+    }
+    conversationHistory = [];
+    scrollToBottom();
+  }
+
+  // 事件绑定：避免重复绑定
+  sendBtn.onclick = sendMessage;
+  inputEl.onkeydown = function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+  if (clearBtn) clearBtn.onclick = clearChat;
+}
