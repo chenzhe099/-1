@@ -83,19 +83,18 @@ function doLogin() {
 
 function doLogout() {
   Auth.logout();
-
-  // 隐藏整个应用界面（含侧边栏）
   document.getElementById('app-container').style.display = 'none';
-
-  // 显示登录弹窗
   showLoginModal();
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   document.getElementById('login-error').classList.add('hidden');
   document.getElementById('login-username').focus();
-
   showToast('您已安全退出', 'info');
 }
+
+// 绑定退出按钮
+var logoutBtn = document.getElementById('btn-logout');
+if (logoutBtn) logoutBtn.onclick = doLogout;
 
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() {
