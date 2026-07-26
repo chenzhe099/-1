@@ -96,6 +96,8 @@ function renderSection(menuId) {
 // ==================== 仪表盘 渲染 ====================
 
 function renderDashboard() {
+  // 绑定新建任务按钮
+  if (typeof setupFarming === 'function') setupFarming();
   const stats = dataService.getDashboardStats();
 
   // 统计卡片
