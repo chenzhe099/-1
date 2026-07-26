@@ -560,8 +560,11 @@ function renderPermission() {
   }
 }
 
-// 权限管理按钮处理
-document.addEventListener('click', function(e) {
+// 权限管理按钮处理：委托到 permission 区域
+document.addEventListener('DOMContentLoaded', function() {
+  var sec = document.getElementById('permission');
+  if (!sec) return;
+  sec.addEventListener('click', function(e) {
   var btn = e.target.closest('[data-action]');
   if (!btn) return;
   var id = btn.dataset.id;
@@ -622,6 +625,7 @@ document.addEventListener('click', function(e) {
       });
       break;
   }
+  });
 });
 
 function showConfirm(title, body, cb) {
@@ -632,6 +636,8 @@ function showConfirm(title, body, cb) {
   document.getElementById('cf-ok').onclick = function() { overlay.remove(); cb(true); };
   document.getElementById('cf-cancel').onclick = function() { overlay.remove(); cb(false); };
   overlay.onclick = function(e) { if (e.target === overlay) { overlay.remove(); cb(false); } };
+  // 阻止弹窗内点击冒泡触发权限按钮
+  overlay.addEventListener('click', function(e) { e.stopPropagation(); }, true);
 }
 
 // ==================== 全局辅助函数 ====================
