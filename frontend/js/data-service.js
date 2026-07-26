@@ -92,10 +92,21 @@ class DataService {
 
   /** 加载所有数据表 */
   loadAll(dataBundle) {
-    this._tables = dataBundle;
-    this._ready = true;
+    // 合并：保留本地新增但未同步到后端的数据
+    if (this._ready && this._tables) {
+      var self = this;
+      Object.keys(dataBundle).forEach(function(k) {
+        var rows = dataBundle[k] || [];
+        if (!self._tables[k]) self._tables[k] = [];
+        var exist = {};
+        self._tables[k].forEach(function(r){ if(r.id) exist[r.id]=true; });
+        rows.forEach(function(r) { if(!exist[r.id]){ self._tables[k].push(r); exist[r.id]=true; } });
+      });
+    } else {
+      this._tables = dataBundle;
+      this._ready = true;
+    }
     this._buildIndexes();
-    // 加载后保存到 localStorage
     this._saveToLocal();
   }
 
