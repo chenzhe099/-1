@@ -193,6 +193,8 @@ function renderDisease() {
 // ==================== 精准农事 渲染 ====================
 
 function renderFarming() {
+  // 绑定按钮事件
+  if (typeof setupFarming === 'function') setupFarming();
   // 智能灌溉方案
   const irrigations = dataService.getIrrigationPlans();
   const irrContainer = document.getElementById('irrigation-plan-list');
