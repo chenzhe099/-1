@@ -10,7 +10,6 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import transforms, models
 from PIL import Image
-from urllib.request import urlretrieve
 
 # ===== 配置 =====
 BATCH_SIZE = 48
@@ -23,18 +22,29 @@ OUT_DIR = "output"
 DATA_DIR = "data/plantvillage"
 
 # ===== 下载数据集 =====
+#
+# 手动下载地址（任选一个）：
+#  https://zenodo.org/records/15519919/files/plant-disease.zip          (1.4GB, 国际)
+#  https://data.mendeley.com/datasets/tywbtsjrjv/1                     (国际)
+#  https://www.kaggle.com/datasets/emmarex/plantdisease/download        (需翻墙)
+#
+# 下载后放到 training/ 目录下，命名为 plant_disease_dataset.zip，脚本会自动解压。
+# 或者把已解压的类别文件夹放到 training/data/plantvillage/ 下。
+#
+ZIP_FILE = "plant_disease_dataset.zip"
+
 os.makedirs(DATA_DIR, exist_ok=True)
-if not os.listdir(DATA_DIR):
-    # ModelScope 国内镜像（快）
-    URL = "https://modelscope.cn/datasets/OmniData/PlantVillage/resolve/master/data/color.zip"
-    print(f"📥 下载 PlantVillage (约 830MB)...")
-    print(f"   源: ModelScope (国内镜像)")
-    urlretrieve(URL, "plantvillage.zip")
-    print("📦 解压中...")
-    with zipfile.ZipFile("plantvillage.zip", 'r') as zf:
+if not os.listdir(DATA_DIR) and os.path.exists(ZIP_FILE):
+    print(f"📦 解压 {ZIP_FILE}...")
+    with zipfile.ZipFile(ZIP_FILE, 'r') as zf:
         zf.extractall(DATA_DIR)
-    os.remove("plantvillage.zip")
     print(f"✅ 已解压到: {DATA_DIR}")
+elif not os.listdir(DATA_DIR):
+    print(f"⚠️  请手动下载 PlantVillage 数据集")
+    print(f"   地址: https://zenodo.org/records/15519919/files/plant-disease.zip")
+    print(f"   放到: {os.path.abspath(ZIP_FILE)}")
+    print(f"   然后重新运行 python train.py")
+    exit(1)
 
 # ===== 扫描图片 =====
 images, labels = [], []
