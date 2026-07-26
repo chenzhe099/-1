@@ -601,35 +601,40 @@ window.permEditRole = function(id) {
   });
 };
 window.permAddUser = function() {
-  var rls = (dataService.getAll('roles')||[]).map(function(r){return '<option value="'+r.id+'">'+r.name+'</option>';}).join('');
-  showConfirm('添加用户', '<div class="space-y-3"><div><label class="text-xs text-gray-500">用户名</label><input id="au-un" class="w-full px-3 py-2 border rounded text-sm" placeholder="英文用户名"></div><div><label class="text-xs text-gray-500">姓名</label><input id="au-nm" class="w-full px-3 py-2 border rounded text-sm" placeholder="中文姓名"></div><div><label class="text-xs text-gray-500">角色</label><select id="au-rl" class="w-full px-3 py-2 border rounded text-sm">'+rls+'</select></div></div>', function(ok) {
-    if (!ok) return;
-    var un=document.getElementById('au-un').value.trim(),nm=document.getElementById('au-nm').value.trim();
-    if(!un||!nm){showToast('请填写完整','error');return;}
-    dataService.insert('users',{id:'u'+Math.floor(Math.random()*9000+1000),username:un,displayName:nm,role:document.getElementById('au-rl').value,status:'active',password:'123456',createdAt:new Date().toISOString()});
-    renderPermission(); showToast('用户添加成功','success');
-  });
+  try {
+    var rls = (dataService.getAll('roles')||[]).map(function(r){return '<option value="'+r.id+'">'+r.name+'</option>';}).join('');
+    showConfirm('添加用户', '<div class="space-y-3"><div><label class="text-xs text-gray-500">用户名</label><input id="au-un" class="w-full px-3 py-2 border rounded text-sm" placeholder="英文用户名"></div><div><label class="text-xs text-gray-500">姓名</label><input id="au-nm" class="w-full px-3 py-2 border rounded text-sm" placeholder="中文姓名"></div><div><label class="text-xs text-gray-500">角色</label><select id="au-rl" class="w-full px-3 py-2 border rounded text-sm">'+rls+'</select></div></div>', function(ok) {
+      if (!ok) return;
+      var un=document.getElementById('au-un').value.trim(),nm=document.getElementById('au-nm').value.trim();
+      if(!un||!nm){showToast('请填写完整','error');return;}
+      dataService.insert('users',{id:'u'+Math.floor(Math.random()*9000+1000),username:un,displayName:nm,role:document.getElementById('au-rl').value,status:'active',password:'123456',createdAt:new Date().toISOString()});
+      renderPermission(); showToast('用户添加成功','success');
+    });
+  } catch(e) { console.error('permAddUser err:', e); showToast('操作失败：' + e.message, 'error'); }
 };
 window.permAddRole = function() {
-  showConfirm('添加角色', '<div class="space-y-3"><div><label class="text-xs text-gray-500">角色ID</label><input id="ar-id" class="w-full px-3 py-2 border rounded text-sm" placeholder="custom_role"></div><div><label class="text-xs text-gray-500">角色名称</label><input id="ar-nm" class="w-full px-3 py-2 border rounded text-sm" placeholder="新角色"></div><div><label class="text-xs text-gray-500">描述</label><input id="ar-ds" class="w-full px-3 py-2 border rounded text-sm" placeholder="角色描述"></div></div>', function(ok) {
-    if (!ok) return;
-    var rid=document.getElementById('ar-id').value.trim();
-    if(!rid){showToast('请输入角色ID','error');return;}
-    dataService.insert('roles',{id:rid,name:document.getElementById('ar-nm').value,nameEn:rid,description:document.getElementById('ar-ds').value,permissions:'{}'});
-    renderPermission(); showToast('角色添加成功','success');
-  });
+  try {
+    showConfirm('添加角色', '<div class="space-y-3"><div><label class="text-xs text-gray-500">角色ID</label><input id="ar-id" class="w-full px-3 py-2 border rounded text-sm" placeholder="custom_role"></div><div><label class="text-xs text-gray-500">角色名称</label><input id="ar-nm" class="w-full px-3 py-2 border rounded text-sm" placeholder="新角色"></div><div><label class="text-xs text-gray-500">描述</label><input id="ar-ds" class="w-full px-3 py-2 border rounded text-sm" placeholder="角色描述"></div></div>', function(ok) {
+      if (!ok) return;
+      var rid=document.getElementById('ar-id').value.trim();
+      if(!rid){showToast('请输入角色ID','error');return;}
+      dataService.insert('roles',{id:rid,name:document.getElementById('ar-nm').value,nameEn:rid,description:document.getElementById('ar-ds').value,permissions:'{}'});
+      renderPermission(); showToast('角色添加成功','success');
+    });
+  } catch(e) { console.error('permAddRole err:', e); showToast('操作失败：' + e.message, 'error'); }
 };
 
 function showConfirm(title, body, cb) {
+  // 移除已有弹窗，防止叠加
+  document.querySelectorAll('.perm-modal').forEach(function(m){m.remove();});
   var overlay = document.createElement('div');
-  overlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+  overlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center perm-modal';
   overlay.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"><h3 class="text-lg font-semibold mb-4">'+title+'</h3><div class="mb-4">'+body+'</div><div class="flex justify-end gap-3"><button id="cf-cancel" class="px-4 py-2 border rounded-lg text-sm">取消</button><button id="cf-ok" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm">确定</button></div></div>';
   document.body.appendChild(overlay);
-  document.getElementById('cf-ok').onclick = function() { overlay.remove(); cb(true); };
-  document.getElementById('cf-cancel').onclick = function() { overlay.remove(); cb(false); };
-  overlay.onclick = function(e) { if (e.target === overlay) { overlay.remove(); cb(false); } };
-  // 阻止弹窗内点击冒泡触发权限按钮
-  overlay.addEventListener('click', function(e) { e.stopPropagation(); }, true);
+  var close = function(val) { overlay.remove(); cb(val); };
+  document.getElementById('cf-ok').onclick = function(e) { e.stopPropagation(); close(true); };
+  document.getElementById('cf-cancel').onclick = function(e) { e.stopPropagation(); close(false); };
+  overlay.onclick = function(e) { if (e.target === overlay) { close(false); } };
 }
 
 // ==================== 全局辅助函数 ====================
