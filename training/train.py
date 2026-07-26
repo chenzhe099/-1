@@ -1,121 +1,137 @@
 """
-植物病害分类训练脚本 — MobileNetV3-Small + PlantVillage
-- GPU: RTX 4060 8GB (CUDA)
-- 模型输出: models/plant_disease_model.pth
-- 类别映射: models/class_names.json
+植物病害分类训练 — MobileNetV3 + PlantVillage (自动下载)
+- 首次运行自动下载数据集 (~830MB)
 """
-import os, json, time
-import torch
-import torch.nn as nn
-import torch.optim as optim
+import json, time
+import torch, torch.nn as nn, torch.optim as optim
 from tqdm import tqdm
-from torch.utils.data import DataLoader, random_split
-from torchvision import datasets, transforms, models
+from torch.utils.data import DataLoader, SubsetRandomSampler
+from torchvision import transforms, models
+import numpy as np
 
 # ===== 配置 =====
-DATA_DIR = "data/plantvillage"          # 解压后的数据集目录
-OUT_DIR = "output"
-BATCH_SIZE = 64                         # RTX 4060 8GB 推荐 64-128
+BATCH_SIZE = 48
 EPOCHS = 30
-LEARNING_RATE = 0.001
+LR = 0.001
 IMAGE_SIZE = 224
-NUM_WORKERS = 4
 VAL_SPLIT = 0.15
+SEED = 42
+OUT_DIR = "output"
 
-os.makedirs(OUT_DIR, exist_ok=True)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"🔧 使用设备: {device}")
+# 用 torchvision 内置 PlantVillage 数据集（自动下载）
+from torchvision.datasets import PlantVillage
+print("📦 加载 PlantVillage 数据集（首次运行自动下载，约 830MB）...")
+full_dataset = PlantVillage(
+    root="data",
+    split="train",
+    transform=transforms.Compose([
+        transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+        transforms.ToTensor(),
+    ]),
+    download=True,
+)
 
-# ===== 数据预处理 =====
+class_names = full_dataset.classes
+print(f" 类别: {len(class_names)} 种")
+for i, name in enumerate(class_names):
+    print(f"  {i+1:2d}. {name}")
+
+# 分层划分训练/验证集
+np.random.seed(SEED)
+indices = np.random.permutation(len(full_dataset))
+val_size = int(len(full_dataset) * VAL_SPLIT)
+train_idx, val_idx = indices[val_size:], indices[:val_size]
+
+# 数据增强
 train_transform = transforms.Compose([
     transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.7, 1.0)),
-    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomHorizontalFlip(0.5),
     transforms.RandomRotation(15),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+    transforms.ColorJitter(0.2, 0.2, 0.2),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 ])
-
 val_transform = transforms.Compose([
     transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 ])
 
-# ===== 加载数据 =====
-print("📦 加载数据集...")
-full_dataset = datasets.ImageFolder(DATA_DIR, transform=train_transform)
-val_size = int(len(full_dataset) * VAL_SPLIT)
-train_size = len(full_dataset) - val_size
-train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
-val_dataset.dataset.transform = val_transform  # 验证集用无增强的 transform
+class TransformedSubset(torch.utils.data.Dataset):
+    def __init__(self, dataset, indices, transform):
+        self.dataset = dataset
+        self.indices = indices
+        self.transform = transform
+    def __len__(self): return len(self.indices)
+    def __getitem__(self, i):
+        img, label = self.dataset[self.indices[i]]
+        return self.transform(img), label
 
-train_loader = DataLoader(train_dataset, BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
-val_loader = DataLoader(val_dataset, BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
+train_dataset = TransformedSubset(full_dataset, train_idx, train_transform)
+val_dataset = TransformedSubset(full_dataset, val_idx, val_transform)
 
-class_names = full_dataset.classes
-print(f" 类别数: {len(class_names)}")
-print(f" 训练集: {train_size} 张")
-print(f" 验证集: {val_size} 张")
+train_loader = DataLoader(train_dataset, BATCH_SIZE, shuffle=True, num_workers=4, pin_memory=True)
+val_loader = DataLoader(val_dataset, BATCH_SIZE, num_workers=4, pin_memory=True)
 
-with open(f"{OUT_DIR}/class_names.json", "w", encoding="utf-8") as f:
-    json.dump(class_names, f, ensure_ascii=False, indent=2)
+print(f" 训练: {len(train_dataset)} 张 | 验证: {len(val_dataset)} 张\n")
 
 # ===== 模型 =====
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"🔧 设备: {device}")
 model = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1)
 model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, len(class_names))
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+optimizer = optim.Adam(model.parameters(), lr=LR)
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
 
+# 保存类别
+import os; os.makedirs(OUT_DIR, exist_ok=True)
+with open(f"{OUT_DIR}/class_names.json", "w", encoding="utf-8") as f:
+    json.dump(class_names, f, ensure_ascii=False, indent=2)
+
 # ===== 训练 =====
-print(f"\n🚀 开始训练 ({EPOCHS} epochs)...")
-best_acc = 0.0
-total_time = 0
+print(f"🚀 开始训练 ({EPOCHS} epochs)...")
+best_acc, total_time = 0.0, 0
 for epoch in range(EPOCHS):
     t0 = time.time()
     model.train()
-    train_loss, train_correct = 0, 0
-    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS} [训练]", unit="batch", leave=False)
-    for images, labels in pbar:
-        images, labels = images.to(device), labels.to(device)
+    tl, tc = 0, 0
+    pbar = tqdm(train_loader, desc=f"Ep {epoch+1}/{EPOCHS} [训练]", leave=False, ncols=100)
+    for img, lbl in pbar:
+        img, lbl = img.to(device), lbl.to(device)
         optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+        out = model(img)
+        loss = criterion(out, lbl)
         loss.backward()
         optimizer.step()
-        train_loss += loss.item()
-        train_correct += (outputs.argmax(1) == labels).sum().item()
-        pbar.set_postfix(loss=f"{loss.item():.3f}", acc=f"{100*train_correct/((pbar.n or 1)*BATCH_SIZE):.1f}%")
+        tl += loss.item()
+        tc += (out.argmax(1) == lbl).sum().item()
+        pbar.set_postfix(loss=f"{loss.item():.3f}")
 
-    # 验证
     model.eval()
-    val_loss, val_correct = 0, 0
+    vl, vc = 0, 0
+    pbar_v = tqdm(val_loader, desc=f"Ep {epoch+1}/{EPOCHS} [验证]", leave=False, ncols=100)
     with torch.no_grad():
-        pbar_val = tqdm(val_loader, desc=f"Epoch {epoch+1}/{EPOCHS} [验证]", unit="batch", leave=False)
-        for images, labels in pbar_val:
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            val_loss += criterion(outputs, labels).item()
-            val_correct += (outputs.argmax(1) == labels).sum().item()
+        for img, lbl in pbar_v:
+            img, lbl = img.to(device), lbl.to(device)
+            out = model(img)
+            vl += criterion(out, lbl).item()
+            vc += (out.argmax(1) == lbl).sum().item()
 
     scheduler.step()
-    elapsed = time.time() - t0
-    total_time += elapsed
-    train_acc = 100 * train_correct / train_size
-    val_acc = 100 * val_correct / val_size
+    dt = time.time() - t0
+    total_time += dt
+    ta = 100 * tc / len(train_dataset)
+    va = 100 * vc / len(val_dataset)
+    print(f"Ep {epoch+1:2d} | loss {tl/len(train_loader):.3f}→{vl/len(val_loader):.3f} | "
+          f"acc {ta:.1f}%→{va:.1f}% | {dt:.0f}s")
 
-    print(f"Epoch {epoch+1:2d}/{EPOCHS} | "
-          f"train: {train_loss/len(train_loader):.3f} {train_acc:.1f}% | "
-          f"val: {val_loss/len(val_loader):.3f} {val_acc:.1f}% | {elapsed:.0f}s")
-
-    if val_acc > best_acc:
-        best_acc = val_acc
+    if va > best_acc:
+        best_acc = va
         torch.save(model.state_dict(), f"{OUT_DIR}/plant_disease_model.pth")
-        print(f"  ✅ 保存最佳模型 (val_acc={val_acc:.1f}%)")
+        print(f"  ✅ 最佳: {va:.1f}%")
 
-print(f"\n✅ 训练完成! 最佳准确率: {best_acc:.1f}% | 总用时: {total_time:.0f}s ({total_time/60:.1f}min)")
-print(f"模型: {OUT_DIR}/plant_disease_model.pth")
-print(f"类别: {OUT_DIR}/class_names.json")
+print(f"\n✅ 完成! 最佳准确率: {best_acc:.1f}% | 用时: {total_time/60:.0f}min")
+print(f"📁 {OUT_DIR}/plant_disease_model.pth")
