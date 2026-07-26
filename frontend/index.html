@@ -2315,17 +2315,28 @@
         document.body.insertAdjacentHTML('beforeend', html);
         var errDiv = document.getElementById('login-error');
         document.getElementById('login-cancel').onclick = function() { window._closeLogin(); };
+        document.getElementById('login-pass').onkeydown = function(e) { if (e.key==='Enter') document.getElementById('login-ok').click(); };
         document.getElementById('login-ok').onclick = function() {
             var un = document.getElementById('login-user').value.trim();
             var pw = document.getElementById('login-pass').value;
             if (!un||!pw) { errDiv.textContent='请输入用户名和密码'; errDiv.classList.remove('hidden'); return; }
+            // 从 dataService 获取用户列表，必要时用硬编码兜底
             var users = [];
-            try { if (typeof dataService !== 'undefined' && dataService.isReady()) { users = dataService.getAll('users') || []; } } catch(e) {}
+            try { if (typeof dataService !== 'undefined' && dataService.isReady && dataService.isReady()) { users = dataService.getAll('users') || []; } } catch(e) { console.warn('dataService 获取用户失败:', e); }
+            if (!users.length) {
+                // 硬编码兜底（数据库还没加载时）
+                users = [
+                    {id:'u001',username:'admin',displayName:'管理员',role:'admin',status:'active',password:'123456'},
+                    {id:'u002',username:'zhang_tech',displayName:'张技术员',role:'technician',status:'active',password:'123456'},
+                    {id:'u003',username:'li_farmer',displayName:'李农户',role:'farmer',status:'active',password:'123456'},
+                    {id:'u007',username:'zhou_manager',displayName:'周管理员',role:'manager',status:'active',password:'123456'},
+                ];
+            }
             var found = null;
             for (var i=0;i<users.length;i++) {
                 if (users[i].username===un && (users[i].password===pw || users[i].passwordHash===pw)) { found=users[i]; break; }
             }
-            if (!found) { errDiv.textContent='用户名或密码错误'; errDiv.classList.remove('hidden'); return; }
+            if (!found) { errDiv.textContent='用户名或密码错误(数据库有'+users.length+'个用户)'; errDiv.classList.remove('hidden'); return; }
             if (found.status==='disabled') { errDiv.textContent='该账号已被禁用'; errDiv.classList.remove('hidden'); return; }
             window._closeLogin();
             window._setLoggedIn(found);
