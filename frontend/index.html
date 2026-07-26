@@ -1222,282 +1222,43 @@
                 </section>
 
                 <section id="devices" class="space-y-6 hidden">
-                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">设备总数</p>
-                                    <p class="text-2xl font-bold text-gray-800 mt-1">45台</p>
-                                </div>
-                                <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-cog text-gray-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">在线设备</p>
-                                    <p class="text-2xl font-bold text-green-600 mt-1">42台</p>
-                                </div>
-                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-check-circle text-green-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">故障设备</p>
-                                    <p class="text-2xl font-bold text-red-600 mt-1">2台</p>
-                                </div>
-                                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-exclamation-circle text-red-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-500">待维护</p>
-                                    <p class="text-2xl font-bold text-yellow-600 mt-1">5台</p>
-                                </div>
-                                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                                    <i class="fa fa-wrench text-yellow-600 text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- 统计卡片 -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="dev-stats">
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="flex items-start justify-between"><div><p class="text-sm text-gray-500">设备总数</p><p class="text-2xl font-bold text-gray-800 mt-1" id="stat-dev-total">--</p></div><div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><i class="fa fa-cog text-gray-600 text-xl"></i></div></div></div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="flex items-start justify-between"><div><p class="text-sm text-gray-500">在线设备</p><p class="text-2xl font-bold text-green-600 mt-1" id="stat-dev-online">--</p></div><div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center"><i class="fa fa-check-circle text-green-600 text-xl"></i></div></div></div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="flex items-start justify-between"><div><p class="text-sm text-gray-500">故障设备</p><p class="text-2xl font-bold text-red-600 mt-1" id="stat-dev-fault">--</p></div><div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center"><i class="fa fa-exclamation-circle text-red-600 text-xl"></i></div></div></div>
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100"><div class="flex items-start justify-between"><div><p class="text-sm text-gray-500">待维护</p><p class="text-2xl font-bold text-yellow-600 mt-1" id="stat-dev-maint">--</p></div><div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center"><i class="fa fa-wrench text-yellow-600 text-xl"></i></div></div></div>
                     </div>
 
+                    <!-- 设备网格 + 远程控制 -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="font-semibold text-gray-800">设备状态监控</h3>
-                                <div class="flex items-center space-x-2">
-                                    <span class="flex items-center">
-                                        <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                                        <span class="text-xs text-gray-600">在线</span>
-                                    </span>
-                                    <span class="flex items-center">
-                                        <span class="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                                        <span class="text-xs text-gray-600">离线</span>
-                                    </span>
-                                    <span class="flex items-center">
-                                        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-1"></span>
-                                        <span class="text-xs text-gray-600">故障</span>
-                                    </span>
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center space-x-2"><span class="w-2 h-2 bg-green-500 rounded-full"></span><span class="text-xs text-gray-500">在线</span><span class="w-2 h-2 bg-red-500 rounded-full ml-2"></span><span class="text-xs text-gray-500">离线</span><span class="w-2 h-2 bg-yellow-500 rounded-full ml-2"></span><span class="text-xs text-gray-500">故障</span></div>
+                                    <button onclick="devAddDevice()" class="px-3 py-1.5 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600"><i class="fa fa-plus mr-1"></i>添加设备</button>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="device-grid">
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">灌溉泵 #1</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 流量: 12m³/h</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors" data-action="device-control" data-id="dev_01">远程控制</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="device-detail" data-id="dev_01">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">智能施肥机 #1</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 已施肥: 25kg</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors" data-action="device-control" data-id="dev_02">远程控制</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="device-detail" data-id="dev_02">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">灌溉泵 #3</span>
-                                        <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">故障 · 需维护</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-yellow-100 text-yellow-600 text-xs rounded hover:bg-yellow-200 transition-colors" data-action="device-report" data-id="dev_03">报修</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="device-detail" data-id="dev_03">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">环境监测站 #1</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 温湿度监测</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors" data-action="device-detail" data-id="dev_04">查看数据</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="device-detail" data-id="dev_04">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-red-50 rounded-lg border border-red-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">气象站 #2</span>
-                                        <span class="w-2 h-2 bg-red-500 rounded-full"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">离线 · 通讯中断</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-red-100 text-red-600 text-xs rounded hover:bg-red-200 transition-colors" data-action="device-restart" data-id="dev_05">重启设备</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="device-detail" data-id="dev_05">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">智能温室控制</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 温度: 25°C</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors" data-action="device-control" data-id="dev_06">远程控制</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="device-detail" data-id="dev_06">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">土壤传感器 #1</span>
-                                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">运行中 · 湿度: 65%</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors" data-action="device-detail" data-id="dev_07">查看数据</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="device-detail" data-id="dev_07">查看详情</button>
-                                    </div>
-                                </div>
-                                <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-100 hover:shadow-md transition-shadow">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">智能施肥机 #2</span>
-                                        <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-500">待机 · 等待任务</p>
-                                    <div class="mt-2 space-y-1">
-                                        <button class="w-full py-1.5 bg-yellow-100 text-yellow-600 text-xs rounded hover:bg-yellow-200 transition-colors" data-action="device-start" data-id="dev_08">启动任务</button>
-                                        <button class="w-full py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="device-detail" data-id="dev_08">查看详情</button>
-                                    </div>
-                                </div>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" id="device-grid"></div>
+                            <div class="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+                                <button onclick="devRefreshAll()" class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"><i class="fa fa-refresh mr-1"></i>刷新状态</button>
+                                <button onclick="devEmergencyStop()" class="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"><i class="fa fa-power-off mr-1"></i>一键停止</button>
                             </div>
                         </div>
-
-                    <div class="flex space-x-2 mt-4">
-                        <button class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors" data-action="device-trend">查看趋势</button>
-                        <button class="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors" data-action="emergency-stop">一键停止</button>
-                    </div>
 
                         <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                             <h3 class="font-semibold text-gray-800 mb-4">远程控制</h3>
-                            <div class="space-y-3">
-                                <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">灌溉系统</span>
-                                        <button class="w-12 h-6 bg-green-500 rounded-full relative toggle-btn"><span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></span></button>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <button class="py-1.5 bg-blue-100 text-blue-600 text-xs rounded hover:bg-blue-200 transition-colors" data-action="quick-control" data-label="启动灌溉">启动灌溉</button>
-                                        <button class="py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="quick-control" data-label="停止灌溉">停止灌溉</button>
-                                    </div>
-                                    <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
-                                        <span>下次灌溉: 10:00</span>
-                                        <span>目标湿度: 65%</span>
-                                    </div>
-                                </div>
-                                <div class="p-3 bg-green-50 rounded-lg border border-green-100">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">施肥系统</span>
-                                        <button class="w-12 h-6 bg-gray-300 rounded-full relative toggle-btn"><span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full"></span></button>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <button class="py-1.5 bg-green-100 text-green-600 text-xs rounded hover:bg-green-200 transition-colors" data-action="quick-control" data-label="开始施肥">开始施肥</button>
-                                        <button class="py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="quick-control" data-label="取消任务">取消任务</button>
-                                    </div>
-                                    <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
-                                        <span>待执行任务: 1</span>
-                                        <span>地块B1</span>
-                                    </div>
-                                </div>
-                                <div class="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">温室调节</span>
-                                        <button class="w-12 h-6 bg-green-500 rounded-full relative toggle-btn"><span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></span></button>
-                                    </div>
-                                    <div class="grid grid-cols-3 gap-2 mt-2">
-                                        <button class="py-1.5 bg-purple-100 text-purple-600 text-xs rounded hover:bg-purple-200 transition-colors" data-action="quick-control" data-label="温室 +1°C">+1°C</button>
-                                        <button class="py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="quick-control" data-label="温室设定 25°C">25°C</button>
-                                        <button class="py-1.5 bg-purple-100 text-purple-600 text-xs rounded hover:bg-purple-200 transition-colors" data-action="quick-control" data-label="温室 -1°C">-1°C</button>
-                                    </div>
-                                </div>
-                                <div class="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-800">通风系统</span>
-                                        <button class="w-12 h-6 bg-green-500 rounded-full relative toggle-btn"><span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></span></button>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <button class="py-1.5 bg-orange-100 text-orange-600 text-xs rounded hover:bg-orange-200 transition-colors" data-action="quick-control" data-label="打开通风">打开通风</button>
-                                        <button class="py-1.5 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 transition-colors" data-action="quick-control" data-label="关闭通风">关闭通风</button>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="space-y-3" id="remote-control-list"></div>
                         </div>
                     </div>
 
+                    <!-- 维护计划 -->
                     <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                         <h3 class="font-semibold text-gray-800 mb-4">设备维护计划</h3>
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            <div class="space-y-3">
-                                <h4 class="text-sm font-medium text-gray-700">待维护设备</h4>
-                                <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fa fa-wrench text-yellow-600"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-800">灌溉泵 #3</p>
-                                            <p class="text-xs text-gray-500">已运行 3200小时</p>
-                                        </div>
-                                    </div>
-                                    <button class="px-3 py-1.5 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600 transition-colors" data-action="maintenance-schedule" data-name="灌溉泵 #3">安排维护</button>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fa fa-wrench text-yellow-600"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-800">智能施肥机 #1</p>
-                                            <p class="text-xs text-gray-500">已运行 2800小时</p>
-                                        </div>
-                                    </div>
-                                    <button class="px-3 py-1.5 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600 transition-colors" data-action="maintenance-schedule" data-name="智能施肥机 #1">安排维护</button>
-                                </div>
-                            </div>
-                            <div class="space-y-3">
-                                <h4 class="text-sm font-medium text-gray-700">近期维护记录</h4>
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fa fa-check-circle text-green-600"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-800">环境监测站 #1</p>
-                                            <p class="text-xs text-gray-500">2024-01-10 · 传感器校准</p>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">已完成</span>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fa fa-check-circle text-green-600"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-800">灌溉泵 #2</p>
-                                            <p class="text-xs text-gray-500">2024-01-05 · 水泵检修</p>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">已完成</span>
-                                </div>
-                            </div>
+                            <div><h4 class="text-sm font-medium text-gray-700 mb-3">待维护设备</h4><div class="space-y-2" id="maint-pending"></div></div>
+                            <div><h4 class="text-sm font-medium text-gray-700 mb-3">近期维护记录</h4><div class="space-y-2" id="maint-history"></div></div>
                         </div>
                     </div>
                 </section>

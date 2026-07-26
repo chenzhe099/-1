@@ -384,54 +384,80 @@ function renderManagement() {
 // ==================== 设备监控 渲染 ====================
 
 function renderDevices() {
-  // 设备统计
-  const summary = dataService.getDeviceStatusSummary();
-  const statEls = document.querySelectorAll('#devices .bg-white.rounded-xl.p-5 .text-2xl');
-  if (statEls.length >= 4) {
-    statEls[0].textContent = summary.total + '台';
-    statEls[1].textContent = summary.online + '台';
-    statEls[2].textContent = summary.fault + '台';
-    statEls[3].textContent = summary.maintenance + '台';
+  var devices = (dataService.getAll('devices') || []).map(function(d) {
+    d.metricsParsed = (typeof d.metrics === 'string') ? (function(){try{return JSON.parse(d.metrics);}catch(e){return {};}})() : (d.metrics || {});
+    return d;
+  });
+
+  // === 统计 ===
+  var online = devices.filter(function(d){return d.status==='online';}).length;
+  var fault = devices.filter(function(d){return d.status==='fault';}).length;
+  var offline = devices.filter(function(d){return d.status==='offline';}).length;
+  var maintenance = devices.filter(function(d){return d.status==='maintenance';}).length;
+  setText('stat-dev-total', devices.length+'台');
+  setText('stat-dev-online', online+'台');
+  setText('stat-dev-fault', (fault+offline)+'台');
+  setText('stat-dev-maint', maintenance+'台');
+
+  // === 设备网格 ===
+  var grid = document.getElementById('device-grid');
+  if (!grid) return;
+  var stColor = {online:'green', offline:'red', fault:'yellow', maintenance:'yellow'};
+  var stLabel = {online:'运行中', offline:'已离线', fault:'故障', maintenance:'待维护'};
+  var iconMap = {pump:'fa-tint', fertilizer:'fa-flask', sensor:'fa-microchip', weather:'fa-cloud', greenhouse:'fa-home'};
+
+  grid.innerHTML = devices.map(function(d) {
+    var sc = stColor[d.status]||'gray';
+    var pulse = d.status==='online' ? '<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1"></span>' : '';
+    var m = d.metricsParsed;
+    var info = [];
+    if (m.currentTask) info.push(m.currentTask);
+    if (m.temperature) info.push(m.temperature);
+    if (m.flow) info.push('流量:'+m.flow);
+    if (m.fertilized) info.push('已施:'+m.fertilized);
+    if (m.moisture) info.push('湿度:'+m.moisture);
+    if (m.error) info.push('<span class="text-red-500">'+m.error+'</span>');
+    if (!info.length) info.push(d.location||'--');
+    var actionBtn = '';
+    if (d.status==='online') actionBtn = '<button onclick="devControl(\''+d.id+'\')" class="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100">远程控制</button>';
+    else if (d.status==='fault') actionBtn = '<button onclick="devReport(\''+d.id+'\')" class="px-2 py-1 text-xs bg-yellow-100 text-yellow-600 rounded hover:bg-yellow-200">报修</button>';
+    else if (d.status==='offline') actionBtn = '<button onclick="devRestart(\''+d.id+'\')" class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200">重启</button>';
+    else actionBtn = '<button onclick="devStart(\''+d.id+'\')" class="px-2 py-1 text-xs bg-yellow-100 text-yellow-600 rounded hover:bg-yellow-200">启动</button>';
+    return '<div class="p-3 bg-'+sc+'-50 rounded-lg border border-'+sc+'-100 hover:shadow-md transition-shadow"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-gray-800 truncate">'+d.name+'</span>'+pulse+'</div><p class="text-xs text-gray-500 mb-2">'+info.join(' · ')+'</p><div class="flex gap-1">'+actionBtn+'<button onclick="devDetail(\''+d.id+'\')" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200">详情</button></div></div>';
+  }).join('');
+
+  // === 远程控制面板 ===
+  var rc = document.getElementById('remote-control-list');
+  if (rc) {
+    var controls = [
+      {sys:'灌溉系统', icon:'fa-tint', color:'blue', toggle:online>0, info:'在线设备 '+online+' 台', btns:[{label:'启动全部',cls:'bg-blue-100 text-blue-600'},{label:'停止全部',cls:'bg-gray-100 text-gray-600'}]},
+      {sys:'施肥系统', icon:'fa-flask', color:'green', toggle:false, info:'待执行任务: 2', btns:[{label:'开始施肥',cls:'bg-green-100 text-green-600'},{label:'取消任务',cls:'bg-gray-100 text-gray-600'}]},
+      {sys:'温室调节', icon:'fa-home', color:'purple', toggle:true, info:'当前温度: 25°C', btns:[{label:'+1°C',cls:'bg-purple-100 text-purple-600'},{label:'25°C',cls:'bg-gray-100 text-gray-600'},{label:'-1°C',cls:'bg-purple-100 text-purple-600'}]},
+      {sys:'通风系统', icon:'fa-wind', color:'orange', toggle:true, info:'通风口 30%', btns:[{label:'打开',cls:'bg-orange-100 text-orange-600'},{label:'关闭',cls:'bg-gray-100 text-gray-600'}]}
+    ];
+    rc.innerHTML = controls.map(function(ctl, i) {
+      var tgCls = ctl.toggle ? 'bg-green-500' : 'bg-gray-300';
+      var tgBall = ctl.toggle ? 'right-1' : 'left-1';
+      var btns = ctl.btns.map(function(b){return '<button onclick="devQuickCtrl(\''+ctl.sys+'\',\''+b.label+'\')" class="py-1.5 '+b.cls+' text-xs rounded hover:opacity-80 transition-opacity">'+b.label+'</button>';}).join('');
+      return '<div class="p-3 bg-'+ctl.color+'-50 rounded-lg border border-'+ctl.color+'-100"><div class="flex items-center justify-between mb-2"><span class="text-sm font-medium text-gray-800"><i class="fa '+ctl.icon+' mr-1 text-'+ctl.color+'-500"></i>'+ctl.sys+'</span><button class="w-11 h-6 '+tgCls+' rounded-full relative" onclick="var b=this;var on=b.classList.contains(\'bg-green-500\');if(on){b.classList.replace(\'bg-green-500\',\'bg-gray-300\');b.querySelector(\'span\').classList.replace(\'right-1\',\'left-1\');}else{b.classList.replace(\'bg-gray-300\',\'bg-green-500\');b.querySelector(\'span\').classList.replace(\'left-1\',\'right-1\');}"><span class="absolute top-0.5 '+tgBall+' w-5 h-5 bg-white rounded-full shadow transition-all"></span></button></div><div class="grid gap-2" style="grid-template-columns:repeat('+ctl.btns.length+',1fr)">'+btns+'</div><p class="mt-2 text-xs text-gray-500">'+ctl.info+'</p></div>';
+    }).join('');
   }
 
-  // 设备列表 - find by looking for section with device cards
-  const section = document.getElementById('devices');
-  // Use existing structure, update statuses
-  renderDeviceList(section);
-}
-
-function renderDeviceList(section) {
-  // This updates the existing device cards with data-driven content
-  const devices = dataService.getDeviceList();
-  const container = document.getElementById('device-grid');
-  if (!container) return;
-
-  container.innerHTML = devices.map(d => {
-    const sc = statusColor(d.status);
-    const pulseHTML = d.status === 'online' ? '<span class="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>' : '';
-    const metricsHTML = d.metrics ? Object.entries(d.metrics).filter(([k]) => k !== 'unit').map(([k, v]) => {
-      if (k === 'currentTask' || k === 'nextTask' || k === 'error') return '';
-      return `<span class="text-xs text-gray-500">${k}: ${v || '--'}</span>`;
-    }).join('') : '';
-
-    return `
-      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 relative">
-        ${pulseHTML}
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-medium text-sm text-gray-800">${d.name}</span>
-          <span class="px-2 py-1 text-xs bg-${sc}-100 text-${sc}-600 rounded">${statusLabel(d.status)}</span>
-        </div>
-        <div class="text-xs text-gray-500 space-y-1">
-          ${d.metrics?.currentTask ? `<p>当前: ${d.metrics.currentTask}</p>` : ''}
-          ${d.metrics?.error ? `<p class="text-red-500">${d.metrics.error}</p>` : ''}
-          <p>运行: ${d.runHours}小时 · 固件 ${d.firmwareVersion}</p>
-        </div>
-        <div class="mt-3 flex space-x-2">
-          <button class="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 btn-device-control" data-action="device-control" data-id="${d.id}">远程控制</button>
-          <button class="px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 btn-device-detail" data-action="device-detail" data-id="${d.id}">查看详情</button>
-        </div>
-      </div>`;
-  }).join('');
+  // === 维护计划 ===
+  var maintPending = document.getElementById('maint-pending');
+  var maintHistory = document.getElementById('maint-history');
+  var needMaint = devices.filter(function(d){return d.status==='fault' || d.status==='maintenance';});
+  if (maintPending) {
+    if (needMaint.length) {
+      maintPending.innerHTML = needMaint.map(function(d){return '<div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg"><div class="flex items-center"><div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3"><i class="fa fa-wrench text-yellow-600"></i></div><div><p class="text-sm font-medium">'+d.name+'</p><p class="text-xs text-gray-500">运行 '+d.runHours+' 小时 · '+d.location+'</p></div></div><button onclick="devScheduleMaint(\''+d.id+'\')" class="px-3 py-1.5 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600">安排维护</button></div>';}).join('');
+    } else {
+      maintPending.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">所有设备运行正常</p>';
+    }
+  }
+  if (maintHistory) {
+    var history = devices.slice(0, 3).map(function(d){return '<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"><div class="flex items-center"><div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3"><i class="fa fa-check-circle text-green-600"></i></div><div><p class="text-sm font-medium">'+d.name+'</p><p class="text-xs text-gray-500">'+d.lastMaintenance+' · 定期维护</p></div></div><span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">已完成</span></div>';}).join('');
+    maintHistory.innerHTML = history;
+  }
 }
 
 // ==================== 溯源管理 渲染 ====================
@@ -629,6 +655,99 @@ window.permAddRole = function() {
       renderPermission(); showToast('角色添加成功','success');
     });
   } catch(e) { console.error('permAddRole err:', e); showToast('操作失败：' + e.message, 'error'); }
+};
+
+// ==================== 设备监管交互 ====================
+window.devDetail = function(id) {
+  var d = dataService.getById('devices', id);
+  if (!d) { showToast('设备不存在', 'error'); return; }
+  var m = (typeof d.metrics==='string') ? (function(){try{return JSON.parse(d.metrics);}catch(e){return {};}})() : (d.metrics||{});
+  var st = {online:'<span class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded">运行中</span>',offline:'<span class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded">已离线</span>',fault:'<span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-600 rounded">故障</span>',maintenance:'<span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-600 rounded">待维护</span>'};
+  var tp = {pump:'水泵',fertilizer:'施肥机',sensor:'传感器',weather:'气象站',greenhouse:'温控'};
+  var h = '<div class="space-y-3"><div class="flex items-center justify-between"><h4 class="font-semibold">'+d.name+'</h4>'+(st[d.status]||'')+'</div>';
+  h += '<div class="grid grid-cols-2 gap-3 text-sm"><div><span class="text-gray-500">类型：</span>'+(tp[d.type]||d.type)+'</div><div><span class="text-gray-500">位置：</span>'+d.location+'</div><div><span class="text-gray-500">IP：</span>'+d.ipAddress+'</div><div><span class="text-gray-500">固件：</span>'+d.firmwareVersion+'</div><div><span class="text-gray-500">运行：</span>'+d.runHours+'小时</div><div><span class="text-gray-500">上次维护：</span>'+d.lastMaintenance+'</div></div>';
+  h += '<div class="bg-gray-50 p-3 rounded text-sm"><p class="font-medium mb-1">实时指标</p>' + Object.entries(m).filter(function(e){return e[0]!=='currentTask';}).map(function(e){return '<div class="flex justify-between"><span class="text-gray-500">'+e[0]+'</span><span>'+e[1]+'</span></div>';}).join('') + '</div>';
+  if (d.nextMaintenance) h += '<p class="text-xs text-gray-400">下次维护：'+d.nextMaintenance+'</p>';
+  h += '</div>';
+  showConfirm('设备详情', h, function(){});
+};
+
+window.devControl = function(id) {
+  var d = dataService.getById('devices', id);
+  showToast('已向 '+d.name+' 发送控制指令', 'info');
+};
+
+window.devReport = function(id) {
+  dataService.update('devices', id, {status:'maintenance'});
+  renderDevices();
+  showToast('已提交报修申请', 'success');
+};
+
+window.devRestart = function(id) {
+  var d = dataService.getById('devices', id);
+  dataService.update('devices', id, {status:'online'});
+  renderDevices();
+  showToast(d.name+' 已重新上线', 'success');
+};
+
+window.devStart = function(id) {
+  var d = dataService.getById('devices', id);
+  dataService.update('devices', id, {status:'online'});
+  renderDevices();
+  showToast(d.name+' 已启动', 'success');
+};
+
+window.devRefreshAll = function() {
+  var devices = dataService.getAll('devices') || [];
+  devices.forEach(function(d) {
+    var r = Math.random();
+    if (d.status==='fault' && r<0.3) dataService.update('devices', d.id, {status:'online'});
+    if (d.status==='online' && r<0.1) dataService.update('devices', d.id, {status:'fault'});
+  });
+  renderDevices();
+  showToast('设备状态已刷新', 'success');
+};
+
+window.devEmergencyStop = function() {
+  showConfirm('紧急停止', '<p class="text-sm text-red-600"><b>⚠️ 确定停止所有运行中的设备吗？</b></p><p class="text-xs text-gray-500 mt-2">这将中断所有灌溉、施肥和温室控制任务。</p>', function(ok) {
+    if (!ok) return;
+    var devices = dataService.getAll('devices')||[];
+    devices.forEach(function(d){ if (d.status==='online') dataService.update('devices', d.id, {status:'maintenance'}); });
+    renderDevices();
+    showToast('所有设备已紧急停止', 'warning');
+  });
+};
+
+window.devQuickCtrl = function(sys, label) {
+  showToast(sys+' → '+label+' | 指令已下发', 'info');
+};
+
+window.devScheduleMaint = function(id) {
+  var d = dataService.getById('devices', id);
+  var today = new Date().toISOString().slice(0,10);
+  dataService.update('devices', id, {lastMaintenance: today, status:'online'});
+  renderDevices();
+  showToast(d.name+' 维护完成，已恢复上线', 'success');
+};
+
+window.devAddDevice = function() {
+  var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">设备名称</label><input id="dea-name" class="w-full px-3 py-2 border rounded text-sm" placeholder="灌溉泵 #2"></div><div><label class="text-xs text-gray-500">类型</label><select id="dea-type" class="w-full px-3 py-2 border rounded text-sm"><option value="pump">水泵</option><option value="fertilizer">施肥机</option><option value="sensor">传感器</option><option value="weather">气象站</option><option value="greenhouse">温控</option></select></div><div><label class="text-xs text-gray-500">位置</label><input id="dea-loc" class="w-full px-3 py-2 border rounded text-sm" placeholder="A区"></div><div><label class="text-xs text-gray-500">IP地址</label><input id="dea-ip" class="w-full px-3 py-2 border rounded text-sm" placeholder="192.168.1.200"></div></div>';
+  showConfirm('添加新设备', h, function(ok) {
+    if (!ok) return;
+    var nm = document.getElementById('dea-name').value.trim();
+    if (!nm) { showToast('请输入设备名称','error'); return; }
+    var id = 'dev_' + Math.floor(Math.random()*9000+1000);
+    dataService.insert('devices', {
+      id: id, name: nm, type: document.getElementById('dea-type').value,
+      location: document.getElementById('dea-loc').value, status:'online',
+      metrics: '{}', runHours: 0,
+      lastMaintenance: new Date().toISOString().slice(0,10),
+      nextMaintenance: '', ipAddress: document.getElementById('dea-ip').value,
+      firmwareVersion: 'v1.0.0'
+    });
+    renderDevices();
+    showToast('设备添加成功', 'success');
+  });
 };
 
 function showConfirm(title, body, cb) {

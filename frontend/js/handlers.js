@@ -18,6 +18,7 @@ function uid() { return 'a' + Date.now().toString(36) + Math.random().toString(3
 
 function dsReady() { return typeof dataService !== 'undefined' && dataService.isReady(); }
 function ds() { return dataService; }
+function setText(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; }
 
 function showModal(title, html) {
   const old = document.querySelector('.custom-modal-overlay');

@@ -165,7 +165,7 @@ class DataService {
 
   /** 按ID获取单行 */
   getById(table, id) {
-    return (this._tables[table] || []).find(r => r.id === id) || null;
+    return (this._tables[table] || []).find(r => r.id == id) || null;
   }
 
   /** 获取关联行 (JOIN) */
@@ -199,7 +199,7 @@ class DataService {
   // ---- 更新操作（先写内存 → 再同步 MySQL） ----
 
   update(table, id, changes) {
-    const row = (this._tables[table] || []).find(r => r.id === id);
+    const row = (this._tables[table] || []).find(r => r.id == id);
     if (!row) return false;
     const oldValues = { ...row };
     Object.assign(row, changes);
@@ -222,7 +222,7 @@ class DataService {
   delete(table, id) {
     const arr = this._tables[table];
     if (!arr) return false;
-    const idx = arr.findIndex(r => r.id === id);
+    const idx = arr.findIndex(r => r.id == id);
     if (idx >= 0) {
       const deleted = arr.splice(idx, 1)[0];
       // 异步同步到后端 MySQL
@@ -248,7 +248,7 @@ class DataService {
       console.warn('[DataService] MySQL 同步失败 (' + action + ' ' + table + '/' + id + '): ' + e.message);
       // API 失败时回滚内存数据
       if (action === 'update' && fallback) {
-        const row = (this._tables[table] || []).find(r => r.id === id);
+        const row = (this._tables[table] || []).find(r => r.id == id);
         if (row) Object.assign(row, fallback);
       } else if (action === 'delete' && fallback) {
         if (!this._tables[table]) this._tables[table] = [];
@@ -447,14 +447,17 @@ class DataService {
     return {
       total: devices.length,
       online: devices.filter(d => d.status === 'online').length,
-      fault: devices.filter(d => d.status === 'fault').length,
-      maintenance: this.table('maintenance_records')
-        .where('status', 'eq', 'pending').count()
+      fault: devices.filter(d => d.status === 'fault' || d.status === 'offline').length,
+      maintenance: devices.filter(d => d.status === 'maintenance').length
     };
   }
 
   getDeviceList() {
-    return this.getAll('devices');
+    return (this.getAll('devices') || []).map(function(d) {
+      if (typeof d.metrics === 'string') { try { d.metricsParsed = JSON.parse(d.metrics); } catch(e) { d.metricsParsed = {}; } }
+      else { d.metricsParsed = d.metrics || {}; }
+      return d;
+    });
   }
 
   getMaintenanceList() {
