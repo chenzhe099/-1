@@ -544,16 +544,10 @@ function renderPermission() {
     }).join('');
   }
 
-  // 权限配置
+  // 权限配置（简洁版：只显示按钮，点击弹窗编辑）
   var permContainer = document.getElementById('permission-config-list');
-  if (permContainer && roles.length > 0) {
-    var adminRole = roles[0];
-    var perms = typeof adminRole.permissions === 'string' ? JSON.parse(adminRole.permissions) : (adminRole.permissions || {});
-    var modNames = {dashboard:'数据总览',disease:'病虫害识别',farming:'农事管理',prediction:'产量预测',management:'农场管理',devices:'设备监控',traceability:'溯源管理',permission:'权限管理'};
-    permContainer.innerHTML = Object.entries(perms).map(function(e) {
-      var mod = e[0], p = e[1];
-      return '<div class="flex items-center justify-between py-2 border-b border-gray-100"><span class="text-sm text-gray-700">'+(modNames[mod]||mod)+'</span><div class="flex items-center space-x-4"><label class="flex items-center text-xs text-gray-500"><input type="checkbox" '+(p.view?'checked':'')+' class="mr-1" disabled> 查看</label><label class="flex items-center text-xs text-gray-500"><input type="checkbox" '+(p.edit?'checked':'')+' class="mr-1" disabled> 编辑</label></div></div>';
-    }).join('');
+  if (permContainer) {
+    permContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">点击角色卡片中的 <b>"编辑权限"</b> 按钮查看和修改具体权限</p>';
   }
 
   // 操作日志
@@ -564,6 +558,80 @@ function renderPermission() {
       return '<div class="flex items-center p-3 bg-gray-50 rounded-lg"><div class="flex-1"><p class="text-sm font-medium text-gray-800">'+l.action+'</p><p class="text-xs text-gray-500">'+(l.username||'')+' · '+(l.module||'')+'</p></div><span class="text-xs text-gray-400">'+formatDateTime(l.timestamp||l.createdAt)+'</span></div>';
     }).join('') || '<p class="text-gray-400 text-sm text-center py-4">暂无操作日志</p>';
   }
+}
+
+// 权限管理按钮处理
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  var id = btn.dataset.id;
+  switch (btn.dataset.action) {
+    case 'edit-user':
+      var u = dataService.getById('users', id); if (!u) return;
+      var roles = dataService.getAll('roles')||[];
+      var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">用户名</label><input id="eu-un" class="w-full px-3 py-2 border rounded text-sm" value="'+u.username+'"></div><div><label class="text-xs text-gray-500">姓名</label><input id="eu-nm" class="w-full px-3 py-2 border rounded text-sm" value="'+u.displayName+'"></div><div><label class="text-xs text-gray-500">角色</label><select id="eu-rl" class="w-full px-3 py-2 border rounded text-sm">'+roles.map(function(r){return '<option value="'+r.id+'" '+(r.id===u.role?'selected':'')+'>'+r.name+'</option>';}).join('')+'</select></div><div><label class="text-xs text-gray-500">状态</label><select id="eu-st" class="w-full px-3 py-2 border rounded text-sm"><option value="active" '+(u.status=='active'?'selected':'')+'>启用</option><option value="disabled" '+(u.status=='disabled'?'selected':'')+'>禁用</option></select></div></div>';
+      showConfirm('编辑用户', h, function(ok) {
+        if (!ok) return;
+        dataService.update('users', u.id, {username:document.getElementById('eu-un').value,displayName:document.getElementById('eu-nm').value,role:document.getElementById('eu-rl').value,status:document.getElementById('eu-st').value});
+        renderPermission(); showToast('用户已更新','success');
+      });
+      break;
+    case 'reset-pwd':
+      showConfirm('重置密码', '<p>确定将密码重置为 <b>123456</b> 吗？</p>', function(ok) {
+        if (!ok){dataService.update('users', id, {password:'123456',passwordHash:''});showToast('密码已重置','success');}
+      });
+      break;
+    case 'delete-user':
+      var ud = dataService.getById('users', id);
+      showConfirm('删除用户', '<p>确定删除 <b>'+ud.displayName+'</b> 吗？</p>', function(ok) {
+        if (!ok){dataService.delete('users', id);renderPermission();showToast('已删除','success');}
+      });
+      break;
+    case 'edit-role':
+      var rl = dataService.getById('roles', id); if (!rl) return;
+      var mods = ['dashboard','disease','farming','prediction','management','devices','traceability','permission'];
+      var names = {dashboard:'数据总览',disease:'病虫害识别',farming:'农事管理',prediction:'产量预测',management:'农场管理',devices:'设备监控',traceability:'溯源管理',permission:'权限管理'};
+      var perm = typeof rl.permissions==='string' ? JSON.parse(rl.permissions) : (rl.permissions||{});
+      var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">角色名</label><input id="er-nm" class="w-full px-3 py-2 border rounded text-sm" value="'+rl.name+'"></div><p class="text-sm font-medium mt-2">模块权限</p>';
+      mods.forEach(function(m){var p=perm[m]||{view:false,edit:false};h+='<div class="flex items-center justify-between p-2 bg-gray-50 rounded"><span class="text-sm">'+names[m]+'</span><div class="flex gap-3"><label class="text-xs"><input type="checkbox" id="per-'+m+'-v" '+(p.view?'checked':'')+'> 查看</label><label class="text-xs"><input type="checkbox" id="per-'+m+'-e" '+(p.edit?'checked':'')+'> 编辑</label></div></div>';});
+      h+='</div>';
+      showConfirm('编辑角色权限', h, function(ok) {
+        if (!ok) return;
+        var np = {}; mods.forEach(function(m){np[m]={view:document.getElementById('per-'+m+'-v').checked,edit:document.getElementById('per-'+m+'-e').checked};});
+        dataService.update('roles', id, {name:document.getElementById('er-nm').value,permissions:JSON.stringify(np)});
+        renderPermission(); showToast('权限已更新','success');
+      });
+      break;
+    case 'add-user':
+      var rls = (dataService.getAll('roles')||[]).map(function(r){return '<option value="'+r.id+'">'+r.name+'</option>';}).join('');
+      showConfirm('添加用户', '<div class="space-y-3"><div><label class="text-xs text-gray-500">用户名</label><input id="au-un" class="w-full px-3 py-2 border rounded text-sm" placeholder="英文用户名"></div><div><label class="text-xs text-gray-500">姓名</label><input id="au-nm" class="w-full px-3 py-2 border rounded text-sm" placeholder="中文姓名"></div><div><label class="text-xs text-gray-500">角色</label><select id="au-rl" class="w-full px-3 py-2 border rounded text-sm">'+rls+'</select></div></div>', function(ok) {
+        if (!ok) return;
+        var un=document.getElementById('au-un').value.trim(),nm=document.getElementById('au-nm').value.trim();
+        if(!un||!nm){showToast('请填写完整','error');return;}
+        dataService.insert('users',{id:'u'+Math.floor(Math.random()*9000+1000),username:un,displayName:nm,role:document.getElementById('au-rl').value,status:'active',password:'123456',createdAt:new Date().toISOString()});
+        renderPermission(); showToast('用户添加成功','success');
+      });
+      break;
+    case 'add-role':
+      showConfirm('添加角色', '<div class="space-y-3"><div><label class="text-xs text-gray-500">角色ID</label><input id="ar-id" class="w-full px-3 py-2 border rounded text-sm" placeholder="custom_role"></div><div><label class="text-xs text-gray-500">角色名称</label><input id="ar-nm" class="w-full px-3 py-2 border rounded text-sm" placeholder="新角色"></div><div><label class="text-xs text-gray-500">描述</label><input id="ar-ds" class="w-full px-3 py-2 border rounded text-sm" placeholder="角色描述"></div></div>', function(ok) {
+        if (!ok) return;
+        var rid=document.getElementById('ar-id').value.trim();
+        if(!rid){showToast('请输入角色ID','error');return;}
+        dataService.insert('roles',{id:rid,name:document.getElementById('ar-nm').value,nameEn:rid,description:document.getElementById('ar-ds').value,permissions:'{}'});
+        renderPermission(); showToast('角色添加成功','success');
+      });
+      break;
+  }
+});
+
+function showConfirm(title, body, cb) {
+  var overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+  overlay.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"><h3 class="text-lg font-semibold mb-4">'+title+'</h3><div class="mb-4">'+body+'</div><div class="flex justify-end gap-3"><button id="cf-cancel" class="px-4 py-2 border rounded-lg text-sm">取消</button><button id="cf-ok" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm">确定</button></div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('cf-ok').onclick = function() { overlay.remove(); cb(true); };
+  document.getElementById('cf-cancel').onclick = function() { overlay.remove(); cb(false); };
+  overlay.onclick = function(e) { if (e.target === overlay) { overlay.remove(); cb(false); } };
 }
 
 // ==================== 全局辅助函数 ====================
