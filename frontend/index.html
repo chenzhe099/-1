@@ -11,7 +11,7 @@
 </head>
 <body class="bg-gray-50">
     <div class="flex h-screen overflow-hidden">
-        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col" style="display:none">
             <div class="p-4 border-b border-gray-200">
                 <div class="flex items-center">
                     <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
@@ -2380,8 +2380,8 @@
         document.getElementById('sidebar-login-btn').classList.add('hidden');
         // 隐藏登录页，显示系统界面
         document.getElementById('login-page').style.display = 'none';
-        document.getElementById('app-main').style.display = '';
-        document.querySelector('aside').style.display = '';
+        document.getElementById('app-main').style.display = 'flex';
+        document.querySelector('aside').style.display = 'flex';
         // 记住上次登录用户名
         localStorage.setItem('last_username', user.username);
         // 根据角色过滤侧边栏菜单
@@ -2434,10 +2434,7 @@
         window._setLoggedIn(found);
     };
     document.getElementById('login-password').onkeydown = function(e) { if (e.key==='Enter') document.getElementById('login-submit').click(); };
-    // 默认隐藏系统界面，显示登录页
-    document.querySelector('aside').style.display = 'none';
-    document.getElementById('app-main').style.display = 'none';
-    document.getElementById('login-page').style.display = 'flex';
+    // 默认隐藏系统界面，显示登录页（HTML 已设初始 display:none）
     // 尝试自动登录 admin
     setTimeout(function() {
         try {
