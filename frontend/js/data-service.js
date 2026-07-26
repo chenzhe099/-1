@@ -253,7 +253,7 @@ class DataService {
   }
 
   getTodayTasks() {
-    var today = '2024-01-15';
+    var today = new Date().toISOString().slice(0, 10);
     var rank = { high: 3, medium: 2, low: 1 };
     var statusRank = { in_progress: 4, pending: 3, completed: 2, cancelled: 1 };
     return this.table('farming_tasks')
