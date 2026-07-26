@@ -207,13 +207,8 @@ class DataService {
       } else if (action === 'delete' && fallback) {
         if (!this._tables[table]) this._tables[table] = [];
         this._tables[table].push(fallback);
-      } else if (action === 'insert') {
-        const arr = this._tables[table];
-        if (arr) {
-          const idx = arr.findIndex(r => r.id === id);
-          if (idx >= 0) arr.splice(idx, 1);
-        }
       }
+      // insert 不回滚：保留本地数据，避免同步失败导致用户看到没反应
     }
   }
 
