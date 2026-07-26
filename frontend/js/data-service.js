@@ -663,7 +663,8 @@ class DataService {
     }
     return { labels: labels, temperatureHigh: highs, temperatureLow: lows, rainfall: rainfall };
   }
-    return this.getAll('alerts').filter(a => a.module === 'weather' || a.title.includes('天气'));
+  getWeatherAlerts() {
+    return this.getAll('alerts').filter(function(a){ return a.module === 'weather' || (a.title||'').includes('天气'); });
   }
 
   // ==================== 计算属性：市场价格 ====================
