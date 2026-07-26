@@ -89,7 +89,7 @@
                     </div>
                 </div>
                 <div id="sidebar-login-btn">
-                    <button onclick="showLoginModal()" class="w-full flex items-center p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button id="login-switch-btn" onclick="doLogoutNow()" class="w-full flex items-center p-2 hover:bg-gray-100 rounded-lg transition-colors">
                         <i class="fa fa-sign-in text-gray-500 text-lg mr-2"></i>
                         <span class="text-sm text-gray-600">登录切换账号</span>
                     </button>
@@ -97,7 +97,35 @@
             </div>
         </aside>
 
-        <main class="flex-1 overflow-y-auto scrollbar">
+        <!-- 登录页面（未登录时显示） -->
+        <div id="login-page" class="flex-1 flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50 min-h-screen">
+            <div class="w-full max-w-md mx-auto px-4">
+                <div class="text-center mb-8">
+                    <div class="w-20 h-20 bg-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i class="fa fa-leaf text-white text-3xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800">智慧农业管理系统</h1>
+                    <p class="text-gray-500 mt-1">SmartFarm Management</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <div id="login-error-msg" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100"></div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">用户名</label>
+                            <input id="login-username" autocomplete="username" class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all" placeholder="输入用户名">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">密码</label>
+                            <input id="login-password" type="password" autocomplete="current-password" class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all" placeholder="输入密码">
+                        </div>
+                    </div>
+                    <button id="login-submit" class="w-full mt-6 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors shadow-md">登 录</button>
+                    <p class="text-xs text-gray-400 text-center mt-4">默认账号 admin / 123456</p>
+                </div>
+            </div>
+        </div>
+
+        <main class="flex-1 overflow-y-auto scrollbar" id="app-main" style="display:none">
             <header class="bg-white border-b border-gray-200 px-6 py-4">
                 <div class="flex items-center justify-between">
                     <div>
@@ -2350,6 +2378,12 @@
         document.getElementById('sidebar-user-role').textContent = rn[user.role]||user.role;
         document.getElementById('sidebar-logged-in').classList.remove('hidden');
         document.getElementById('sidebar-login-btn').classList.add('hidden');
+        // 隐藏登录页，显示系统界面
+        document.getElementById('login-page').style.display = 'none';
+        document.getElementById('app-main').style.display = '';
+        document.querySelector('aside').style.display = '';
+        // 记住上次登录用户名
+        localStorage.setItem('last_username', user.username);
         // 根据角色过滤侧边栏菜单
         _filterSidebar(user.role);
     };
@@ -2370,21 +2404,51 @@
         window._currentUser = null;
         document.getElementById('sidebar-logged-in').classList.add('hidden');
         document.getElementById('sidebar-login-btn').classList.remove('hidden');
-        // 退出后显示全部菜单
+        // 隐藏系统界面，显示登录页
+        document.getElementById('app-main').style.display = 'none';
+        document.querySelector('aside').style.display = 'none';
+        document.getElementById('login-page').style.display = 'flex';
+        // 显示全部菜单
         document.querySelectorAll('.sidebar-item').forEach(function(btn){btn.style.display='';});
+        // 填入上次登录用户名
+        var last = localStorage.getItem('last_username') || '';
+        document.getElementById('login-username').value = last;
     };
-    // 页面加载时自动尝试登录（默认admin/123456）
+    // 页面加载时初始化
+    var lastUser = localStorage.getItem('last_username') || '';
+    if (lastUser) { document.getElementById('login-username').value = lastUser; }
+    // 登录按钮事件
+    document.getElementById('login-submit').onclick = function() {
+        var un = document.getElementById('login-username').value.trim();
+        var pw = document.getElementById('login-password').value;
+        var errDiv = document.getElementById('login-error-msg');
+        if (!un||!pw) { errDiv.textContent='请输入用户名和密码'; errDiv.classList.remove('hidden'); return; }
+        var users = [];
+        try { if (typeof dataService !== 'undefined' && dataService.isReady && dataService.isReady()) { users = dataService.getAll('users') || []; } } catch(e) {}
+        if (!users.length) { users = [{id:'u001',username:'admin',displayName:'管理员',role:'admin',status:'active',password:'123456'},{id:'u002',username:'zhang_tech',displayName:'张技术员',role:'technician',status:'active',password:'123456'},{id:'u003',username:'li_farmer',displayName:'李农户',role:'farmer',status:'active',password:'123456'},{id:'u007',username:'zhou_manager',displayName:'周管理员',role:'manager',status:'active',password:'123456'}]; }
+        var found = null;
+        for (var i=0;i<users.length;i++) { if (users[i].username===un && (users[i].password===pw || users[i].passwordHash===pw)) { found=users[i]; break; } }
+        if (!found) { errDiv.textContent='用户名或密码错误'; errDiv.classList.remove('hidden'); return; }
+        if (found.status==='disabled') { errDiv.textContent='该账号已被禁用'; errDiv.classList.remove('hidden'); return; }
+        errDiv.classList.add('hidden');
+        window._setLoggedIn(found);
+    };
+    document.getElementById('login-password').onkeydown = function(e) { if (e.key==='Enter') document.getElementById('login-submit').click(); };
+    // 默认隐藏系统界面，显示登录页
+    document.querySelector('aside').style.display = 'none';
+    document.getElementById('app-main').style.display = 'none';
+    document.getElementById('login-page').style.display = 'flex';
+    // 尝试自动登录 admin
     setTimeout(function() {
         try {
-            if (typeof dataService !== 'undefined' && dataService.isReady()) {
+            if (typeof dataService !== 'undefined' && dataService.isReady && dataService.isReady()) {
                 var users = dataService.getAll('users') || [];
                 var admin = null;
                 for (var i=0;i<users.length;i++) { if (users[i].username==='admin') { admin=users[i]; break; } }
                 if (admin) window._setLoggedIn(admin);
-                else showLoginModal();
             }
-        } catch(e) { showLoginModal(); }
-    }, 500);
+        } catch(e) {}
+    }, 800);
     </script>
     <script>
       document.addEventListener('DOMContentLoaded', function() {
