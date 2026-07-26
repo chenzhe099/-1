@@ -2350,11 +2350,28 @@
         document.getElementById('sidebar-user-role').textContent = rn[user.role]||user.role;
         document.getElementById('sidebar-logged-in').classList.remove('hidden');
         document.getElementById('sidebar-login-btn').classList.add('hidden');
+        // 根据角色过滤侧边栏菜单
+        _filterSidebar(user.role);
+    };
+    window._filterSidebar = function(role) {
+        // 角色-菜单映射
+        var map = {
+            admin: 'dashboard,disease,farming,prediction,management,devices,traceability,permission,weather,market,monitor,ai-chat',
+            technician: 'dashboard,disease,farming,prediction,devices,weather,monitor,ai-chat',
+            farmer: 'dashboard,disease,weather,ai-chat',
+            manager: 'dashboard,farming,prediction,management,traceability,weather,market,ai-chat',
+        };
+        var allowed = (map[role]||'').split(',');
+        document.querySelectorAll('.sidebar-item').forEach(function(btn) {
+            btn.style.display = allowed.includes(btn.dataset.menu) ? '' : 'none';
+        });
     };
     window.doLogoutNow = function() {
         window._currentUser = null;
         document.getElementById('sidebar-logged-in').classList.add('hidden');
         document.getElementById('sidebar-login-btn').classList.remove('hidden');
+        // 退出后显示全部菜单
+        document.querySelectorAll('.sidebar-item').forEach(function(btn){btn.style.display='';});
     };
     // 页面加载时自动尝试登录（默认admin/123456）
     setTimeout(function() {
@@ -2385,4 +2402,52 @@
     <script src="js/app.js"></script>
     <script src="js/charts.js"></script>
 </body>
-</html>
+</html                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="dashboard" data-roles="admin,technician,farmer,manager">
+                        <i class="fa fa-dashboard w-5 h-5 mr-3 text-blue-500"></i>
+                        <span>数据总览</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="disease" data-roles="admin,technician,farmer">
+                        <i class="fa fa-bug w-5 h-5 mr-3 text-red-500"></i>
+                        <span>病虫害识别</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="farming" data-roles="admin,technician,manager">
+                        <i class="fa fa-tint w-5 h-5 mr-3 text-cyan-500"></i>
+                        <span>精准农事决策</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="prediction" data-roles="admin,technician,manager">
+                        <i class="fa fa-bar-chart w-5 h-5 mr-3 text-orange-500"></i>
+                        <span>产量预测</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="management" data-roles="admin,manager">
+                        <i class="fa fa-folder-open w-5 h-5 mr-3 text-purple-500"></i>
+                        <span>农场管理</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="devices" data-roles="admin,technician">
+                        <i class="fa fa-cog w-5 h-5 mr-3 text-gray-600"></i>
+                        <span>设备监控</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="traceability" data-roles="admin,manager">
+                        <i class="fa fa-barcode w-5 h-5 mr-3 text-green-500"></i>
+                        <span>溯源管理</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="permission" data-roles="admin">
+                        <i class="fa fa-users w-5 h-5 mr-3 text-indigo-500"></i>
+                        <span>权限管理</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="weather" data-roles="admin,technician,farmer,manager">
+                        <i class="fa fa-cloud w-5 h-5 mr-3 text-sky-500"></i>
+                        <span>天气监测</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="market" data-roles="admin,manager">
+                        <i class="fa fa-line-chart w-5 h-5 mr-3 text-teal-500"></i>
+                        <span>市场价格</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="monitor" data-roles="admin,technician">
+                        <i class="fa fa-area-chart w-5 h-5 mr-3 text-violet-500"></i>
+                        <span>模型监控</span>
+                    </button>
+                    <button class="w-full sidebar-item flex items-center px-3 py-2.5 rounded-lg text-gray-600 transition-all" data-menu="ai-chat" data-roles="admin,technician,farmer,manager">
+                        <i class="fa fa-commenting w-5 h-5 mr-3 text-green-500"></i>
+                        <span>AI 助手</span>
+                    </button>
+>
