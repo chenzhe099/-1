@@ -61,11 +61,9 @@ function updatePageTitle(menuId) {
     dashboard:   { title: '数据总览', subtitle: '实时监控农场运营状况' },
     disease:     { title: 'AI病虫害智能识别', subtitle: '上传图片识别病虫害，获取防治建议' },
     farming:     { title: 'AI精准农事决策', subtitle: '水肥药智能管理，精准作业方案' },
-    prediction:  { title: '产量预测与农事规划', subtitle: 'AI预测产量，智能排期规划' },
     management:  { title: '数字化农场管理', subtitle: '全周期农事记录与报表分析' },
     devices:     { title: '设备监控与远程控制', subtitle: 'IoT设备状态监控与远程操作' },
-    traceability:{ title: '农产品溯源管理', subtitle: '生产全过程追溯，生成溯源码' },
-    permission:  { title: '权限管理与多账号协同', subtitle: '用户分级权限与操作日志' },
+        permission:  { title: '权限管理与多账号协同', subtitle: '用户分级权限与操作日志' },
     weather:     { title: '天气监测与预报', subtitle: '实时气象数据与农事天气预警' },
     market:      { title: '市场价格监测', subtitle: '农产品市场价格趋势与行情分析' },
     'ai-chat':   { title: 'AI 智慧农业助手', subtitle: '智能问答，解答种植、病虫害、灌溉施肥等问题' },
@@ -81,15 +79,12 @@ function renderSection(menuId) {
     dashboard:    () => renderDashboard(),
     disease:      () => renderDisease(),
     farming:      () => renderFarming(),
-    prediction:   () => renderPrediction(),
     management:   () => renderManagement(),
     devices:      () => renderDevices(),
-    traceability: () => renderTraceability(),
     permission:   () => renderPermission(),
     weather:      () => renderWeather(),
     market:       () => renderMarket(),
-    monitor:      () => renderMonitor(),
-    'ai-chat':    () => { if (typeof setupAiChat === 'function') setupAiChat(); }
+        'ai-chat':    () => { if (typeof setupAiChat === 'function') setupAiChat(); }
   };
   if (renderers[menuId]) renderers[menuId]();
   // handlers.js will rebind events via observeSectionChanges
@@ -150,7 +145,7 @@ function renderDashboard() {
 
 function renderDisease() {
   // 识别历史（增强版：显示置信度 + 严重程度 + 点击查看详情）
-  const records = dataService.getDiseaseHistory();
+  const records = dataService.getDiseaseHistory().reverse().slice(0, 20);
   const historyContainer = document.getElementById('disease-history-list');
   historyContainer.innerHTML = records.length > 0 ? records.map(r => {
     var sevMap = { low: '低', medium: '中', high: '高', critical: '严重' };
@@ -363,6 +358,18 @@ function renderPrediction() {
 // ==================== 农场管理 渲染 ====================
 
 function renderManagement() {
+  // === 顶部统计卡片（联动数据库真实数据） ===
+  var tasks = dataService.getAll('farming_tasks') || [];
+  var users = dataService.getAll('users') || [];
+  var devices = dataService.getAll('devices') || [];
+  var invData = dataService.getAll('inventory') || [];
+  var invTotal = invData.reduce(function(s,i){return s+(i.quantity||0);},0);
+  var invTypes = invData.filter(function(i){return i.quantity&&i.quantity>0;}).length;
+  setText('stat-mgmt-records', tasks.length + '条');
+  setText('stat-mgmt-personnel', users.length + '人');
+  setText('stat-mgmt-devices', devices.length + '台');
+  setText('stat-mgmt-inventory', invTotal + '件 (' + invTypes + '种)');
+
   // 农事记录
   const records = dataService.getFarmRecords();
   const recContainer = document.getElementById('farm-record-list');
@@ -392,18 +399,30 @@ function renderManagement() {
       </div>`).join('');
   }
 
-  // 库存列表
-  const inventory = dataService.getInventoryList();
-  const invContainer = document.getElementById('inventory-list');
+  // 库存列表（新版：可交互的入库/出库/删除按钮）
+  var inventory = invData;
+  var invContainer = document.getElementById('inventory-list');
+  var invSummary = document.getElementById('inv-summary');
   if (invContainer) {
-    invContainer.innerHTML = inventory.map(i => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="inventory-detail" data-id="${i.id}">
-        <div>
-          <p class="text-sm font-medium text-gray-800">${i.name}</p>
-          <p class="text-xs text-gray-500">${i.unit} × ${i.quantity}</p>
-        </div>
-        ${badge(i.status)}
-      </div>`).join('');
+    var icons = {fertilizer:'fa-flask',pesticide:'fa-medkit',seed:'fa-leaf',tool:'fa-wrench',other:'fa-cube'};
+    var colors = {fertilizer:'blue',pesticide:'red',seed:'green',tool:'gray',other:'purple'};
+    var statusLabel = function(q){ return q>20?'库存充足':q>5?'库存偏低':'库存不足'; };
+    var statusColor = {充足:'text-green-600',偏低:'text-orange-600',不足:'text-red-600'};
+    invContainer.innerHTML = inventory.length ? inventory.map(function(i){
+      var qty = i.quantity||0;
+      var st = qty>20?'充足':qty>5?'偏低':'不足';
+      return '<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">'+
+        '<div class="flex items-center"><div class="w-9 h-9 bg-'+(colors[i.type]||'gray')+'-100 rounded-lg flex items-center justify-center mr-3"><i class="fa '+(icons[i.type]||'fa-cube')+' text-'+(colors[i.type]||'gray')+'-600"></i></div>'+
+        '<div><p class="text-sm font-medium">'+i.name+'</p><p class="text-xs text-gray-500">'+i.unit+' · 库存: '+qty+(i.minStock?' (最低:'+i.minStock+')':'')+'</p></div></div>'+
+        '<div class="flex items-center gap-2"><span class="text-xs '+(statusColor[st]||'')+'">'+statusLabel(qty)+'</span>'+
+        '<button class="text-green-500 hover:text-green-700 text-xs" onclick="invQuickIn(\''+i.id+'\')" title="入库">+</button>'+
+        '<button class="text-orange-500 hover:text-orange-700 text-xs" onclick="invQuickOut(\''+i.id+'\')" title="出库">-</button>'+
+        '<button class="text-red-400 hover:text-red-600 text-xs" onclick="invDeleteItem(\''+i.id+'\')" title="删除"><i class="fa fa-trash"></i></button></div></div>';
+    }).join('') : '<p class="text-sm text-gray-400 text-center py-6">暂无库存</p>';
+    // 汇总
+    var total = inventory.reduce(function(s,i){return s+(i.quantity||0);},0);
+    var lowStock = inventory.filter(function(i){return (i.quantity||0)<=(i.minStock||5);}).length;
+    invSummary.innerHTML = '<span>共 '+inventory.length+' 种 · '+total+' 件</span>'+(lowStock>0?'<span class="text-orange-600"> ⚠ '+lowStock+' 种库存偏低</span>':'<span class="text-green-600">库存正常</span>');
   }
 }
 
@@ -899,9 +918,11 @@ function showConfirm(title, body, cb) {
   overlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center perm-modal';
   overlay.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"><h3 class="text-lg font-semibold mb-4">'+title+'</h3><div class="mb-4" id="perm-form-body">'+body+'</div><div class="flex justify-end gap-3"><button id="cf-cancel" class="px-4 py-2 border rounded-lg text-sm">取消</button><button id="cf-ok" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm">确定</button></div></div>';
   document.body.appendChild(overlay);
-  document.getElementById('cf-ok').onclick = function(e) { e.stopPropagation(); cb(true); overlay.remove(); };
-  document.getElementById('cf-cancel').onclick = function(e) { e.stopPropagation(); cb(false); overlay.remove(); };
-  overlay.onclick = function(e) { if (e.target === overlay) { cb(false); overlay.remove(); } };
+  // 先执行回调读取表单值，再延迟移除 DOM
+  var close = function(val) { cb(val); setTimeout(function(){if(overlay.parentNode)overlay.remove();},10); };
+  document.getElementById('cf-ok').onclick = function(e) { e.stopPropagation(); close(true); };
+  document.getElementById('cf-cancel').onclick = function(e) { e.stopPropagation(); close(false); };
+  overlay.onclick = function(e) { if (e.target === overlay) close(false); };
 }
 
 // ==================== 全局辅助函数 ====================
@@ -965,66 +986,65 @@ function updateStatTexts(selector, values) {
 // ==================== 天气监测 渲染 ====================
 
 function renderWeather() {
-  const stats = dataService.getWeatherStats();
-  // 初始化天气图表
+  // 真实天气数据 (Open-Meteo) — renderWeatherAs 在 app-improvements.js 中处理显示
+  if (typeof fetchWeatherReal === 'function') fetchWeatherReal();
+  // 初始化图表
   if (typeof initWeatherCharts === 'function') setTimeout(initWeatherCharts, 100);
 
-  document.getElementById('stat-temp').textContent = stats.todayTemp;
-  document.getElementById('stat-temp-change').innerHTML = '<i class="fa fa-arrow-' + (stats.tempChange.startsWith('+') ? 'up' : 'down') + ' mr-1"></i>较昨日 ' + stats.tempChange;
-  document.getElementById('stat-rainfall').textContent = stats.todayRainfall;
-  document.getElementById('stat-rainfall-desc').textContent = stats.rainfallDesc;
-  document.getElementById('stat-humidity').textContent = stats.todayHumidity;
-  document.getElementById('stat-wind').textContent = stats.todayWind;
-  document.getElementById('stat-condition').innerHTML = '<i class="fa fa-sun-o mr-1"></i>' + stats.conditionLabel;
-
-  // 7日预报
-  const forecast = dataService.getWeatherForecast();
-  const fcContainer = document.getElementById('weather-forecast-list');
-  const condIcons = { sunny: 'fa-sun-o text-orange-400', cloudy: 'fa-cloud text-gray-400', rain: 'fa-tint text-blue-400', snow: 'fa-snowflake-o text-blue-300' };
-  fcContainer.innerHTML = forecast.slice(0, 7).map(f => `
-    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="forecast-detail" data-date="${f.date}">
-      <span class="text-sm text-gray-700 w-14">${f.date}</span>
-      <i class="fa ${condIcons[f.condition] || 'fa-question'} text-lg"></i>
-      <span class="text-sm font-medium">${f.high}° / ${f.low}°</span>
-      <span class="text-xs text-gray-500">${f.conditionLabel}</span>
-    </div>`).join('');
-
   // 天气预警
-  const alerts = dataService.getWeatherAlerts();
-  document.getElementById('weather-alert-list').innerHTML = alerts.length > 0
-    ? alerts.map(a => '<div class="relative">' + alertItemHTML(a) + '<button class="absolute top-2 right-2 text-xs text-gray-400 hover:text-blue-500" data-action="mark-alert-read" data-alert-id="' + a.id + '">已读</button></div>').join('')
-    : '<div class="col-span-3 text-center text-gray-400 py-6">暂无天气预警</div>';
+  var alerts = dataService.getWeatherAlerts();
+  var alertContainer = document.getElementById('weather-alert-list');
+  if (alertContainer) {
+    alertContainer.innerHTML = alerts.length > 0
+      ? alerts.map(function(a){return '<div class="relative">'+alertItemHTML(a)+'</div>';}).join('')
+      : '<div class="text-center text-gray-400 py-6">暂无天气预警</div>';
+  }
 }
 
-// ==================== 市场价格 渲染 ====================
-
 function renderMarket() {
-  const stats = dataService.getMarketStats();
+  // 动态统计
+  var allPrices = dataService.getAll('market_prices') || [];
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var todayPrices = allPrices.filter(function(p){return p.date === todayStr;});
+  if (todayPrices.length === 0) todayPrices = allPrices.slice(-16);
 
-  document.getElementById('stat-crop-count').textContent = stats.cropCount + '个';
-  document.getElementById('stat-avg-price').textContent = stats.avgPrice + '元/kg';
-  document.getElementById('stat-max-up').textContent = stats.maxUpCrop;
-  document.getElementById('stat-max-down').textContent = stats.maxDownCrop;
+  // 统计卡片
+  var crops = {}; todayPrices.forEach(function(p){ crops[p.cropName || p.crop_name] = (crops[p.cropName || p.crop_name] || 0) + 1; });
+  var sum = 0, cnt = 0, maxUp = '', maxDown = '';
+  todayPrices.forEach(function(p){
+    var price = p.pricePerKg || p.price_per_kg || 0;
+    var change = p.changePercent || p.change_percent || 0;
+    sum += price; cnt++;
+    if (change > 0 && (!maxUp || change > parseFloat(maxUp))) maxUp = (p.cropName || p.crop_name) + ' +' + change + '%';
+    if (change < 0 && (!maxDown || change < parseFloat(maxDown))) maxDown = (p.cropName || p.crop_name) + ' ' + change + '%';
+  });
+  setText('stat-crop-count', Object.keys(crops).length + '个品种');
+  setText('stat-avg-price', (cnt>0 ? (sum/cnt).toFixed(2) : '--') + '元/kg');
+  setText('stat-max-up', maxUp || '--');
+  setText('stat-max-down', maxDown || '--');
 
   // 今日价格表
-  const todayPrices = dataService.table('market_prices')
-    .where('date', 'eq', '2024-01-15').get();
   const tbody = document.getElementById('market-price-table-body');
-  tbody.innerHTML = todayPrices.map(p => `
-    <tr class="hover:bg-gray-50 cursor-pointer" data-action="price-detail" data-crop="${p.cropName}">
-      <td class="px-4 py-2 text-sm font-medium text-gray-800">${p.cropName}</td>
-      <td class="px-4 py-2 text-xs text-gray-500">${p.market}</td>
-      <td class="px-4 py-2 text-sm text-right font-medium">${p.pricePerKg.toFixed(2)}</td>
-      <td class="px-4 py-2 text-sm text-right ${p.changePercent >= 0 ? 'text-red-500' : 'text-green-500'}">${p.changePercent >= 0 ? '+' : ''}${p.changePercent}%</td>
-      <td class="px-4 py-2 text-center"><span class="px-2 py-0.5 text-xs bg-${statusColor(p.trend)}-100 text-${statusColor(p.trend)}-600 rounded">${statusLabel(p.trend)}</span></td>
-    </tr>`).join('');
+  if (tbody) {
+    tbody.innerHTML = todayPrices.map(function(p) {
+      var price = p.pricePerKg || p.price_per_kg || 0;
+      var change = p.changePercent || p.change_percent || 0;
+      var changeCls = change >= 0 ? 'text-red-500' : 'text-green-500';
+      var trend = p.trend || 'stable';
+      var name = p.cropName || p.crop_name || '--';
+      var market = p.market || '--';
+      return '<tr class="hover:bg-gray-50"><td class="px-4 py-2 text-sm font-medium">'+name+'</td><td class="px-4 py-2 text-xs text-gray-500">'+market+'</td><td class="px-4 py-2 text-sm text-right font-medium">'+price.toFixed(2)+'</td><td class="px-4 py-2 text-sm text-right '+changeCls+'">'+(change>=0?'+':'')+change+'%</td><td class="px-4 py-2 text-center"><span class="px-2 py-0.5 text-xs bg-'+statusColor(trend)+'-100 text-'+statusColor(trend)+'-600 rounded">'+statusLabel(trend)+'</span></td></tr>';
+    }).join('');
+  }
 
   // 市场预警
   const alerts = dataService.getMarketAlerts();
   const alertContainer = document.getElementById('market-alert-list');
-  alertContainer.innerHTML = alerts.length > 0
-    ? alerts.map(a => alertItemHTML(a)).join('')
-    : '<div class="text-center text-gray-400 py-6">暂无市场行情预警</div>';
+  if (alertContainer) {
+    alertContainer.innerHTML = alerts.length > 0
+      ? alerts.map(function(a){return alertItemHTML(a);}).join('')
+      : '<div class="text-center text-gray-400 py-6">暂无市场行情预警</div>';
+  }
 }
 
 // ==================== 模型监控 渲染 ====================

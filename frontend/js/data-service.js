@@ -92,27 +92,30 @@ class DataService {
 
   /** 加载所有数据表 */
   loadAll(dataBundle) {
-    // 合并：保留本地新增但未同步到后端的数据
-    if (this._ready && this._tables) {
-      var self = this;
-      Object.keys(dataBundle).forEach(function(k) {
-        var rows = dataBundle[k] || [];
-        if (!self._tables[k]) self._tables[k] = [];
-        var exist = {};
-        self._tables[k].forEach(function(r){ if(r.id) exist[r.id]=true; });
-        rows.forEach(function(r) { if(!exist[r.id]){ self._tables[k].push(r); exist[r.id]=true; } });
-      });
-    } else {
-      this._tables = dataBundle;
-      this._ready = true;
-    }
+    // API 数据写入：API 返回非空则以 API 为准；API 返回空则保留本地数据
+    var hasNew = false;
+    var self = this;
+    Object.keys(dataBundle).forEach(function(k) {
+      var rows = dataBundle[k] || [];
+      // 后端返回空数组 → 不覆盖本地已有数据（后端可能没有这个端点）
+      if (rows.length === 0 && self._tables[k] && self._tables[k].length > 0) return;
+      if (!self._tables[k] || self._tables[k].length !== rows.length) hasNew = true;
+      self._tables[k] = rows;
+    });
+    if (!this._ready) { this._ready = true; hasNew = true; }
     this._buildIndexes();
-    this._saveToLocal();
+    if (hasNew) this._saveToLocal();
   }
 
   /** 从 localStorage 恢复数据（后端不可用时） */
   _loadFromLocal() {
     try {
+      var ver = localStorage.getItem('sf_data_v');
+      if (ver !== '3') {
+        localStorage.removeItem('smartfarm_data');
+        localStorage.setItem('sf_data_v', '3');
+        return false;
+      }
       var cached = localStorage.getItem('smartfarm_data');
       if (cached) {
         var data = JSON.parse(cached);
@@ -151,10 +154,7 @@ class DataService {
   /** 获取查询构建器 */
   table(name) {
     const data = this._tables[name];
-    if (!data) {
-      console.warn(`[DataService] 表 "${name}" 不存在`);
-      return new QueryBuilder([]);
-    }
+    if (!data) return new QueryBuilder([]);  // 静默返回空（不打印警告）
     return new QueryBuilder(data);
   }
 
@@ -205,17 +205,19 @@ class DataService {
     Object.assign(row, changes);
     // 异步同步到后端 MySQL
     this._syncToBackend('update', table, id, changes, oldValues);
-    setTimeout(this._saveToLocal.bind(this), 100);
+    setTimeout(this._saveToLocal.bind(this), 0);
     return true;
   }
 
   insert(table, row) {
     if (!this._tables[table]) this._tables[table] = [];
+    // 自动生成 id（如果调用方没传）
+    if (!row.id) row.id = (table.replace(/s$/, '').slice(0,3)) + '_' + Date.now().toString(36) + Math.floor(Math.random()*100);
     this._tables[table].push(row);
     // 异步同步到后端 MySQL
     this._syncToBackend('insert', table, row.id, row, null);
     // 保存到本地缓存
-    setTimeout(this._saveToLocal.bind(this), 100);
+    setTimeout(this._saveToLocal.bind(this), 0);
     return row;
   }
 
@@ -227,7 +229,7 @@ class DataService {
       const deleted = arr.splice(idx, 1)[0];
       // 异步同步到后端 MySQL
       this._syncToBackend('delete', table, id, null, deleted);
-      setTimeout(this._saveToLocal.bind(this), 100);
+      setTimeout(this._saveToLocal.bind(this), 0);
       return true;
     }
     return false;
@@ -245,16 +247,11 @@ class DataService {
         await apiClient.delete(table, id);
       }
     } catch (e) {
-      console.warn('[DataService] MySQL 同步失败 (' + action + ' ' + table + '/' + id + '): ' + e.message);
-      // API 失败时回滚内存数据
-      if (action === 'update' && fallback) {
-        const row = (this._tables[table] || []).find(r => r.id == id);
-        if (row) Object.assign(row, fallback);
-      } else if (action === 'delete' && fallback) {
-        if (!this._tables[table]) this._tables[table] = [];
-        this._tables[table].push(fallback);
+      // 后端同步失败静默处理：本地缓存 + localStorage 是唯一真实源
+      // 后端仅做可选持久化，失败不影响前端操作也不打扰用户
+      if (typeof console !== 'undefined' && console.debug) {
+        console.debug('[DataService] 后端同步失败（不影响本地）:', action, table, id, e.message);
       }
-      // insert 不回滚：保留本地数据，避免同步失败导致用户看到没反应
     }
   }
 
@@ -524,14 +521,26 @@ class DataService {
   // ==================== 计算属性：图表数据 ====================
 
   getEnvironmentTrend() {
-    const readings = this.table('environment_readings')
-      .where('deviceId', 'eq', 'dev_04')
-      .orderBy('timestamp', 'asc')
-      .get();
+    var all = this.getAll('environment_readings') || [];
+    if (!all.length) {
+      // 返回模拟数据兜底
+      var now = new Date();
+      return {
+        labels: ['06:00','09:00','12:00','15:00','18:00','21:00'],
+        temperature: [22,25,27,28,26,24],
+        humidity: [68,65,60,58,63,67]
+      };
+    }
+    // 取今天的数据按时间排序
+    var today = new Date().toISOString().slice(0,10);
+    var readings = all.filter(function(r){ return (r.timestamp||'').indexOf(today)===0; }).sort(function(a,b){ return (a.timestamp||'').localeCompare(b.timestamp||''); });
+    // 取A1地块的数据展示
+    var a1 = readings.filter(function(r){ return r.location==='A1-番茄'; });
+    if (!a1.length) a1 = readings;
     return {
-      labels: readings.map(r => r.timestamp.slice(11, 16)),
-      temperature: readings.map(r => r.temperature),
-      humidity: readings.map(r => r.humidity)
+      labels: a1.map(function(r){ return (r.timestamp||'').slice(-5); }),
+      temperature: a1.map(function(r){ return r.temperature; }),
+      humidity: a1.map(function(r){ return r.humidity; })
     };
   }
 
@@ -695,12 +704,13 @@ class DataService {
   getMarketPriceTrend(cropName) {
     let records = this.getAll('market_prices');
     if (cropName && cropName !== 'all') {
-      records = records.filter(p => p.cropName === cropName);
+      records = records.filter(p => (p.cropName || p.crop_name) === cropName);
     }
     const grouped = {};
     records.forEach(p => {
-      if (!grouped[p.cropName]) grouped[p.cropName] = [];
-      grouped[p.cropName].push({ date: p.date.slice(5), price: p.pricePerKg });
+      var cn = p.cropName || p.crop_name || 'unknown';
+      if (!grouped[cn]) grouped[cn] = [];
+      grouped[cn].push({ date: p.date.slice(5), price: p.pricePerKg || p.price_per_kg || 0 });
     });
     return { crops: Object.keys(grouped), series: grouped };
   }

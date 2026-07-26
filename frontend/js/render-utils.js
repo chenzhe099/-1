@@ -101,20 +101,27 @@ function severityBadge(severity) {
 
 /** 任务条目 HTML */
 function taskItemHTML(task) {
-  const ti = TASK_TYPE_MAP[task.type] || { label: task.type, icon: 'fa-circle', color: 'gray' };
+  const ti = TASK_TYPE_MAP[task.type] || { label: task.type, icon: 'fa-leaf', color: 'blue' };
   const statusCls = statusColor(task.status);
-  const timeStr = task.scheduledTime ? task.scheduledTime.slice(11, 16) + ' - ' + addHours(task.scheduledTime.slice(11, 16), task.estimatedDuration) : '待定';
+  // 统一格式：YYYY-MM-DD HH:mm（与精准农事/农场管理一致）
+  const dateStr = task.scheduledTime ? task.scheduledTime.replace('T', ' ').slice(0, 16) : '待定';
+  const stLabels = {pending:'待执行',in_progress:'进行中',completed:'已完成',cancelled:'已取消'};
+  const stBadge = {pending:'bg-blue-100 text-blue-600',in_progress:'bg-yellow-100 text-yellow-600',completed:'bg-green-100 text-green-600',cancelled:'bg-red-100 text-red-600'};
   return `
-    <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" data-action="edit-task" data-task-id="${task.id}">
-      <div class="w-8 h-8 bg-${ti.color}-100 rounded-full flex items-center justify-center mr-3">
-        <i class="fa ${ti.icon} text-${ti.color}-600"></i>
+    <div class="flex items-center justify-between p-3 bg-${statusCls}-50 rounded-lg hover:opacity-80 transition-opacity">
+      <div class="flex items-center flex-1 min-w-0">
+        <div class="w-8 h-8 bg-${ti.color}-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+          <i class="fa ${ti.icon} text-${ti.color}-600 text-sm"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium truncate">地块${task.fieldCode} ${ti.label}</p>
+          <p class="text-xs text-gray-500">${dateStr} · 预计${task.estimatedDuration}分钟</p>
+        </div>
       </div>
-      <div class="flex-1">
-        <p class="text-sm font-medium text-gray-800">${task.fieldCode}${ti.label}</p>
-        <p class="text-xs text-gray-500">${timeStr} · 预计${task.estimatedDuration}小时</p>
+      <div class="flex items-center gap-2 ml-2">
+        <span class="px-2 py-1 text-xs rounded ${stBadge[task.status]||''}">${stLabels[task.status]||task.status}</span>
+        <button class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200" onclick="farmTaskDetail('${task.id}')">详情</button>
       </div>
-      <span class="px-2 py-1 text-xs bg-${statusCls}-100 text-${statusCls}-600 rounded">${statusLabel(task.status)}</span>
-      <button class="ml-2 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0" data-action="delete-task" data-id="${task.id}" title="删除任务"><i class="fa fa-trash text-sm"></i></button>
     </div>`;
 }
 

@@ -14,5 +14,17 @@ const AI_SERVICE_URL = 'http://localhost:8000/api/v1';
 
 // DeepSeek API 配置（用于 AI 助手对话）
 window.APP_CONFIG = {
+<<<<<<< HEAD
     DEEPSEEK_API_KEY: 'sk-your-deepseek-api-key'
+=======
+    DEEPSEEK_API_KEY: (function(){
+        // 安全读取：优先 localStorage，回退到占位符
+        // 首次使用请在浏览器控制台执行: localStorage.setItem('deepseek_key', '你的key')
+        var fromLS = localStorage.getItem('deepseek_key');
+        if (fromLS) return fromLS;
+        // 内置Key - 此处会被git secret scanning拦截
+        // 请在控制台设置后刷新页面
+        return 'sk-your-deepseek-api-key';
+    })()
+>>>>>>> 6a3ed0e0e (feat: 双模型推理/真实天气/市场价格/库存管理/预警联动/滚动容器/AI治疗方案)
 };

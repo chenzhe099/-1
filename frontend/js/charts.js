@@ -218,23 +218,31 @@ function initManagementCharts() {
 // ========== 天气监测图表 ==========
 
 function initWeatherCharts() {
-  const s = ds();
-
-  const wt = s ? s.getWeatherTrend() : {
-    labels: ['01-09','01-10','01-11','01-12','01-13','01-14','01-15'],
-    temperatureHigh: [22,24,26,20,18,19,23],
-    temperatureLow: [8,9,10,12,10,8,11],
-    rainfall: [0,0,0,5.2,12.8,0,0]
-  };
+  // 使用真实 API 数据
+  var labels, tempHigh, tempLow, rainfall;
+  if (window.weatherCache && window.weatherCache.forecast) {
+    var f = window.weatherCache.forecast;
+    labels = f.map(function(d){return d.date;});
+    tempHigh = f.map(function(d){return d.high;});
+    tempLow = f.map(function(d){return d.low;});
+    rainfall = f.map(function(d){return d.rain;});
+  } else {
+    var s = ds();
+    var wt = s ? s.getWeatherTrend() : null;
+    labels = (wt||{}).labels || ['--'];
+    tempHigh = (wt||{}).temperatureHigh || [0];
+    tempLow = (wt||{}).temperatureLow || [0];
+    rainfall = (wt||{}).rainfall || [0];
+  }
 
   initChart('weatherTrendChart', {
     type: 'line',
     data: {
-      labels: wt.labels,
+      labels: labels,
       datasets: [
-        { label: '最高温 °C', data: wt.temperatureHigh, borderColor: '#ef4444', backgroundColor: 'transparent', tension: 0.4, yAxisID: 'y' },
-        { label: '最低温 °C', data: wt.temperatureLow, borderColor: '#3b82f6', backgroundColor: 'transparent', tension: 0.4, yAxisID: 'y' },
-        { label: '降雨量 mm', data: wt.rainfall, type: 'bar', backgroundColor: 'rgba(6,182,212,0.4)', borderColor: '#06b6d4', yAxisID: 'y1' }
+        { label: '最高温 °C', data: tempHigh, borderColor: '#ef4444', backgroundColor: 'transparent', tension: 0.4, yAxisID: 'y' },
+        { label: '最低温 °C', data: tempLow, borderColor: '#3b82f6', backgroundColor: 'transparent', tension: 0.4, yAxisID: 'y' },
+        { label: '降雨量 mm', data: rainfall, type: 'bar', backgroundColor: 'rgba(6,182,212,0.5)', borderColor: '#06b6d4', borderWidth: 1, yAxisID: 'y1' }
       ]
     },
     options: {
@@ -242,7 +250,7 @@ function initWeatherCharts() {
       plugins: { legend: { position: 'bottom' } },
       scales: {
         y: { type: 'linear', position: 'left', title: { display: true, text: '温度 (°C)' } },
-        y1: { type: 'linear', position: 'right', title: { display: true, text: '降雨量 (mm)' }, grid: { drawOnChartArea: false } }
+        y1: { type: 'linear', position: 'right', beginAtZero: true, min: 0, title: { display: true, text: '降雨量 (mm)' }, grid: { drawOnChartArea: false } }
       }
     }
   });
@@ -250,23 +258,34 @@ function initWeatherCharts() {
 
 // ========== 市场价格图表 ==========
 
-function initMarketCharts() {
-  const s = ds();
+function initMarketCharts(cropName) {
+  var s = ds();
+  cropName = cropName || 'all';
+  var trend = s ? s.getMarketPriceTrend(cropName) : { crops: [], series: {} };
+  var colors = ['#ef4444','#22c55e','#eab308','#ec4899','#8b5cf6','#f97316','#06b6d4','#f59e0b'];
 
-  const trend = s ? s.getMarketPriceTrend() : { crops: ['番茄','黄瓜','辣椒','草莓'], series: {} };
-  const colors = ['#ef4444','#22c55e','#eab308','#ec4899','#8b5cf6','#f97316'];
+  // 获取所有日期标签
+  var allDates = [];
+  var seen = {};
+  Object.values(trend.series).forEach(function(s){
+    s.forEach(function(p){ if(!seen[p.date]){ seen[p.date]=true; allDates.push(p.date); } });
+  });
+  allDates.sort();
 
   initChart('priceTrendChart', {
     type: 'line',
     data: {
-      labels: trend.series[trend.crops[0]] ? trend.series[trend.crops[0]].map(p => p.date) : ['01-09','01-10','01-11','01-12','01-13','01-14','01-15'],
-      datasets: trend.crops.map((crop, i) => ({
-        label: crop,
-        data: trend.series[crop] ? trend.series[crop].map(p => p.price) : [],
-        borderColor: colors[i % colors.length],
-        backgroundColor: 'transparent',
-        tension: 0.4
-      }))
+      labels: allDates.length ? allDates : ['07-20','07-21','07-22','07-23','07-24','07-25','07-26'],
+      datasets: trend.crops.map(function(crop, i){
+        return {
+          label: crop,
+          data: allDates.map(function(d){ var p = (trend.series[crop]||[]).find(function(x){return x.date===d;}); return p ? p.price : null; }),
+          borderColor: colors[i % colors.length],
+          backgroundColor: 'transparent',
+          tension: 0.4,
+          spanGaps: false
+        };
+      })
     },
     options: {
       responsive: true,

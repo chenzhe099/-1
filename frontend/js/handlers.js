@@ -224,117 +224,74 @@ function setupDisease() {
 // ==================== 识别历史查看 & 删除 ====================
 
 function viewDiseaseRecord(id) {
+  try {
   if (!dsReady()) return;
   var r = ds().getById('disease_records', id);
   if (!r) { showToast('记录不存在', 'error'); return; }
   var sevMap = { low: '低', medium: '中', high: '高', critical: '严重' };
-  var treatment = {};
-  try { treatment = typeof r.treatmentPlan === 'string' ? JSON.parse(r.treatmentPlan) : (r.treatmentPlan || {}); } catch(e) {}
-  var chem = treatment.chemical || [];
-  var bio = treatment.biological || [];
-  var agri = treatment.agricultural || [];
   var sev = r.severity || 'medium';
   var sevLabel = sevMap[sev] || '中';
+  var conf = Math.round((r.confidence||0)*100);
 
-  var html = '<div class="space-y-4 text-sm">' +
-    '<div class="bg-blue-50 p-4 rounded-xl text-center">' +
-      '<div class="text-xl font-bold text-blue-700 mb-1">' + (r.diseaseName||'未知病害') + '</div>' +
-      '<div class="text-xs text-blue-500">置信度 ' + Math.round((r.confidence||0)*100) + '% · ' + sevLabel + '严重 · ' + formatDateTime(r.detectedAt) + '</div>' +
-    '</div>';
-
-  if (chem.length > 0) {
-    html += '<div class="border-l-4 border-red-400 pl-3"><div class="font-medium text-red-700 mb-2"><i class="fa fa-flask mr-1"></i>化学防治</div>' +
-      '<ol class="list-decimal list-inside space-y-1 text-gray-600">' +
-      chem.map(function(c){ return '<li class="text-xs">' + c + '</li>'; }).join('') +
-      '</ol></div>';
+  var html = '<div class="space-y-4 text-sm">';
+  // 显示识别图片（安全引用，避免base64破坏HTML）
+  if (r.imageUrl && typeof r.imageUrl === 'string' && r.imageUrl.length < 500000) {
+    html += '<div class="text-center"><img src="'+r.imageUrl.replace(/'/g,"\\'")+'" class="max-w-full max-h-64 mx-auto rounded-lg border border-gray-200" alt="病害图片" onerror="this.style.display=\'none\'"><p class="text-xs text-gray-400 mt-1">识别图片</p></div>';
   }
-  if (bio.length > 0) {
-    html += '<div class="border-l-4 border-green-400 pl-3"><div class="font-medium text-green-700 mb-2"><i class="fa fa-leaf mr-1"></i>生物防治</div>' +
-      '<ol class="list-decimal list-inside space-y-1 text-gray-600">' +
-      bio.map(function(b){ return '<li class="text-xs">' + b + '</li>'; }).join('') +
-      '</ol></div>';
-  }
-  if (agri.length > 0) {
-    html += '<div class="border-l-4 border-orange-400 pl-3"><div class="font-medium text-orange-700 mb-2"><i class="fa fa-tint mr-1"></i>农业防治</div>' +
-      '<ol class="list-decimal list-inside space-y-1 text-gray-600">' +
-      agri.map(function(a){ return '<li class="text-xs">' + a + '</li>'; }).join('') +
-      '</ol></div>';
-  }
-
-  html += '<div class="text-center text-xs text-gray-400 pt-2 border-t">' +
-      '由 AI 多模型协诊断 · 仅供参考，具体用药请遵当地农技指导</div>';
+  html += '<div class="bg-blue-50 p-4 rounded-xl text-center"><div class="text-xl font-bold text-blue-700 mb-1">'+(r.diseaseName||'未知病害')+'</div><div class="text-xs text-blue-500">置信度 '+conf+'% · '+sevLabel+'严重 · '+formatDateTime(r.detectedAt)+'</div></div>';
+  html += '<div class="text-xs text-gray-600">作物：'+(r.cropAffected||'未知')+'</div>';
+  if (r.detail) html += '<div class="bg-gray-50 p-3 rounded text-xs"><p class="font-medium mb-1">Top5 预测结果</p>'+r.detail.replace(/\n/g,'<br>')+'</div>';
   html += '</div>';
-
-  if (typeof showModal === 'function') showModal('🔍 ' + (r.diseaseName||'诊断详情'), html);
-}
-
-function deleteDiseaseRecord(id) {
-  if (!dsReady()) return;
-  var r = ds().getById('disease_records', id);
-  if (!r) { showToast('记录不存在', 'error'); return; }
-  if (typeof confirm === 'function' ? confirm('确定删除「' + r.diseaseName + '」的识别记录？') : true) {
-    ds().delete('disease_records', id);
-    showToast('已删除: ' + r.diseaseName, 'success');
-    if (typeof renderDisease === 'function') renderDisease();
-  }
+  showConfirm('识别详情', html, function(){});
+  } catch(e) { console.error('viewDiseaseRecord err:', e); showToast('查看失败', 'error'); }
 }
 
 function handleDiseaseFile(file) {
   if (!file) return;
   if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { showToast('仅支持 JPG、PNG、WebP 格式','error'); return; }
   if (file.size > 10*1024*1024) { showToast('文件不能超过 10MB','error'); return; }
-
-  // 获取选择的模型
   var modelSelect = document.getElementById('disease-model-select');
-  var model = modelSelect ? modelSelect.value : 'deepseek';
-  var modelName = modelSelect ? modelSelect.options[modelSelect.selectedIndex].text : 'DeepSeek Vision';
-
-  // 显示识别进度条
+  var model = modelSelect ? (modelSelect.value || 'local') : 'local';
+  var modelNames = {local:'MobileNetV3 38类', local2:'EfficientNet-B3 15类 (99.8%)'};
+  var modelName = modelNames[model] || '本地训练模型';
+  var endpoint = model === 'local2' ? '/api/v1/disease/predict-v2' : '/api/v1/disease/predict';
   var container = document.getElementById('disease-history-list');
   var oldHtml = container.innerHTML;
-  container.innerHTML = `
-    <div class="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-3">
-      <div class="flex items-center mb-2">
-        <i class="fa fa-spinner fa-spin text-blue-500 mr-2"></i>
-        <span class="text-sm font-medium text-blue-700">${modelName} 正在识别...</span>
-      </div>
-      <div class="text-xs text-blue-600 mb-2">${file.name} (${(file.size/1024).toFixed(0)}KB)</div>
-      <div class="w-full bg-blue-200 rounded-full h-2 mb-1">
-        <div class="bg-blue-500 h-2 rounded-full transition-all" style="width:20%" id="diag-bar"></div>
-      </div>
-      <div class="text-xs text-blue-500" id="diag-status">上传图片到 ${modelName}...</div>
-    </div>` + oldHtml;
-
+  container.innerHTML = '<div class="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-3"><div class="flex items-center mb-2"><i class="fa fa-spinner fa-spin text-blue-500 mr-2"></i><span class="text-sm font-medium text-blue-700">'+modelName+' 正在识别...</span></div><div class="text-xs text-blue-600 mb-2">'+file.name+' ('+(file.size/1024).toFixed(0)+'KB)</div><div class="w-full bg-blue-200 rounded-full h-2 mb-1"><div class="bg-blue-500 h-2 rounded-full transition-all" style="width:20%" id="diag-bar"></div></div><div class="text-xs text-blue-500" id="diag-status">上传图片...</div></div>' + oldHtml;
   var bar = document.getElementById('diag-bar');
   var st = document.getElementById('diag-status');
   var w = 20, t = setInterval(function(){
     if(w<90){ w+=Math.random()*12; if(bar) bar.style.width=w+'%'; }
-    if(w>40&&st) st.textContent=modelName+' 分析图像特征...';
-    if(w>70&&st) st.textContent='匹配病虫害知识库...';
+    if(w>40&&st) st.textContent='分析图像特征...';
+    if(w>70&&st) st.textContent='匹配知识库...';
   },500);
-
-  AiClient.diagnosis.upload(file, null, model).then(function(r){
-    clearInterval(t); if(bar) bar.style.width='100%'; if(st) st.textContent='完成';
-    console.log('[诊断] 响应:', r);
-    if(r && r.diseaseName){
-      saveDiseaseRecord(r);
-      showToast(r.diseaseName + ' (置信度:'+Math.round(r.confidence*100)+'%)', r.isUnknown?'warning':'success');
-    } else if(r && r.error) {
-      showToast('服务异常: '+r.error, 'error');
-    } else {
-      showToast('AI 服务未响应','error');
-    }
-    setTimeout(function(){ if(typeof renderDisease==='function') renderDisease(); },500);
-  }).catch(function(err){
-    clearInterval(t); if(st) st.textContent='错误: '+err.message;
-    console.error('[诊断] 失败:', err);
-    showToast('请求失败: '+(err.message||'网络错误'),'error');
-    setTimeout(function(){ if(typeof renderDisease==='function') renderDisease(); },1000);
-  });
+  var formData = new FormData();
+  formData.append('file', file);
+  fetch(endpoint, { method: 'POST', body: formData })
+    .then(function(res){ return res.json(); })
+    .then(function(r){
+      clearInterval(t); if(bar) bar.style.width='100%'; if(st) st.textContent='识别完成';
+      if (r && r.success && r.predictions) {
+        var top = r.predictions[0];
+        var warn = top.probability < 60 ? ' ⚠️ 低置信度' : '';
+        saveDiseaseRecord({
+          diseaseName: top.crop + ' - ' + top.disease,
+          confidence: top.probability / 100,
+          isUnknown: top.probability < 60,
+          severity: top.is_healthy ? 'low' : (top.probability > 70 ? 'high' : 'medium'),
+          cropAffected: top.crop,
+          detail: r.predictions.map(function(p){return p.crop+' '+p.disease+' '+p.probability+'%';}).join('<br>')
+        });
+        showToast(top.crop+' '+top.disease+' (置信度:'+top.probability+'%)'+warn, top.is_healthy?'success':'warning');
+      } else { showToast('推理服务返回失败', 'error'); }
+      setTimeout(function(){ if(typeof renderDisease==='function') renderDisease(); },500);
+    }).catch(function(err){
+      clearInterval(t); if(st) st.textContent='请先启动推理服务';
+      showToast('推理服务未启动 (localhost:8000)', 'error');
+      setTimeout(function(){ if(typeof renderDisease==='function') renderDisease(); },1000);
+    });
 }
 
-
-// 安全同步到后端（旧版本数据服务没有syncModuleState方法）
 function _safeSync() {
   // 已废弃：ds().insert() 已自动调用 _syncToBackend
 }
@@ -342,6 +299,7 @@ function saveDiseaseRecord(result) {
   if (!dsReady()) return;
   var name = typeof result === 'string' ? result : (result.diseaseName || 'AI识别结果');
   var sev = result.severity || 'medium';
+  var conf = result.confidence || 0;
   var isUnknown = name === '未知病害' || name === '识别失败' || result.isUnknown;
   // 当地时间
   var now = new Date();
@@ -352,10 +310,13 @@ function saveDiseaseRecord(result) {
     detectedAt: localTime,
     severity: isUnknown ? 'low' : sev,
     status: isUnknown ? 'review' : 'processing',
-    imageUrl: result.imageUrl || '',
+    confidence: conf,
+    detail: result.detail || '',
     treatmentPlan: result.treatment ? JSON.stringify(result.treatment) : (result.treatmentPlan || ''),
     resolvedAt:null
   });
+  // 立即持久化到 localStorage，避免刷新丢失
+  try { ds()._saveToLocal(); } catch(e) {}
   _safeSync();
 }
 
@@ -880,7 +841,7 @@ function setupAiChat() {
         'Authorization': 'Bearer ' + apiKey
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'deepseek-v4-pro',
         messages: messages,
         temperature: 0.7,
         max_tokens: 2000
