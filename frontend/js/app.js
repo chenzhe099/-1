@@ -705,6 +705,8 @@ function updateStatTexts(selector, values) {
 
 function renderWeather() {
   const stats = dataService.getWeatherStats();
+  // 初始化天气图表
+  if (typeof initWeatherCharts === 'function') setTimeout(initWeatherCharts, 100);
 
   document.getElementById('stat-temp').textContent = stats.todayTemp;
   document.getElementById('stat-temp-change').innerHTML = '<i class="fa fa-arrow-' + (stats.tempChange.startsWith('+') ? 'up' : 'down') + ' mr-1"></i>较昨日 ' + stats.tempChange;

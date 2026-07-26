@@ -648,7 +648,21 @@ class DataService {
     return forecasts;
   }
 
-  getWeatherAlerts() {
+  getWeatherTrend() {
+    var now = new Date();
+    var labels = [], highs = [], lows = [], rainfall = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(now.getTime() - i * 86400000);
+      labels.push((d.getMonth()+1) + '/' + d.getDate());
+      var dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+      var seed = dayOfYear % 30;
+      var baseTemp = 25 - Math.abs(seed - 15) * 0.5;
+      highs.push(Math.round(baseTemp + 2));
+      lows.push(Math.round(baseTemp - 4));
+      rainfall.push(seed === 8 ? 5.2 : seed === 12 ? 12.8 : seed === 18 ? 3.5 : 0);
+    }
+    return { labels: labels, temperatureHigh: highs, temperatureLow: lows, rainfall: rainfall };
+  }
     return this.getAll('alerts').filter(a => a.module === 'weather' || a.title.includes('天气'));
   }
 
