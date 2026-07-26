@@ -625,16 +625,15 @@ window.permAddRole = function() {
 };
 
 function showConfirm(title, body, cb) {
-  // 移除已有弹窗，防止叠加
+  // 移除已有弹窗
   document.querySelectorAll('.perm-modal').forEach(function(m){m.remove();});
   var overlay = document.createElement('div');
   overlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center perm-modal';
-  overlay.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"><h3 class="text-lg font-semibold mb-4">'+title+'</h3><div class="mb-4">'+body+'</div><div class="flex justify-end gap-3"><button id="cf-cancel" class="px-4 py-2 border rounded-lg text-sm">取消</button><button id="cf-ok" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm">确定</button></div></div>';
+  overlay.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl"><h3 class="text-lg font-semibold mb-4">'+title+'</h3><div class="mb-4" id="perm-form-body">'+body+'</div><div class="flex justify-end gap-3"><button id="cf-cancel" class="px-4 py-2 border rounded-lg text-sm">取消</button><button id="cf-ok" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm">确定</button></div></div>';
   document.body.appendChild(overlay);
-  var close = function(val) { overlay.remove(); cb(val); };
-  document.getElementById('cf-ok').onclick = function(e) { e.stopPropagation(); close(true); };
-  document.getElementById('cf-cancel').onclick = function(e) { e.stopPropagation(); close(false); };
-  overlay.onclick = function(e) { if (e.target === overlay) { close(false); } };
+  document.getElementById('cf-ok').onclick = function(e) { e.stopPropagation(); cb(true); overlay.remove(); };
+  document.getElementById('cf-cancel').onclick = function(e) { e.stopPropagation(); cb(false); overlay.remove(); };
+  overlay.onclick = function(e) { if (e.target === overlay) { cb(false); overlay.remove(); } };
 }
 
 // ==================== 全局辅助函数 ====================
