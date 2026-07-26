@@ -88,6 +88,15 @@ async function initDataService() {
 
   let bundle = null;
 
+  // 策略0：从 localStorage 恢复（瞬时加载）
+  if (dataService._loadFromLocal()) {
+    console.log('[DataLoader] 从本地缓存恢复');
+    loadFromApi().then(function(b) {
+      if (b && Object.keys(b).length > 0) { dataService.loadAll(b); }
+    }).catch(function(){});
+    return dataService;
+  }
+
   // 策略1：后端 API（MySQL 数据）
   try {
     bundle = await loadFromApi();

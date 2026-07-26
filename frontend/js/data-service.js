@@ -95,6 +95,37 @@ class DataService {
     this._tables = dataBundle;
     this._ready = true;
     this._buildIndexes();
+    // 加载后保存到 localStorage
+    this._saveToLocal();
+  }
+
+  /** 从 localStorage 恢复数据（后端不可用时） */
+  _loadFromLocal() {
+    try {
+      var cached = localStorage.getItem('smartfarm_data');
+      if (cached) {
+        var data = JSON.parse(cached);
+        if (data && typeof data === 'object') {
+          this._tables = data;
+          this._ready = true;
+          this._buildIndexes();
+          return true;
+        }
+      }
+    } catch(e) { console.warn('本地缓存加载失败:', e); }
+    return false;
+  }
+
+  /** 保存到 localStorage */
+  _saveToLocal() {
+    try {
+      // 只保存有数据的表
+      var toSave = {};
+      Object.keys(this._tables).forEach(function(k) {
+        if (this._tables[k] && this._tables[k].length > 0) toSave[k] = this._tables[k];
+      }.bind(this));
+      localStorage.setItem('smartfarm_data', JSON.stringify(toSave));
+    } catch(e) {}
   }
 
   isReady() { return this._ready; }
@@ -163,6 +194,7 @@ class DataService {
     Object.assign(row, changes);
     // 异步同步到后端 MySQL
     this._syncToBackend('update', table, id, changes, oldValues);
+    setTimeout(this._saveToLocal.bind(this), 100);
     return true;
   }
 
@@ -171,6 +203,8 @@ class DataService {
     this._tables[table].push(row);
     // 异步同步到后端 MySQL
     this._syncToBackend('insert', table, row.id, row, null);
+    // 保存到本地缓存
+    setTimeout(this._saveToLocal.bind(this), 100);
     return row;
   }
 
@@ -182,6 +216,7 @@ class DataService {
       const deleted = arr.splice(idx, 1)[0];
       // 异步同步到后端 MySQL
       this._syncToBackend('delete', table, id, null, deleted);
+      setTimeout(this._saveToLocal.bind(this), 100);
       return true;
     }
     return false;
