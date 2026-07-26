@@ -8,6 +8,7 @@ import os, json, time
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm import tqdm
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms, models
 
@@ -77,7 +78,8 @@ for epoch in range(EPOCHS):
     t0 = time.time()
     model.train()
     train_loss, train_correct = 0, 0
-    for images, labels in train_loader:
+    pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS} [训练]", unit="batch", leave=False)
+    for images, labels in pbar:
         images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
         outputs = model(images)
@@ -86,12 +88,14 @@ for epoch in range(EPOCHS):
         optimizer.step()
         train_loss += loss.item()
         train_correct += (outputs.argmax(1) == labels).sum().item()
+        pbar.set_postfix(loss=f"{loss.item():.3f}", acc=f"{100*train_correct/((pbar.n or 1)*BATCH_SIZE):.1f}%")
 
     # 验证
     model.eval()
     val_loss, val_correct = 0, 0
     with torch.no_grad():
-        for images, labels in val_loader:
+        pbar_val = tqdm(val_loader, desc=f"Epoch {epoch+1}/{EPOCHS} [验证]", unit="batch", leave=False)
+        for images, labels in pbar_val:
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             val_loss += criterion(outputs, labels).item()
