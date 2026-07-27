@@ -199,48 +199,80 @@ function renderFarming() {
   var today = new Date().toISOString().slice(0, 10);
 
   // === 统计卡片 ===
-  var todayIrrig = irrigs.filter(function(p){return p.status==='completed'&&(p.scheduledAt||'').startsWith(today);}).reduce(function(s,p){return s+(p.waterVolume||0);},0);
-  var todayFert = ferts.filter(function(p){return p.status==='completed'&&(p.scheduledAt||'').startsWith(today);}).reduce(function(s,p){return s+(p.nKg||0)+(p.pKg||0)+(p.kKg||0)+(p.organicKg||0);},0);
+  var todayIrrig = irrigs.filter(function(p){return p.status==='completed';}).reduce(function(s,p){return s+(p.waterVolume||0);},0);
+  var todayFert = ferts.filter(function(p){return p.status==='completed';}).reduce(function(s,p){return s+(p.nKg||0)+(p.pKg||0)+(p.kKg||0)+(p.organicKg||0);},0);
   var todayCompleted = tasks.filter(function(t){return t.status==='completed';}).length;
   var pending = tasks.filter(function(t){return t.status==='pending'||t.status==='in_progress';}).length;
   var totalT = tasks.length;
-  setText('stat-irrigation', todayIrrig+'m³');
-  setText('stat-fertilizer', todayFert+'kg');
+  setText('stat-irrigation', todayIrrig+' m³');
+  setText('stat-fertilizer', todayFert+' kg');
   setText('stat-pending-tasks', pending+'个');
   setText('stat-completion', totalT ? Math.round(todayCompleted/totalT*100)+'%' : '--');
 
-  // === 灌溉方案 ===
+  // === 灌溉方案（以地块为基准，确保数量与字段管理一致） ===
   var irrC = document.getElementById('irrigation-plan-list');
   if (irrC) {
     var stLabelI = {pending:'待执行',completed:'已完成',executing:'执行中'};
     var stBgI = {pending:'bg-yellow-100 text-yellow-600',completed:'bg-green-100 text-green-600',executing:'bg-blue-100 text-blue-600'};
-    var cardBgI = {pending:'bg-yellow-50',completed:'bg-blue-50',executing:'bg-blue-50'};
-    irrC.innerHTML = irrigs.length ? irrigs.map(function(p){
-      var diff = (p.targetMoisture||0) - (p.currentMoisture||0);
-      var need = diff > 0;
-      return '<div class="p-4 '+(cardBgI[p.status]||'bg-gray-50')+' rounded-lg"><div class="flex items-center justify-between mb-2"><span class="font-medium text-gray-800">地块'+p.fieldCode+' - '+p.cropName+'</span><span class="px-2 py-1 text-xs rounded '+(stBgI[p.status]||'')+'">'+(stLabelI[p.status]||p.status)+'</span></div><div class="grid grid-cols-2 gap-3 text-sm"><div><span class="text-gray-500">目标湿度</span><b class="ml-1">'+p.targetMoisture+'%</b></div><div><span class="text-gray-500">当前湿度</span><b class="ml-1 '+(need?'text-red-600':'text-green-600')+'">'+p.currentMoisture+'%</b></div><div><span class="text-gray-500">水量</span><b class="ml-1">'+p.waterVolume+'m³</b></div><div><span class="text-gray-500">时长</span><b class="ml-1">'+p.estimatedDuration+'分钟</b></div></div>'+ (p.status==='pending' ? '<div class="mt-3 flex gap-2"><button onclick="farmExecIrrigation(\''+p.id+'\')" class="flex-1 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"><i class="fa fa-play mr-1"></i>立即执行</button><button onclick="farmEditPlan(\'irrigation_plans\',\''+p.id+'\')" class="px-2 py-1.5 bg-gray-200 text-gray-600 text-xs rounded hover:bg-gray-300"><i class="fa fa-cog"></i></button></div>' : '') + '</div>';
-    }).join('') : '<p class="text-sm text-gray-400 text-center py-6">暂无灌溉方案，点击右上角添加</p>';
+    var cardBgI = {pending:'bg-yellow-50',completed:'bg-blue-50'};
+    irrC.innerHTML = fields.length ? fields.map(function(f){
+      var plan = irrigs.filter(function(p){return p.fieldCode===f.code;});
+      var p = plan.length ? plan[plan.length-1] : null; // 最新的方案
+      if (p) {
+        var diff = (p.targetMoisture||0) - (p.currentMoisture||0);
+        var need = diff > 0;
+        var smart = need ? '建议灌溉 '+p.waterVolume+'m³（目标 '+(p.targetMoisture||0)+'%，当前 '+(p.currentMoisture||0)+'%）' : '湿度已达目标，无需灌溉';
+        var btns = p.status==='pending'
+          ? '<button onclick="farmExecIrrigation(\''+p.id+'\')" class="flex-1 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"><i class="fa fa-play mr-1"></i>立即执行</button>'
+          : '<button onclick="farmReopenPlan(\'irrigation_plans\',\''+p.id+'\')" class="flex-1 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"><i class="fa fa-undo mr-1"></i>撤销完成</button>';
+        btns += '<button onclick="farmEditPlan(\'irrigation_plans\',\''+p.id+'\')" class="px-2 py-1.5 bg-gray-200 text-gray-600 text-xs rounded hover:bg-gray-300" title="调整参数"><i class="fa fa-cog"></i></button>';
+        btns += '<button onclick="farmDeleteIrrigation(\''+p.id+'\')" class="px-2 py-1.5 bg-red-100 text-red-600 text-xs rounded hover:bg-red-200" title="删除"><i class="fa fa-trash"></i></button>';
+        return '<div class="p-4 '+(cardBgI[p.status]||'bg-yellow-50')+' rounded-lg"><div class="flex items-center justify-between mb-2"><span class="font-medium text-gray-800"><i class="fa fa-tint text-blue-500 mr-1"></i>地块'+f.code+' - '+f.cropName+'</span><span class="px-2 py-1 text-xs rounded '+(stBgI[p.status]||'')+'">'+(stLabelI[p.status]||p.status)+'</span></div><div class="grid grid-cols-2 gap-3 text-sm"><div><span class="text-gray-500">目标湿度</span><b class="ml-1">'+p.targetMoisture+'%</b></div><div><span class="text-gray-500">当前湿度</span><b class="ml-1 '+(need?'text-red-600':'text-green-600')+'">'+p.currentMoisture+'%</b></div><div><span class="text-gray-500">水量</span><b class="ml-1">'+p.waterVolume+'m³</b></div><div><span class="text-gray-500">时长</span><b class="ml-1">'+p.estimatedDuration+'分钟</b></div></div><p class="text-xs '+(need?'text-red-500':'text-green-600')+' mt-2"><i class="fa fa-lightbulb-o mr-1"></i>'+smart+'</p><div class="mt-3 flex gap-2">'+btns+'</div></div>';
+      }
+      // 无方案：占位卡片
+      return '<div class="p-4 bg-gray-50 rounded-lg"><div class="flex items-center justify-between mb-2"><span class="font-medium text-gray-800"><i class="fa fa-tint text-gray-400 mr-1"></i>地块'+f.code+' - '+f.cropName+'</span><span class="px-2 py-1 text-xs rounded bg-gray-200 text-gray-500">未配置</span></div><p class="text-xs text-gray-400 text-center py-4">暂未配置灌溉方案</p><div class="mt-2 text-center"><button onclick="farmAddIrrigation()" class="px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"><i class="fa fa-plus mr-1"></i>添加灌溉方案</button></div></div>';
+    }).join('') : '<p class="text-sm text-gray-400 text-center py-6">暂无地块，请先添加地块</p>';
   }
 
-  // === 施肥方案 ===
+  // === 施肥方案（以地块为基准，确保数量与字段管理一致） ===
   var fertC = document.getElementById('fertilization-plan-list');
   if (fertC) {
     var stLabelF = {planned:'计划中',pending:'待执行',completed:'已完成'};
-    fertC.innerHTML = ferts.length ? ferts.map(function(p){
-      return '<div class="p-4 bg-green-50 rounded-lg"><div class="flex items-center justify-between mb-2"><span class="font-medium text-gray-800">地块'+p.fieldCode+' - '+p.cropName+'</span><span class="px-2 py-1 text-xs rounded '+(p.status==='completed'?'bg-green-100 text-green-600':'bg-yellow-100 text-yellow-600')+'">'+(stLabelF[p.status]||p.status)+'</span></div><div class="grid grid-cols-4 gap-2 text-center text-sm"><div class="bg-white rounded p-2"><span class="text-red-500 font-bold">N</span><br><b>'+(p.nKg||0)+'</b>kg</div><div class="bg-white rounded p-2"><span class="text-yellow-600 font-bold">P</span><br><b>'+(p.pKg||0)+'</b>kg</div><div class="bg-white rounded p-2"><span class="text-blue-500 font-bold">K</span><br><b>'+(p.kKg||0)+'</b>kg</div><div class="bg-white rounded p-2"><span class="text-green-600 font-bold">有机</span><br><b>'+(p.organicKg||0)+'</b>kg</div></div>'+(p.scheduledAt?'<p class="text-xs text-gray-500 mt-2">计划: '+p.scheduledAt+'</p>':'')+'</div>';
-    }).join('') : '<p class="text-sm text-gray-400 text-center py-6">暂无施肥方案</p>';
+    fertC.innerHTML = fields.length ? fields.map(function(f){
+      var plan = ferts.filter(function(p){return p.fieldCode===f.code;});
+      var p = plan.length ? plan[plan.length-1] : null;
+      if (p) {
+        var done = p.status==='completed';
+        var total = (p.nKg||0)+(p.pKg||0)+(p.kKg||0)+(p.organicKg||0);
+        var execBtn = done
+          ? '<button onclick="farmExecFertilization(\''+p.id+'\')" class="flex-1 py-1.5 bg-green-500 text-white text-xs rounded hover:bg-green-600"><i class="fa fa-refresh mr-1"></i>再次执行</button>'
+          : '<button onclick="farmExecFertilization(\''+p.id+'\')" class="flex-1 py-1.5 bg-green-500 text-white text-xs rounded hover:bg-green-600"><i class="fa fa-play mr-1"></i>执行</button>';
+        var editBtn = '<button onclick="farmEditPlan(\'fertilization_plans\',\''+p.id+'\')" class="px-2 py-1.5 bg-gray-200 text-gray-600 text-xs rounded hover:bg-gray-300" title="调整参数"><i class="fa fa-cog"></i></button>';
+        var delBtn = '<button onclick="farmDeleteFertilization(\''+p.id+'\')" class="px-2 py-1.5 bg-red-100 text-red-600 text-xs rounded hover:bg-red-200" title="删除"><i class="fa fa-trash"></i></button>';
+        return '<div class="p-4 bg-green-50 rounded-lg"><div class="flex items-center justify-between mb-2"><span class="font-medium text-gray-800"><i class="fa fa-flask text-green-500 mr-1"></i>地块'+f.code+' - '+f.cropName+'</span><span class="px-2 py-1 text-xs rounded '+(done?'bg-green-100 text-green-600':'bg-yellow-100 text-yellow-600')+'">'+(stLabelF[p.status]||p.status)+'</span></div><div class="grid grid-cols-4 gap-2 text-center text-sm"><div class="bg-white rounded p-2"><span class="text-red-500 font-bold">N</span><br><b>'+(p.nKg||0)+'</b>kg</div><div class="bg-white rounded p-2"><span class="text-yellow-600 font-bold">P</span><br><b>'+(p.pKg||0)+'</b>kg</div><div class="bg-white rounded p-2"><span class="text-blue-500 font-bold">K</span><br><b>'+(p.kKg||0)+'</b>kg</div><div class="bg-white rounded p-2"><span class="text-green-600 font-bold">有机</span><br><b>'+(p.organicKg||0)+'</b>kg</div></div>'+(p.scheduledAt?'<p class="text-xs text-gray-500 mt-2">计划: '+p.scheduledAt+' · 共 '+total+'kg</p>':'<p class="text-xs text-gray-500 mt-2">共 '+total+'kg</p>')+'<div class="mt-2 flex gap-2">'+execBtn+editBtn+delBtn+'</div></div>';
+      }
+      // 无方案：占位卡片
+      return '<div class="p-4 bg-gray-50 rounded-lg"><div class="flex items-center justify-between mb-2"><span class="font-medium text-gray-800"><i class="fa fa-flask text-gray-400 mr-1"></i>地块'+f.code+' - '+f.cropName+'</span><span class="px-2 py-1 text-xs rounded bg-gray-200 text-gray-500">未配置</span></div><p class="text-xs text-gray-400 text-center py-4">暂未配置施肥方案</p><div class="mt-2 text-center"><button onclick="farmAddFertilization()" class="px-3 py-1.5 bg-green-500 text-white text-xs rounded hover:bg-green-600"><i class="fa fa-plus mr-1"></i>添加施肥方案</button></div></div>';
+    }).join('') : '<p class="text-sm text-gray-400 text-center py-6">暂无地块，请先添加地块</p>';
   }
 
-  // === 地块列表 ===
+  // === 地块列表（与灌溉/施肥一致） ===
   var flC = document.getElementById('field-management-list');
   if (flC) {
-    var stColorF = {growing:'bg-green-100 text-green-600',fallow:'bg-gray-100 text-gray-600',harvesting:'bg-yellow-100 text-yellow-600'};
-    var stLabelFL = {growing:'生长中',fallow:'休耕',harvesting:'采收期'};
-    flC.innerHTML = fields.map(function(f){
+    var stLabelF = {growing:'生长中',fallow:'休耕',harvesting:'采收期',planted:'已种植'};
+    flC.innerHTML = fields.length ? fields.map(function(f){
       var need = (f.soilMoisture||0) < 50;
       var bg = need ? 'bg-orange-50' : 'bg-green-50';
-      return '<div class="flex items-center justify-between p-3 '+bg+' rounded-lg hover:opacity-80 transition-opacity cursor-pointer" onclick="farmFieldDetail(\''+f.id+'\')"><div class="flex items-center"><div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3"><i class="fa fa-map-marker text-green-600"></i></div><div><p class="text-sm font-medium">地块'+f.code+'</p><p class="text-xs text-gray-500">'+f.cropName+' · '+f.area+'亩 · 湿度'+f.soilMoisture+'%</p></div></div><span class="px-2 py-1 text-xs rounded '+(stColorF[f.status]||'')+' '+(need?'text-red-600 font-bold':'')+'">'+(need?'需浇水':(stLabelFL[f.status]||f.status))+'</span></div>';
-    }).join('');
+      var stCls = need ? 'bg-orange-100 text-orange-600' : (stLabelF[f.status] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600');
+      var moistureNote = need ? '土壤湿度偏低（'+(f.soilMoisture||0)+'%），建议安排灌溉' : '土壤湿度正常（'+(f.soilMoisture||0)+'%），状态良好';
+      var editBtn = '<button onclick="event.stopPropagation();farmEditField(\''+f.id+'\')" class="px-2 py-1.5 bg-gray-200 text-gray-600 text-xs rounded hover:bg-gray-300" title="编辑"><i class="fa fa-pencil"></i></button>';
+      var delBtn = '<button onclick="event.stopPropagation();farmDeleteField(\''+f.id+'\')" class="px-2 py-1.5 bg-red-100 text-red-600 text-xs rounded hover:bg-red-200" title="删除"><i class="fa fa-trash"></i></button>';
+      return '<div class="p-4 '+bg+' rounded-lg cursor-pointer" onclick="farmFieldDetail(\''+f.id+'\')">'
+        + '<div class="flex items-center justify-between mb-2"><span class="font-medium text-gray-800"><i class="fa fa-map-marker mr-1"></i>地块'+f.code+' - '+f.cropName+'</span><span class="px-2 py-1 text-xs rounded '+stCls+'">'+(need?'需浇水':(stLabelF[f.status]||f.status))+'</span></div>'
+        + '<div class="grid grid-cols-2 gap-3 text-sm"><div><span class="text-gray-500">面积</span><b class="ml-1">'+f.area+'亩</b></div><div><span class="text-gray-500">作物</span><b class="ml-1">'+f.cropName+'</b></div><div><span class="text-gray-500">土壤湿度</span><b class="ml-1 '+(need?'text-red-600':'text-green-600')+'">'+(f.soilMoisture||'--')+'%</b></div><div><span class="text-gray-500">pH值</span><b class="ml-1">'+(f.soilPh||'--')+'</b></div></div>'
+        + '<p class="text-xs '+(need?'text-orange-500':'text-green-600')+' mt-2"><i class="fa fa-lightbulb-o mr-1"></i>'+moistureNote+'</p>'
+        + '<div class="mt-2 flex gap-2">'+editBtn+delBtn+'</div></div>';
+    }).join('') : '<p class="text-sm text-gray-400 text-center py-6">暂无地块，点击右上角添加</p>';
   }
 
   // === 灌溉日历（动态月） ===
@@ -263,16 +295,32 @@ function renderFarming() {
     calDiv.innerHTML = html;
   }
 
-  // === 任务列表 ===
+  // === 任务列表（按执行时间升序，最近的在前） ===
   var taskC = document.getElementById('farming-task-list');
   if (taskC) {
     var typeLabels = {watering:'浇水',fertilizing:'施肥',spraying:'喷药',pruning:'修剪',harvesting:'采收',thinning:'疏果'};
-    var typeIcons = {watering:'fa-tint text-blue-500',fertilizing:'fa-flask text-green-500',spraying:'fa-medkit text-purple-500',pruning:'fa-scissors text-orange-500',harvesting:'fa-shopping-basket text-teal-500',thinning:'fa-leaf text-gray-500'};
-    var stBgTask = {completed:'bg-green-50',in_progress:'bg-yellow-50',pending:'bg-gray-50'};
-    var stIcon = {completed:'fa-check-circle text-green-500',in_progress:'fa-spinner fa-spin text-yellow-500',pending:'fa-clock-o text-gray-400'};
-    taskC.innerHTML = tasks.length ? tasks.slice(0,8).map(function(t,i){
-      return '<div class="flex items-start p-3 '+(stBgTask[t.status]||'bg-gray-50')+' rounded-lg hover:opacity-80 transition-opacity cursor-pointer" onclick="farmTaskDetail(\''+t.id+'\')"><div class="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center mr-3 flex-shrink-0"><span class="text-white text-xs">'+(i+1)+'</span></div><div class="flex-1"><p class="text-sm font-medium">地块'+t.fieldCode+' '+(typeLabels[t.type]||t.type)+'</p><p class="text-xs text-gray-500">'+(t.scheduledTime||'--')+' · '+(typeLabels[t.type]||t.type)+'</p></div><i class="fa '+(stIcon[t.status]||'fa-question')+'"></i></div>';
-    }).join('') : '<p class="text-sm text-gray-400 text-center py-6">暂无任务</p>';
+    var stBgTask = {completed:'bg-green-50',in_progress:'bg-yellow-50',pending:'bg-gray-50',cancelled:'bg-red-50'};
+    var stIcon = {completed:'fa-check-circle text-green-500',in_progress:'fa-spinner fa-spin text-yellow-500',pending:'fa-clock-o text-gray-400',cancelled:'fa-times-circle text-red-400'};
+    var sortedTasks = tasks.slice().sort(function(a,b){
+      var ta = a.scheduledTime||'', tb = b.scheduledTime||'';
+      if (ta===tb) return 0;
+      return ta < tb ? -1 : 1;
+    });
+    taskC.innerHTML = sortedTasks.length ? sortedTasks.slice(0,12).map(function(t,i){
+      var label = typeLabels[t.type]||t.type;
+      var isDone = (t.status==='completed'||t.status==='cancelled');
+      var actions = isDone
+        ? '<button onclick="event.stopPropagation();farmSetTaskStatus(\''+t.id+'\',\'pending\')" class="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200">重新打开</button>'
+        : '<button onclick="event.stopPropagation();farmSetTaskStatus(\''+t.id+'\',\'completed\')" class="px-2 py-1 text-xs bg-green-100 text-green-600 rounded hover:bg-green-200">完成</button>';
+      actions += '<button onclick="event.stopPropagation();farmEditTask(\''+t.id+'\')" class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200" title="编辑"><i class="fa fa-pencil"></i></button>';
+      actions += '<button onclick="event.stopPropagation();farmDeleteTask(\''+t.id+'\')" class="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200" title="删除"><i class="fa fa-trash"></i></button>';
+      return '<div class="flex items-start p-3 '+(stBgTask[t.status]||'bg-gray-50')+' rounded-lg hover:shadow-sm transition-all cursor-pointer" onclick="farmTaskDetail(\''+t.id+'\')">'
+        + '<div class="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center mr-3 flex-shrink-0"><span class="text-white text-xs">'+(i+1)+'</span></div>'
+        + '<div class="flex-1 min-w-0"><p class="text-sm font-medium truncate">地块'+t.fieldCode+' · '+label+'</p>'
+        + '<p class="text-xs text-gray-500">'+(t.scheduledTime?t.scheduledTime.replace('T',' ').slice(0,16):'未排期')+(t.assignedTo&&t.assignedTo!=='--'?' · '+t.assignedTo:'')+'</p></div>'
+        + '<div class="flex items-center gap-1 ml-2 flex-shrink-0"><i class="fa '+(stIcon[t.status]||'fa-question')+' mr-1"></i>'+actions+'</div>'
+        + '</div>';
+    }).join('') : '<p class="text-sm text-gray-400 text-center py-6">暂无任务，点击右上角「添加任务」</p>';
   }
 
   // === 作业进度 ===
@@ -625,13 +673,18 @@ function renderPermission() {
     permContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">点击角色卡片中的 <b>"编辑权限"</b> 按钮查看和修改具体权限</p>';
   }
 
-  // 操作日志
+  // 操作日志 — 最新4条，所有模块联动
   var logs = dataService.getAll('operation_logs') || [];
   var logContainer = document.getElementById('operation-log-list');
   if (logContainer) {
-    logContainer.innerHTML = logs.slice(0, 10).map(function(l) {
-      return '<div class="flex items-center p-3 bg-gray-50 rounded-lg"><div class="flex-1"><p class="text-sm font-medium text-gray-800">'+l.action+'</p><p class="text-xs text-gray-500">'+(l.username||'')+' · '+(l.module||'')+'</p></div><span class="text-xs text-gray-400">'+formatDateTime(l.timestamp||l.createdAt)+'</span></div>';
-    }).join('') || '<p class="text-gray-400 text-sm text-center py-4">暂无操作日志</p>';
+    var actionIcons = {'新增':'fa-plus-circle text-green-500','入库':'fa-sign-in text-teal-500','出库':'fa-sign-out text-orange-500','修改':'fa-edit text-blue-500','删除':'fa-trash text-red-500','执行':'fa-play text-purple-500','控制':'fa-cog text-yellow-500','刷新':'fa-refresh text-gray-500','登录':'fa-key text-indigo-500'};
+    var actionBg = {'新增':'bg-green-100','入库':'bg-teal-100','出库':'bg-orange-100','修改':'bg-blue-100','删除':'bg-red-100','执行':'bg-purple-100','控制':'bg-yellow-100','刷新':'bg-gray-100','登录':'bg-indigo-100'};
+    var latest = logs.slice(-4).reverse();
+    logContainer.innerHTML = latest.length ? latest.map(function(l){
+      var icon = actionIcons[l.action] || 'fa-circle text-gray-400';
+      var bg = actionBg[l.action] || 'bg-gray-100';
+      return '<div class="flex items-start p-3 '+bg+' rounded-lg"><div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3 flex-shrink-0 shadow-sm"><i class="fa '+icon+' text-xs"></i></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-800 truncate">'+l.action+' '+l.target+'</p><p class="text-xs text-gray-500 truncate">'+ (l.detail||'') +'</p></div><div class="text-xs text-gray-400 flex-shrink-0 ml-2 text-right"><p>'+(l.operatedAt||'').slice(11,16)+'</p><p class="text-gray-300">'+ (l.operator||'') +'</p></div></div>';
+    }).join('') : '<p class="text-sm text-gray-400 text-center py-4">暂无操作记录</p>';
   }
 }
 
@@ -646,7 +699,7 @@ window.permEditUser = function(id) {
     var np = document.getElementById('eu-pw').value.trim();
     if (np) { changes.password = np; changes.passwordHash = ''; }
     dataService.update('users', u.id, changes);
-    renderPermission(); showToast('用户已更新','success');
+    renderPermission(); logOperation('修改','用户','信息已更新'); showToast('用户已更新','success');
   });
 };
 window.permResetPwd = function(id) {
@@ -686,7 +739,7 @@ window.permAddUser = function() {
       var un=document.getElementById('au-un').value.trim(),nm=document.getElementById('au-nm').value.trim();
       if(!un||!nm){showToast('请填写完整','error');return;}
       dataService.insert('users',{id:'u'+Math.floor(Math.random()*9000+1000),username:un,displayName:nm,role:document.getElementById('au-rl').value,status:'active',password:'123456',createdAt:new Date().toISOString()});
-      renderPermission(); showToast('用户添加成功','success');
+      renderPermission(); logOperation('新增','用户','已添加'); showToast('用户添加成功','success');
     });
   } catch(e) { console.error('permAddUser err:', e); showToast('操作失败：' + e.message, 'error'); }
 };
@@ -800,20 +853,32 @@ window.devAddDevice = function() {
 // ==================== 农事决策交互 ====================
 window.farmExecIrrigation = function(id) {
   dataService.update('irrigation_plans', id, {status:'completed'});
-  renderFarming(); showToast('灌溉方案已执行', 'success');
+  renderFarming(); logOperation('执行','灌溉方案','方案已执行'); showToast('灌溉方案已执行', 'success');
 };
 window.farmEditPlan = function(table, id) {
   var row = dataService.getById(table, id);
   if (!row) return;
-  var h = '<div class="space-y-2"><div><label class="text-xs text-gray-500">目标湿度(%)</label><input id="fp-tm" class="w-full px-3 py-2 border rounded text-sm" value="'+row.targetMoisture+'"></div><div><label class="text-xs text-gray-500">水量(m³)</label><input id="fp-wv" class="w-full px-3 py-2 border rounded text-sm" value="'+row.waterVolume+'"></div><div><label class="text-xs text-gray-500">时长(分钟)</label><input id="fp-ed" class="w-full px-3 py-2 border rounded text-sm" value="'+row.estimatedDuration+'"></div></div>';
-  showConfirm('调整方案参数', h, function(ok) {
+  var h = '<div class="space-y-2">';
+  if (table==='irrigation_plans') {
+    h += '<div><label class="text-xs text-gray-500">目标湿度(%)</label><input id="fp-tm" class="w-full px-3 py-2 border rounded text-sm" value="'+row.targetMoisture+'"></div><div><label class="text-xs text-gray-500">水量(m³)</label><input id="fp-wv" class="w-full px-3 py-2 border rounded text-sm" value="'+row.waterVolume+'"></div><div><label class="text-xs text-gray-500">时长(分钟)</label><input id="fp-ed" class="w-full px-3 py-2 border rounded text-sm" value="'+row.estimatedDuration+'"></div>';
+  }
+  if (table==='fertilization_plans') {
+    h += '<div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-gray-500">氮肥 N (kg)</label><input id="fp2-n" class="w-full px-3 py-2 border rounded text-sm" value="'+(row.nKg||0)+'"></div><div><label class="text-xs text-gray-500">磷肥 P (kg)</label><input id="fp2-p" class="w-full px-3 py-2 border rounded text-sm" value="'+(row.pKg||0)+'"></div><div><label class="text-xs text-gray-500">钾肥 K (kg)</label><input id="fp2-k" class="w-full px-3 py-2 border rounded text-sm" value="'+(row.kKg||0)+'"></div><div><label class="text-xs text-gray-500">有机肥 (kg)</label><input id="fp2-o" class="w-full px-3 py-2 border rounded text-sm" value="'+(row.organicKg||0)+'"></div></div>';
+  }
+  h += '</div>';
+  showConfirm(table==='fertilization_plans'?'调整施肥参数':'调整方案参数', h, function(ok) {
     if (!ok) return;
-    dataService.update(table, id, {
+    dataService.update(table, id, (table==='fertilization_plans') ? {
+      nKg: parseInt(document.getElementById('fp2-n').value)||0,
+      pKg: parseInt(document.getElementById('fp2-p').value)||0,
+      kKg: parseInt(document.getElementById('fp2-k').value)||0,
+      organicKg: parseInt(document.getElementById('fp2-o').value)||0
+    } : {
       targetMoisture: parseInt(document.getElementById('fp-tm').value)||65,
       waterVolume: parseInt(document.getElementById('fp-wv').value)||10,
       estimatedDuration: parseInt(document.getElementById('fp-ed').value)||30
     });
-    renderFarming(); showToast('参数已更新', 'success');
+    renderFarming(); logOperation('修改','方案参数','已调整'); showToast('参数已更新', 'success');
   });
 };
 window.farmFieldDetail = function(id) {
@@ -821,6 +886,37 @@ window.farmFieldDetail = function(id) {
   if (!f) return;
   var h = '<div class="space-y-2 text-sm"><div class="grid grid-cols-2 gap-2"><div><span class="text-gray-500">地块：</span>'+f.code+'</div><div><span class="text-gray-500">面积：</span>'+f.area+'亩</div><div><span class="text-gray-500">作物：</span>'+f.cropName+'</div><div><span class="text-gray-500">状态：</span>'+(f.status==='growing'?'生长中':f.status)+'</div><div><span class="text-gray-500">湿度：</span>'+f.soilMoisture+'%</div><div><span class="text-gray-500">pH：</span>'+f.soilPh+'</div><div><span class="text-gray-500">种植：</span>'+f.plantedDate+'</div><div><span class="text-gray-500">预计采收：</span>'+f.expectedHarvest+'</div></div><p class="text-xs text-gray-400">位置：'+f.location+'</p></div>';
   showConfirm('地块详情 - '+f.code, h, function(){});
+};
+window.farmEditField = function(id) {
+  var f = dataService.getById('fields', id);
+  if (!f) return;
+  var stOpts = ['growing','fallow','harvesting','planted'];
+  var stLabels = {growing:'生长中',fallow:'休耕',harvesting:'采收期',planted:'已种植'};
+  var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">地块编号</label><input id="fef-code" class="w-full px-3 py-2 border rounded text-sm" value="'+f.code+'"></div><div><label class="text-xs text-gray-500">地块名称</label><input id="fef-name" class="w-full px-3 py-2 border rounded text-sm" value="'+(f.name||'')+'"></div><div><label class="text-xs text-gray-500">作物</label><input id="fef-crop" class="w-full px-3 py-2 border rounded text-sm" value="'+(f.cropName||'')+'"></div><div><label class="text-xs text-gray-500">面积(亩)</label><input id="fef-area" class="w-full px-3 py-2 border rounded text-sm" value="'+(f.area||1)+'"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-gray-500">土壤湿度(%)</label><input id="fef-moist" class="w-full px-3 py-2 border rounded text-sm" value="'+(f.soilMoisture||50)+'"></div><div><label class="text-xs text-gray-500">pH值</label><input id="fef-ph" class="w-full px-3 py-2 border rounded text-sm" value="'+(f.soilPh||7)+'"></div></div><div><label class="text-xs text-gray-500">状态</label><select id="fef-status" class="w-full px-3 py-2 border rounded text-sm">'+stOpts.map(function(s){return '<option value="'+s+'"'+(s===f.status?' selected':'')+'>'+(stLabels[s]||s)+'</option>';}).join('')+'</select></div><div><label class="text-xs text-gray-500">位置</label><input id="fef-loc" class="w-full px-3 py-2 border rounded text-sm" value="'+(f.location||'')+'"></div><div><label class="text-xs text-gray-500">预计采收</label><input id="fef-harvest" type="date" class="w-full px-3 py-2 border rounded text-sm" value="'+(f.expectedHarvest||'')+'"></div></div>';
+  showConfirm('编辑地块', h, function(ok) {
+    if (!ok) return;
+    dataService.update('fields', id, {
+      code: document.getElementById('fef-code').value,
+      name: document.getElementById('fef-name').value,
+      cropName: document.getElementById('fef-crop').value,
+      area: parseFloat(document.getElementById('fef-area').value)||1,
+      soilMoisture: parseInt(document.getElementById('fef-moist').value)||50,
+      soilPh: parseFloat(document.getElementById('fef-ph').value)||7,
+      status: document.getElementById('fef-status').value,
+      location: document.getElementById('fef-loc').value,
+      expectedHarvest: document.getElementById('fef-harvest').value
+    });
+    renderFarming(); logOperation('修改','地块','地块信息已更新'); showToast('地块已更新', 'success');
+  });
+};
+window.farmDeleteField = function(id) {
+  var f = dataService.getById('fields', id);
+  if (!f) return;
+  showConfirm('删除地块', '<p class="text-sm">确定删除 <b>地块'+f.code+' ('+f.cropName+')</b> 吗？此操作不可恢复。</p>', function(ok) {
+    if (!ok) return;
+    dataService.delete('fields', id);
+    renderFarming(); logOperation('删除','地块','地块已删除'); showToast('地块已删除', 'success');
+  });
 };
 window.farmTaskDetail = function(id) {
   var t = dataService.getById('farming_tasks', id);
@@ -834,10 +930,50 @@ window.farmCompleteTask = function(id) {
   dataService.update('farming_tasks', id, {status:'completed'});
   renderFarming(); showToast('任务已完成', 'success');
 };
+window.farmEditTask = function(id) {
+  var t = dataService.getById('farming_tasks', id);
+  if (!t) return;
+  var fields = dataService.getAll('fields')||[];
+  var fOpts = fields.map(function(f){return '<option value="'+f.code+'"'+(f.code===t.fieldCode?' selected':'')+'>'+f.code+' - '+f.cropName+'</option>';}).join('');
+  var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">任务类型</label><select id="fet-type" class="w-full px-3 py-2 border rounded text-sm"><option value="watering"'+('watering'===t.type?' selected':'')+'>浇水</option><option value="fertilizing"'+('fertilizing'===t.type?' selected':'')+'>施肥</option><option value="spraying"'+('spraying'===t.type?' selected':'')+'>喷药</option><option value="pruning"'+('pruning'===t.type?' selected':'')+'>修剪</option><option value="harvesting"'+('harvesting'===t.type?' selected':'')+'>采收</option><option value="thinning"'+('thinning'===t.type?' selected':'')+'>疏果</option></select></div><div><label class="text-xs text-gray-500">目标地块</label><select id="fet-field" class="w-full px-3 py-2 border rounded text-sm">'+fOpts+'</select></div><div><label class="text-xs text-gray-500">执行时间</label><input id="fet-time" type="datetime-local" class="w-full px-3 py-2 border rounded text-sm" value="'+(t.scheduledTime?t.scheduledTime.slice(0,16):localDatetimeValue())+'"></div><div><label class="text-xs text-gray-500">时长(分钟)</label><input id="fet-dur" class="w-full px-3 py-2 border rounded text-sm" value="'+(t.estimatedDuration||30)+'"></div><div><label class="text-xs text-gray-500">负责人</label><input id="fet-assign" class="w-full px-3 py-2 border rounded text-sm" value="'+(t.assignedTo||'')+'"></div><div><label class="text-xs text-gray-500">状态</label><select id="fet-status" class="w-full px-3 py-2 border rounded text-sm"><option value="pending"'+('pending'===t.status?' selected':'')+'>待执行</option><option value="in_progress"'+('in_progress'===t.status?' selected':'')+'>进行中</option><option value="completed"'+('completed'===t.status?' selected':'')+'>已完成</option><option value="cancelled"'+('cancelled'===t.status?' selected':'')+'>已取消</option></select></div><div><label class="text-xs text-gray-500">备注</label><input id="fet-note" class="w-full px-3 py-2 border rounded text-sm" value="'+(t.notes||'')+'"></div></div>';
+  showConfirm('编辑任务', h, function(ok) {
+    if (!ok) return;
+    var fc = document.getElementById('fet-field').value;
+    var fld = fields.find(function(f){return f.code===fc;})||{};
+    dataService.update('farming_tasks', id, {
+      type: document.getElementById('fet-type').value,
+      fieldCode: fc, cropName: fld.cropName||'',
+      scheduledTime: document.getElementById('fet-time').value,
+      estimatedDuration: parseInt(document.getElementById('fet-dur').value)||30,
+      assignedTo: document.getElementById('fet-assign').value||'--',
+      status: document.getElementById('fet-status').value,
+      notes: document.getElementById('fet-note').value
+    });
+    renderFarming(); logOperation('修改','农事任务','任务已更新'); showToast('任务已更新', 'success');
+  });
+};
+window.farmReopenPlan = function(table, id) {
+  var init = table==='fertilization_plans' ? 'planned' : 'pending';
+  dataService.update(table, id, {status: init});
+  renderFarming(); logOperation('修改','方案','已撤销完成'); showToast('已重新安排', 'success');
+};
+window.farmExecFertilization = function(id) {
+  dataService.update('fertilization_plans', id, {status:'completed', executedAt: new Date().toISOString().slice(0,16)});
+  renderFarming(); logOperation('执行','施肥方案','方案已执行'); showToast('施肥方案已执行', 'success');
+};
+window.farmDeleteFertilization = function(id) {
+  var p = dataService.getById('fertilization_plans', id);
+  if (!p) return;
+  showConfirm('删除施肥方案', '<p class="text-sm">确定删除 <b>地块'+p.fieldCode+' '+p.cropName+'</b> 的施肥方案吗？</p>', function(ok) {
+    if (!ok) return;
+    dataService.delete('fertilization_plans', id);
+    renderFarming(); logOperation('删除','施肥方案','方案已删除'); showToast('施肥方案已删除', 'success');
+  });
+};
 window.farmAddTask = function() {
   var fields = dataService.getAll('fields')||[];
   var fOpts = fields.map(function(f){return '<option value="'+f.code+'">'+f.code+' - '+f.cropName+'</option>';}).join('');
-  var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">任务类型</label><select id="fat-type" class="w-full px-3 py-2 border rounded text-sm"><option value="watering">浇水</option><option value="fertilizing">施肥</option><option value="spraying">喷药</option><option value="pruning">修剪</option><option value="harvesting">采收</option><option value="thinning">疏果</option></select></div><div><label class="text-xs text-gray-500">目标地块</label><select id="fat-field" class="w-full px-3 py-2 border rounded text-sm">'+fOpts+'</select></div><div><label class="text-xs text-gray-500">执行时间</label><input id="fat-time" class="w-full px-3 py-2 border rounded text-sm" value="'+new Date().toISOString().slice(0,16)+'"></div><div><label class="text-xs text-gray-500">时长(分钟)</label><input id="fat-dur" class="w-full px-3 py-2 border rounded text-sm" value="30"></div><div><label class="text-xs text-gray-500">备注</label><input id="fat-note" class="w-full px-3 py-2 border rounded text-sm" placeholder="任务说明"></div></div>';
+  var h = '<div class="space-y-3"><div><label class="text-xs text-gray-500">任务类型</label><select id="fat-type" class="w-full px-3 py-2 border rounded text-sm"><option value="watering">浇水</option><option value="fertilizing">施肥</option><option value="spraying">喷药</option><option value="pruning">修剪</option><option value="harvesting">采收</option><option value="thinning">疏果</option></select></div><div><label class="text-xs text-gray-500">目标地块</label><select id="fat-field" class="w-full px-3 py-2 border rounded text-sm">'+fOpts+'</select></div><div><label class="text-xs text-gray-500">执行时间</label><input id="fat-time" type="datetime-local" class="w-full px-3 py-2 border rounded text-sm" value="'+localDatetimeValue()+'"></div><div><label class="text-xs text-gray-500">时长(分钟)</label><input id="fat-dur" class="w-full px-3 py-2 border rounded text-sm" value="30"></div><div><label class="text-xs text-gray-500">备注</label><input id="fat-note" class="w-full px-3 py-2 border rounded text-sm" placeholder="任务说明"></div></div>';
   showConfirm('添加农事任务', h, function(ok) {
     if (!ok) return;
     var fc = document.getElementById('fat-field').value;
@@ -851,7 +987,7 @@ window.farmAddTask = function() {
       status: 'pending', assignedTo: '--',
       priority: 'medium', notes: document.getElementById('fat-note').value
     });
-    renderFarming(); showToast('任务添加成功', 'success');
+    renderFarming(); logOperation('新增','农事任务','新任务'); showToast('任务添加成功', 'success');
   });
 };
 window.farmAddField = function() {
@@ -887,7 +1023,7 @@ window.farmAddIrrigation = function() {
       estimatedDuration: parseInt(document.getElementById('fai-ed').value)||30,
       status: 'pending', scheduledAt: new Date().toISOString().slice(0,10)
     });
-    renderFarming(); showToast('灌溉方案已添加', 'success');
+    renderFarming(); logOperation('新增','灌溉方案','方案已添加'); showToast('灌溉方案已添加', 'success');
   });
 };
 window.farmAddFertilization = function() {
@@ -907,7 +1043,7 @@ window.farmAddFertilization = function() {
       organicKg: parseInt(document.getElementById('faf-o').value)||3,
       status: 'planned', scheduledAt: new Date().toISOString().slice(0,10)
     });
-    renderFarming(); showToast('施肥方案已添加', 'success');
+    renderFarming(); logOperation('新增','施肥方案','方案已添加'); showToast('施肥方案已添加', 'success');
   });
 };
 
@@ -923,6 +1059,14 @@ function showConfirm(title, body, cb) {
   document.getElementById('cf-ok').onclick = function(e) { e.stopPropagation(); close(true); };
   document.getElementById('cf-cancel').onclick = function(e) { e.stopPropagation(); close(false); };
   overlay.onclick = function(e) { if (e.target === overlay) close(false); };
+}
+
+// 本地时区 datetime-local 默认值（避免 UTC 偏差导致时间错位）
+function localDatetimeValue(d) {
+  d = d || new Date();
+  var off = d.getTimezoneOffset();
+  var local = new Date(d.getTime() - off * 60000);
+  return local.toISOString().slice(0, 16);
 }
 
 // ==================== 全局辅助函数 ====================

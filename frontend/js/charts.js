@@ -17,12 +17,69 @@ function initChart(chartId, config) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
+  // 检查 Chart 全局是否就绪
+  if (typeof Chart === 'undefined') {
+    console.warn('[Charts] Chart.js 未就绪，300ms 后重试', chartId);
+    setTimeout(function() { initChart(chartId, config); }, 300);
+    return;
+  }
+
   charts[chartId] = new Chart(ctx, config);
 }
 
 function ds() {
-  // 安全获取 dataService，未就绪时返回 null
   return (typeof dataService !== 'undefined' && dataService.isReady()) ? dataService : null;
+}
+
+// ========== 模拟环境监测数据生成 ==========
+
+function generateEnvData(range, points) {
+  points = points || (range === 'realtime' ? 12 : range === '7d' ? 28 : 24);
+  var now = new Date();
+  var labels = [];
+  var temperature = [];
+  var humidity = [];
+  // 基础值：温度 20-28°C 正弦波动，湿度 55-75% 反向波动
+  for (var i = points - 1; i >= 0; i--) {
+    var d = new Date(now);
+    if (range === '7d') d.setHours(d.getHours() - i * 6);
+    else d.setMinutes(d.getMinutes() - i * (60 * 24 / points));
+    labels.push(d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'));
+    // 正弦模拟：温度中午高早晚低
+    var hour01 = (d.getHours() + d.getMinutes() / 60) / 24 * 2 * Math.PI;
+    var baseTemp = 24 + 6 * Math.sin(hour01 - 0.5 * Math.PI);
+    temperature.push(Math.round((baseTemp + (Math.random() - 0.5) * 2) * 10) / 10);
+    // 湿度与温度反向
+    var baseHum = 65 - 10 * Math.sin(hour01 - 0.5 * Math.PI);
+    humidity.push(Math.round((baseHum + (Math.random() - 0.5) * 5) * 10) / 10);
+  }
+  return { labels: labels, temperature: temperature, humidity: humidity };
+}
+
+function refreshEnvironmentChart(range) {
+  range = range || '24h';
+  var env = generateEnvData(range);
+  // 直接重绘环境监测图
+  if (document.getElementById('environmentChart')) {
+    initChart('environmentChart', {
+      type: 'line',
+      data: {
+        labels: env.labels,
+        datasets: [
+          { label: '温度 °C', data: env.temperature, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4, yAxisID: 'y' },
+          { label: '湿度 %', data: env.humidity, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, yAxisID: 'y1' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y: { beginAtZero: false, min: 10, max: 40, title: { display: true, text: '温度 (°C)' } },
+          y1: { position: 'right', beginAtZero: false, min: 40, max: 100, title: { display: true, text: '湿度 (%)' } }
+        }
+      }
+    });
+  }
 }
 
 // ========== 仪表盘图表 ==========
@@ -30,30 +87,8 @@ function ds() {
 function initDashboardCharts() {
   const s = ds();
 
-  // 环境监测图
-  const env = s ? s.getEnvironmentTrend() : {
-    labels: ['06:00','08:00','10:00','12:00','14:00','16:00','18:00'],
-    temperature: [18,22,28,32,30,26,22],
-    humidity: [75,70,65,60,58,62,70]
-  };
-  initChart('environmentChart', {
-    type: 'line',
-    data: {
-      labels: env.labels,
-      datasets: [
-        { label: '温度 °C', data: env.temperature, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4, yAxisID: 'y' },
-        { label: '湿度 %', data: env.humidity, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, yAxisID: 'y1' }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: 'bottom' } },
-      scales: {
-        y: { beginAtZero: false, min: 10, max: 40, title: { display: true, text: '温度 (°C)' } },
-        y1: { position: 'right', beginAtZero: false, min: 40, max: 100, title: { display: true, text: '湿度 (%)' } }
-      }
-    }
-  });
+  // 环境监测图 — 使用模拟数据确保始终有显示
+  refreshEnvironmentChart('24h');
 
   // 产量趋势图（如果有 canvas）
   const cost = s ? s.getCostComparison() : {
@@ -339,56 +374,3 @@ function initChartsBySection(sectionId) {
     case 'monitor':    initMonitorCharts(); break;
   }
 }
-
-// ========== 图表刷新（时间范围切换） ==========
-
-function refreshEnvironmentChart(range) {
-  const s = ds();
-  if (!s) return;
-
-  let env;
-  if (range === '24小时') {
-    env = s.getEnvironmentTrend(); // 完整24小时数据
-  } else if (range === '7天') {
-    // 7天聚合数据
-    env = {
-      labels: ['1/9','1/10','1/11','1/12','1/13','1/14','1/15'],
-      temperature: [20,22,24,26,24,21,23],
-      humidity: [72,68,65,62,66,70,68]
-    };
-  } else {
-    // 实时 = 最近7个点
-    env = s.getEnvironmentTrend();
-  }
-  initChart('environmentChart', {
-    type: 'line',
-    data: {
-      labels: env.labels,
-      datasets: [
-        { label: '温度 °C', data: env.temperature, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4, yAxisID: 'y' },
-        { label: '湿度 %', data: env.humidity, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, yAxisID: 'y1' }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: 'bottom' } },
-      scales: {
-        y: { beginAtZero: false, min: 10, max: 40, title: { display: true, text: '温度 (°C)' } },
-        y1: { position: 'right', beginAtZero: false, min: 40, max: 100, title: { display: true, text: '湿度 (%)' } }
-      }
-    }
-  });
-}
-
-// 初始加载时，如果DOM已就绪且数据服务可用，初始化仪表盘图表
-// 注意：app.js 会在数据就绪后调用 initDashboardCharts()，此处的 DOMContentLoaded 只作为 fallback
-document.addEventListener('DOMContentLoaded', () => {
-  // 如果 app.js 还没有初始化图表（通过全局标志判断）
-  if (typeof window.__chartsInitialized === 'undefined') {
-    window.__chartsInitialized = true;
-    const tryInit = () => {
-      initDashboardCharts();
-    };
-    setTimeout(tryInit, 500);
-  }
-});

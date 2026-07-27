@@ -4,14 +4,21 @@ import com.smartfarm.dto.response.ApiResponse;
 import com.smartfarm.entity.*;
 import com.smartfarm.repository.*;
 import com.smartfarm.service.AiClientService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
+/**
+ * AI 模型监控控制器
+ * 提供模型版本管理、性能监控及 AI 异常检测功能
+ */
 @RestController
 @RequestMapping("/api/v1/monitor")
 @RequiredArgsConstructor
+@Tag(name = "模型监控", description = "AI 模型版本管理、性能指标监控及 IoT 异常检测")
 public class MonitorController {
 
     private final ModelVersionsRepository modelRepo;
@@ -19,6 +26,7 @@ public class MonitorController {
     private final AiClientService aiClient;
 
     @GetMapping("/stats")
+    @Operation(summary = "模型监控统计", description = "返回活跃模型数、平均准确率、漂移警告数等统计")
     public ApiResponse<Map<String, Object>> getStats() {
         List<ModelVersions> models = modelRepo.findAll();
         Map<String, Object> s = new HashMap<>();
@@ -39,11 +47,13 @@ public class MonitorController {
     }
 
     @GetMapping("/versions")
+    @Operation(summary = "获取模型版本列表", description = "返回所有 AI 模型版本信息")
     public ApiResponse<List<ModelVersions>> getVersions() {
         return ApiResponse.ok(modelRepo.findAll());
     }
 
     @GetMapping("/performance")
+    @Operation(summary = "获取模型性能数据", description = "返回各模型的准确率和漂移评分对比数据")
     public ApiResponse<Map<String, Object>> getPerformance() {
         List<ModelVersions> models = modelRepo.findAll();
         Map<String, Object> perf = new LinkedHashMap<>();
@@ -56,6 +66,7 @@ public class MonitorController {
     // ==================== AI IoT 设备异常检测 ====================
 
     @PostMapping("/anomaly/detect")
+    @Operation(summary = "AI 异常检测", description = "分析传感器时序数据，调用 AI 检测设备异常")
     public ApiResponse<?> detectAnomaly(@RequestBody List<Map<String, Object>> timeSeriesData) {
         Map<String, Object> result = aiClient.detectAnomaly(timeSeriesData);
         return ApiResponse.ok(result);

@@ -17,7 +17,7 @@ window.invQuickIn = function(id) {
         var result = dataService.update('inventory', id, {quantity: (item.quantity||0)+n});
         if (!result) { showToast('更新失败-未找到物品', 'error'); return; }
         safeRefreshInventory();
-        showToast(item.name+' 入库 +'+n+item.unit, 'success');
+        logOperation('入库','库存',item.name+' +'+n+item.unit); showToast(item.name+' 入库 +'+n+item.unit, 'success');
       } catch(e) { console.error('invQuickIn cb err:', e); showToast('操作失败:'+e.message, 'error'); }
     });
   } catch(e) { showToast('出错了', 'error'); }
@@ -62,7 +62,7 @@ window.invQuickOut = function(id) {
         if (n<=0) { showToast('请输入有效数量', 'error'); return; }
         if ((item.quantity||0) < n) { showToast('库存不足（当前仅'+item.quantity+item.unit+'）', 'error'); return; }
         dataService.update('inventory', id, {quantity: (item.quantity||0)-n});
-        safeRefreshInventory(); showToast(item.name+' 出库 -'+n+item.unit, 'success');
+        safeRefreshInventory(); logOperation('出库','库存',item.name+' -'+n+item.unit); showToast(item.name+' 出库 -'+n+item.unit, 'success');
       } catch(e) { console.error('invQuickOut cb err:', e); showToast('操作失败:'+e.message, 'error'); }
     });
   } catch(e) { showToast('出错了', 'error'); }
@@ -80,7 +80,7 @@ window.invAddItem = function() {
       unit: (document.getElementById('inv-unit')||{}).value||'kg',
       minStock: parseInt((document.getElementById('inv-min')||{}).value)||5
     });
-    safeRefreshInventory(); showToast(nm+' 已添加', 'success');
+    safeRefreshInventory(); logOperation('新增','库存',nm); showToast(nm+' 已添加', 'success');
   });
 };
 
@@ -90,7 +90,7 @@ window.invDeleteItem = function(id) {
   showConfirm('删除物品', '<p class="text-sm">确定删除 <b>'+item.name+'</b> 吗？当前库存: '+item.quantity+item.unit+'</p>', function(ok){
     if (!ok) return;
     dataService.delete('inventory', id);
-    safeRefreshInventory(); showToast(item.name+' 已删除', 'success');
+    safeRefreshInventory(); logOperation('删除','库存',item.name); showToast(item.name+' 已删除', 'success');
   });
 };
 
@@ -170,7 +170,7 @@ window.devStart = function(id) {
 
 window.devRefreshAll = function() {
   renderDevices(); renderDashboard();
-  showToast('设备状态已刷新', 'success');
+  logOperation('刷新','设备','全部设备状态已刷新'); showToast('设备状态已刷新', 'success');
 };
 
 window.devEmergencyStop = function() {
@@ -178,7 +178,7 @@ window.devEmergencyStop = function() {
     if (!ok) return;
     var devices = dataService.getAll('devices')||[];
     devices.forEach(function(d){ if (d.status==='online') dataService.update('devices', d.id, {status:'maintenance'}); });
-    devRefreshAll(); showToast('所有设备已紧急停止', 'warning');
+    devRefreshAll(); logOperation('控制','设备','紧急停止所有设备'); showToast('所有设备已紧急停止', 'warning');
   });
 };
 
@@ -204,7 +204,7 @@ window.devAddDevice = function() {
       nextMaintenance: '', ipAddress: document.getElementById('dea-ip').value,
       firmwareVersion: 'v1.0.0'
     });
-    devRefreshAll(); showToast('设备添加成功', 'success');
+    devRefreshAll(); logOperation('新增','设备','新设备已添加'); showToast('设备添加成功', 'success');
   });
 };
 
@@ -226,13 +226,15 @@ window.farmDeleteIrrigation = function(id) {
   showConfirm('删除灌溉方案', '<p class="text-sm">确定删除 <b>地块'+p.fieldCode+' '+p.cropName+'</b> 的灌溉方案吗？</p>', function(ok) {
     if (!ok) return;
     dataService.delete('irrigation_plans', id);
-    farmRefreshAll(); showToast('灌溉方案已删除', 'success');
+    farmRefreshAll(); logOperation('删除','灌溉方案','方案已删除'); showToast('灌溉方案已删除', 'success');
   });
 };
 
 window.farmExecIrrigation = function(id) {
-  dataService.update('irrigation_plans', id, {status:'completed'});
-  farmRefreshAll(); showToast('灌溉方案已执行', 'success');
+  var p = dataService.getById('irrigation_plans', id);
+  if (!p) return;
+  dataService.update('irrigation_plans', id, {status:'completed', currentMoisture: p.targetMoisture});
+  farmRefreshAll(); logOperation('执行','灌溉方案','方案已执行'); showToast('灌溉方案已执行，湿度已更新', 'success');
 };
 
 window.farmDeleteTask = function(id) {
@@ -240,13 +242,13 @@ window.farmDeleteTask = function(id) {
   showConfirm('删除任务', '<p class="text-sm">确定删除 <b>地块'+t.fieldCode+' '+(t.type||'')+'</b> 任务吗？</p>', function(ok) {
     if (!ok) return;
     dataService.delete('farming_tasks', id);
-    farmRefreshAll(); showToast('任务已删除', 'success');
+    farmRefreshAll(); logOperation('删除','农事任务','任务已删除'); showToast('任务已删除', 'success');
   });
 };
 
 window.farmSetTaskStatus = function(id, status) {
   dataService.update('farming_tasks', id, {status: status});
-  farmRefreshAll(); showToast('任务状态已更新', 'success');
+  farmRefreshAll(); logOperation('修改','农事任务','任务状态已更新'); showToast('任务状态已更新', 'success');
 };
 
 window.farmEditPlan = function(table, id) {
@@ -256,14 +258,23 @@ window.farmEditPlan = function(table, id) {
   if (table==='irrigation_plans') {
     h += '<div><label class="text-xs text-gray-500">目标湿度(%)</label><input id="fp-tm" class="w-full px-3 py-2 border rounded text-sm" value="'+row.targetMoisture+'"></div><div><label class="text-xs text-gray-500">水量(m鲁)</label><input id="fp-wv" class="w-full px-3 py-2 border rounded text-sm" value="'+row.waterVolume+'"></div><div><label class="text-xs text-gray-500">时长(分钟)</label><input id="fp-ed" class="w-full px-3 py-2 border rounded text-sm" value="'+row.estimatedDuration+'"></div>';
   }
+  if (table==='fertilization_plans') {
+    h += '<div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-gray-500">氮肥 N (kg)</label><input id="fp2-n" class="w-full px-3 py-2 border rounded text-sm" value="'+(row.nKg||0)+'"></div><div><label class="text-xs text-gray-500">磷肥 P (kg)</label><input id="fp2-p" class="w-full px-3 py-2 border rounded text-sm" value="'+(row.pKg||0)+'"></div><div><label class="text-xs text-gray-500">钾肥 K (kg)</label><input id="fp2-k" class="w-full px-3 py-2 border rounded text-sm" value="'+(row.kKg||0)+'"></div><div><label class="text-xs text-gray-500">有机肥 (kg)</label><input id="fp2-o" class="w-full px-3 py-2 border rounded text-sm" value="'+(row.organicKg||0)+'"></div></div>';
+  }
   h += '</div>';
-  showConfirm('调整方案参数', h, function(ok) {
+  showConfirm(table==='fertilization_plans'?'调整施肥参数':'调整方案参数', h, function(ok) {
     if (!ok) return;
     var changes = {};
     if (table==='irrigation_plans') {
       changes.targetMoisture = parseInt(document.getElementById('fp-tm').value)||65;
       changes.waterVolume = parseInt(document.getElementById('fp-wv').value)||10;
       changes.estimatedDuration = parseInt(document.getElementById('fp-ed').value)||30;
+    }
+    if (table==='fertilization_plans') {
+      changes.nKg = parseInt(document.getElementById('fp2-n').value)||0;
+      changes.pKg = parseInt(document.getElementById('fp2-p').value)||0;
+      changes.kKg = parseInt(document.getElementById('fp2-k').value)||0;
+      changes.organicKg = parseInt(document.getElementById('fp2-o').value)||0;
     }
     dataService.update(table, id, changes);
     farmRefreshAll(); showToast('参数已更新', 'success');
@@ -434,7 +445,7 @@ window.diseaseAskAI = function(diseaseName, cropAffected) {
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+APP_CONFIG.DEEPSEEK_API_KEY},
     body:JSON.stringify({
-      model:'deepseek-v4-pro',
+      model:'deepseek-chat',
       messages:[{role:'system',content:'你是高级农业植保专家，精通病虫害诊断和防治。请用简洁专业的中文回复。'},
                 {role:'user',content:'作物"'+cropAffected+'"出现"'+diseaseName+'"，请提供专业的治疗方案及预防建议。请包含：1.病因简介 2.化学防治方案 3.生物/农业防治方案 4.预防建议。每项用简洁的要点列出。'}],
       max_tokens:800,temperature:0.3
@@ -479,3 +490,37 @@ window.deleteDiseaseRecord = function(id) {
 };
 
 console.log('[SmartFarm] 补丁已加载: 库存/设备/农事/预警/天气/DiseaseAI');
+
+// === 操作日志渲染 ===
+window.renderOperationLogs = function() {
+  var logs = (dataService._tables && dataService._tables['operation_logs']) ? dataService._tables['operation_logs'] : [];
+  logs = logs.slice(-50).reverse(); // 最近50条，最新在前
+  var container = document.getElementById('operation-log-list');
+  if (!container) return;
+  if (!logs.length) { container.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">暂无操作记录</p>'; return; }
+  var actionBadge = {'新增':'bg-green-100 text-green-600','修改':'bg-blue-100 text-blue-600','删除':'bg-red-100 text-red-600','执行':'bg-purple-100 text-purple-600','入库':'bg-teal-100 text-teal-600','出库':'bg-orange-100 text-orange-600','控制':'bg-yellow-100 text-yellow-600','刷新':'bg-gray-100 text-gray-600','登录':'bg-indigo-100 text-indigo-600'};
+  container.innerHTML = logs.map(function(l){
+    var badge = actionBadge[l.action] || 'bg-gray-100 text-gray-600';
+    return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs"><div class="flex items-center gap-2"><span class="px-1.5 py-0.5 rounded '+badge+'">'+l.action+'</span><span class="text-gray-600">'+l.target+'</span><span class="text-gray-500">'+ (l.detail||'') +'</span></div><div class="text-gray-400"><span class="mr-3">'+ (l.operator||'') +'</span>'+ (l.operatedAt||'') +'</div></div>';
+  }).join('');
+};
+
+// === 查看全部操作日志 ===
+window.viewAllLogs = function() {
+  var logs = (dataService._tables && dataService._tables['operation_logs']) ? dataService._tables['operation_logs'] : [];
+  logs = logs.slice().reverse(); // 全部，最新在上
+  if (!logs.length) { showToast('暂无操作记录', 'info'); return; }
+  var actionBg = {'新增':'bg-green-100','入库':'bg-teal-100','出库':'bg-orange-100','修改':'bg-blue-100','删除':'bg-red-100','执行':'bg-purple-100','控制':'bg-yellow-100','刷新':'bg-gray-100','登录':'bg-indigo-100'};
+  var html = '<div class="space-y-2 max-h-96 overflow-y-auto">';
+  logs.forEach(function(l){
+    var bg = actionBg[l.action] || 'bg-gray-100';
+    html += '<div class="flex items-center justify-between p-2 '+bg+' rounded-lg text-xs"><div class="flex items-center gap-2"><span class="font-medium text-gray-700">'+l.action+'</span><span class="text-gray-600">'+l.target+'</span><span class="text-gray-500">'+(l.detail||'')+'</span></div><div class="text-gray-400 flex-shrink-0"><span class="mr-2">'+(l.operator||'')+'</span>'+(l.operatedAt||'')+'</div></div>';
+  });
+  html += '</div>';
+  showConfirm('全部操作日志 ('+logs.length+'条)', html, function(){});
+};
+
+;
+
+;
+

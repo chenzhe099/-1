@@ -76,6 +76,8 @@ function doLogin() {
 
   errEl.classList.add('hidden');
   hideLoginModal();
+  localStorage.setItem('last_username', username);
+  if (typeof logOperation === 'function') logOperation('登录', '系统', username + ' 登录成功');
   document.getElementById('app-container').style.display = '';
   Auth.applyPermissionUI();
   initAppAfterLogin();
@@ -841,7 +843,7 @@ function setupAiChat() {
         'Authorization': 'Bearer ' + apiKey
       },
       body: JSON.stringify({
-        model: 'deepseek-v4-pro',
+        model: 'deepseek-chat',
         messages: messages,
         temperature: 0.7,
         max_tokens: 2000
@@ -910,3 +912,29 @@ function setupAiChat() {
   };
   if (clearBtn) clearBtn.onclick = clearChat;
 }
+
+// ==================== 操作日志 ====================
+// 全局日志记录：所有增删改操作自动记录到 operation_logs 表
+window.logOperation = function(action, target, detail) {
+  if (!dsReady()) { console.debug('logOperation skipped: ds not ready'); return; }
+  var now = new Date();
+  var p = function(n){return n<10?'0'+n:''+n;};
+  var time = now.getFullYear()+'-'+p(now.getMonth()+1)+'-'+p(now.getDate())+' '+p(now.getHours())+':'+p(now.getMinutes())+':'+p(now.getSeconds());
+  var user = localStorage.getItem('last_username') || 'admin';
+  var row = {
+    id: 'log_'+Date.now().toString(36)+Math.floor(Math.random()*1000),
+    action: action,
+    target: target,
+    detail: detail || '',
+    operator: user,
+    operatedAt: time
+  };
+  // 直接操作内存表（绕过 async 的 insert 确保立即可见）
+  if (!ds()._tables['operation_logs']) ds()._tables['operation_logs'] = [];
+  ds()._tables['operation_logs'].push(row);
+  try { ds()._saveToLocal(); } catch(e) {}
+  // 如果权限管理页面可见，立即刷新日志显示
+  if (typeof renderPermission === 'function') {
+    try { renderPermission(); } catch(e) {}
+  }
+};

@@ -24,6 +24,7 @@ import java.util.*;
 /**
  * 数据迁移服务 — 首次启动时从 JSON 文件导入模拟数据到 MySQL
  * 每张表独立事务，单表失败不影响其他表和应用启动
+ * 每行记录独立错误处理，单条记录失败不影响同表其他记录
  */
 @Slf4j
 @Component
@@ -93,6 +94,7 @@ public class DataMigrationService implements CommandLineRunner {
             }
 
             int totalImported = 0;
+            int totalFailed = 0;
             for (Map.Entry<String, String> entry : TABLE_ENTITY_MAP.entrySet()) {
                 String tableName = entry.getKey();
                 String entityName = entry.getValue();
@@ -107,17 +109,26 @@ public class DataMigrationService implements CommandLineRunner {
                     int count = self.doImport(tableName, entityName, jsonFile);
                     totalImported += count;
                 } catch (Exception e) {
-                    log.warn("[DataMigration] 表 '{}' 导入失败(跳过): {}", tableName, e.getMessage());
+                    totalFailed++;
+                    log.warn("[DataMigration] 表 '{}' 导入失败(已跳过): {}", tableName, e.getMessage());
                 }
             }
 
-            log.info("[DataMigration] 完成! 成功导入 {} 条记录到 MySQL", totalImported);
+            if (totalFailed > 0) {
+                log.warn("[DataMigration] 完成! 成功导入 {} 条记录，{} 张表导入失败", totalImported, totalFailed);
+            } else {
+                log.info("[DataMigration] 完成! 成功导入 {} 条记录到 MySQL", totalImported);
+            }
 
         } catch (Exception e) {
             log.warn("[DataMigration] 启动检查失败(不影响启动): {}", e.getMessage());
         }
     }
 
+    /**
+     * 导入单张表数据（独立事务）
+     * 单条记录失败时记录日志并继续，不回滚同表其他已成功记录
+     */
     @Transactional
     protected int doImport(String tableName, String entityName, File jsonFile) throws Exception {
         List<Map<String, Object>> rows = mapper.readValue(jsonFile,
@@ -125,53 +136,69 @@ public class DataMigrationService implements CommandLineRunner {
 
         Class<?> entityClass = Class.forName("com.smartfarm.entity." + entityName);
 
-        for (Map<String, Object> row : rows) {
-            Object entity = entityClass.getDeclaredConstructor().newInstance();
+        int successCount = 0;
+        int failCount = 0;
 
-            for (var field : entityClass.getDeclaredFields()) {
-                field.setAccessible(true);
-                String fieldName = field.getName();
+        for (int i = 0; i < rows.size(); i++) {
+            Map<String, Object> row = rows.get(i);
+            try {
+                Object entity = entityClass.getDeclaredConstructor().newInstance();
 
-                // 密码特殊处理
-                if ("password".equals(fieldName) && "Users".equals(entityName)) {
-                    field.set(entity, passwordEncoder.encode("123456"));
-                    continue;
-                }
+                for (var field : entityClass.getDeclaredFields()) {
+                    field.setAccessible(true);
+                    String fieldName = field.getName();
 
-                // 从 JSON 中查找匹配字段
-                Object value = row.get(fieldName);
-                if (value == null) {
-                    value = row.get(camelCase(fieldName));
-                }
+                    // 密码特殊处理
+                    if ("password".equals(fieldName) && "Users".equals(entityName)) {
+                        field.set(entity, passwordEncoder.encode("123456"));
+                        continue;
+                    }
 
-                if (value != null) {
-                    if (field.getType() == Double.class && value instanceof Number) {
-                        field.set(entity, ((Number) value).doubleValue());
-                    } else if (field.getType() == Boolean.class && value instanceof Boolean) {
-                        field.set(entity, value);
-                    } else if (field.getType() == String.class) {
-                        // Map/List 值序列化为 JSON 字符串，普通值转字符串
-                        if (value instanceof Map || value instanceof List) {
-                            field.set(entity, mapper.writeValueAsString(value));
-                        } else {
-                            field.set(entity, value.toString());
-                        }
-                    } else {
-                        try {
+                    // 从 JSON 中查找匹配字段
+                    Object value = row.get(fieldName);
+                    if (value == null) {
+                        value = row.get(camelCase(fieldName));
+                    }
+
+                    if (value != null) {
+                        if (field.getType() == Double.class && value instanceof Number) {
+                            field.set(entity, ((Number) value).doubleValue());
+                        } else if (field.getType() == Boolean.class && value instanceof Boolean) {
                             field.set(entity, value);
-                        } catch (IllegalArgumentException ignored) {
+                        } else if (field.getType() == String.class) {
+                            // Map/List 值序列化为 JSON 字符串，普通值转字符串
+                            if (value instanceof Map || value instanceof List) {
+                                field.set(entity, mapper.writeValueAsString(value));
+                            } else {
+                                field.set(entity, value.toString());
+                            }
+                        } else {
+                            try {
+                                field.set(entity, value);
+                            } catch (IllegalArgumentException ignored) {
+                                log.trace("[DataMigration] {}: 字段 {} 类型不匹配", entityName, fieldName);
+                            }
                         }
                     }
                 }
-            }
 
-            em.persist(entity);
+                em.persist(entity);
+                successCount++;
+            } catch (Exception e) {
+                failCount++;
+                log.warn("[DataMigration] {}.json 第 {} 行导入失败: {} - {}", tableName, i, row.get("id"), e.getMessage());
+            }
         }
 
         em.flush();
         em.clear();
-        log.info("[DataMigration] {}: 导入 {} 条", tableName, rows.size());
-        return rows.size();
+
+        if (failCount > 0) {
+            log.warn("[DataMigration] {}: 成功 {} 条, 失败 {} 条 (共计 {} 条)", tableName, successCount, failCount, rows.size());
+        } else {
+            log.info("[DataMigration] {}: 成功导入 {} 条", tableName, successCount);
+        }
+        return successCount;
     }
 
     private String camelCase(String s) {
